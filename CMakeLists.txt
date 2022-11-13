@@ -22,11 +22,12 @@ bin2h(SOURCE_FILE resources/kernal HEADER_FILE cmake-build-debug/generated/kerna
 
 add_executable(${PROJECT_NAME}
         src/main.c
+        src/psid_catalog.c
         src/io/ffsystem.c
         src/io/msc_disk.c
         src/io/usb_descriptors.c
         src/io/diskio.c
-        src/io/fatfs_port.c
+        src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
         src/sid/sid.c
