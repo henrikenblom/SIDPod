@@ -19,7 +19,7 @@ void filesystem_init() {
     fs = malloc(sizeof(FATFS));
     if (f_mount(fs, "", FA_READ | FA_WRITE) != FR_OK) {
         BYTE work[FLASH_SECTOR_SIZE];
-        f_mkfs("", 0, work, sizeof(work));
+        f_mkfs("", 0, work, FLASH_SECTOR_SIZE);
         f_setlabel(FS_LABEL);
         f_mount(fs, "", FA_READ | FA_WRITE);
     }

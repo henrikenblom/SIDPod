@@ -21,8 +21,7 @@ add_custom_target(build-time-make-directory ALL
 bin2h(SOURCE_FILE resources/kernal HEADER_FILE cmake-build-debug/generated/kernal.h VARIABLE_NAME KERNAL NULL_TERMINATE)
 
 add_executable(${PROJECT_NAME}
-        src/main.c
-        src/psid_catalog.c
+        src/main.cpp
         src/io/ffsystem.c
         src/io/msc_disk.c
         src/io/usb_descriptors.c
@@ -34,7 +33,7 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         ${PICO_SSD1306_PATH}/ssd1306.c
-        )
+        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDFile.h)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_rtc
