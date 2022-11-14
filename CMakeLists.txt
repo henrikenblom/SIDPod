@@ -10,6 +10,7 @@ set(PICO_BOARD solderparty_rp2040_stamp)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
+set(USE_WAVESHARE_PICO_AUDIO 0)
 
 project(SIDPod)
 
@@ -29,11 +30,11 @@ add_executable(${PROJECT_NAME}
         src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
-        src/sid/sid.c
+        src/audio/sid.c
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         ${PICO_SSD1306_PATH}/ssd1306.c
-        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDFile.h)
+        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDFile.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_rtc
@@ -54,7 +55,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
-        ${CMAKE_CURRENT_LIST_DIR}/src/sid/include/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/include/
         ${CMAKE_CURRENT_LIST_DIR}/cmake-build-debug/generated/
@@ -67,7 +68,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_compile_definitions(${PROJECT_NAME} PUBLIC
         CFG_TUD_MSC=1
         PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1
+        PICO_AUDIO_I2S_MONO_INPUT=1
         )
+
+if (USE_WAVESHARE_PICO_AUDIO)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+            PICO_AUDIO_I2S_DATA_PIN=26
+            PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+            )
+endif ()
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
 pico_enable_stdio_usb(${PROJECT_NAME} 0)

@@ -41,8 +41,6 @@ struct sid_info {
 
 bool sid_load_from_memory(void *data, size_t size, struct sid_info *info);
 
-void set_volume(int8_t new_volume);
-
 void sid_synth_render(uint16_t *buffer, size_t len);
 
 extern unsigned char memory[];

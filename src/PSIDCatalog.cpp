@@ -29,12 +29,12 @@ void PSIDCatalog::refreshCatalog() {
 }
 
 void PSIDCatalog::tryToAddAsPsid(FILINFO fileInfo) {
-    FIL fil;
+    FIL pFile;
     BYTE header[PSID_HEADER_SIZE];
-    UINT bytes_read;
-    f_open(&fil, fileInfo.fname, FA_READ);
-    f_read(&fil, &header, PSID_HEADER_SIZE, &bytes_read);
-    if (bytes_read == PSID_HEADER_SIZE) {
+    UINT bytesRead;
+    f_open(&pFile, fileInfo.fname, FA_READ);
+    f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
+    if (bytesRead == PSID_HEADER_SIZE) {
         uint32_t magic = header[3] | (header[2] << 0x08) | (header[1] << 0x10) | (header[0] << 0x18);
         if (magic == PSID_ID) {
             PSIDFile psidFile = PSIDFile(fileInfo);
@@ -45,7 +45,7 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO fileInfo) {
             catalog.push_back(psidFile);
         }
     }
-    f_close(&fil);
+    f_close(&pFile);
 }
 
 
