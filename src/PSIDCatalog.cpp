@@ -4,7 +4,7 @@
 #include "sid.h"
 #include "PSIDCatalogEntry.h"
 
-#define WINDOW_SIZE 3;
+#define WINDOW_SIZE 4;
 
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
