@@ -8,9 +8,9 @@
 class PSIDCatalog {
 
 public:
-    static void refreshCatalog();
+    static void refresh();
 
-    static PSIDCatalogEntry getNextPsidFile();
+    static PSIDCatalogEntry getCurrentEntry();
 
     static size_t getSize();
 

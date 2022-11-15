@@ -11,12 +11,11 @@ uint32_t PSID_ID = 0x50534944;
 uint8_t PSID_HEADER_SIZE = 0x88;
 std::vector<PSIDCatalogEntry> catalog;
 std::vector<PSIDCatalogEntry> window;
-std::vector<PSIDCatalogEntry>::iterator catalogIterator;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = WINDOW_SIZE;
 
-void PSIDCatalog::refreshCatalog() {
+void PSIDCatalog::refresh() {
     DIR *dp;
     FILINFO fno;
     FRESULT fr;
@@ -34,12 +33,8 @@ void PSIDCatalog::refreshCatalog() {
     resetAccessors();
 }
 
-PSIDCatalogEntry PSIDCatalog::getNextPsidFile() {
-    PSIDCatalogEntry psidFile = *catalogIterator++;
-    if (catalogIterator == catalog.end()) {
-        catalogIterator = catalog.begin();
-    }
-    return psidFile;
+PSIDCatalogEntry PSIDCatalog::getCurrentEntry() {
+    return catalog.at(selectedPosition);
 }
 
 size_t PSIDCatalog::getSize() {
@@ -67,7 +62,6 @@ void PSIDCatalog::selectPrevious() {
 }
 
 void PSIDCatalog::resetAccessors() {
-    catalogIterator = catalog.begin();
     selectedPosition = 0;
     windowPosition = 0;
     if (getSize() > windowSize) {
