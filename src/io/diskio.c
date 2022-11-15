@@ -2,7 +2,7 @@
 #include <memory.h>
 #include "diskio.h"
 #include "ff.h"
-#include "platform_config.h"
+#include "../platform_config.h"
 
 /*-----------------------------------------------------------------------*/
 /* Read Sector(s)                                                        */

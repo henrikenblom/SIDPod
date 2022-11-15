@@ -1,7 +1,7 @@
 #include <malloc.h>
 #include "ff_util.h"
 #include "hardware/rtc.h"
-#include "platform_config.h"
+#include "../platform_config.h"
 
 #ifndef MP_WEAK
 #define MP_WEAK __attribute__((weak))

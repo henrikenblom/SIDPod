@@ -30,6 +30,9 @@ SOFTWARE.
 
 #ifndef _inc_ssd1306
 #define _inc_ssd1306
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <pico/stdlib.h>
 #include <hardware/i2c.h>
 
@@ -60,14 +63,14 @@ typedef enum {
 *	@brief holds the configuration
 */
 typedef struct {
-    uint8_t width; 		/**< width of display */
-    uint8_t height; 	/**< height of display */
-    uint8_t pages;		/**< stores pages of display (calculated on initialization*/
-    uint8_t address; 	/**< i2c address of display*/
-    i2c_inst_t *i2c_i; 	/**< i2c connection instance */
-    bool external_vcc; 	/**< whether display uses external vcc */ 
-    uint8_t *buffer;	/**< display buffer */
-    size_t bufsize;		/**< buffer size */
+    uint8_t width;        /**< width of display */
+    uint8_t height;    /**< height of display */
+    uint8_t pages;        /**< stores pages of display (calculated on initialization*/
+    uint8_t address;    /**< i2c address of display*/
+    i2c_inst_t *i2c_i;    /**< i2c connection instance */
+    bool external_vcc;    /**< whether display uses external vcc */
+    uint8_t *buffer;    /**< display buffer */
+    size_t bufsize;        /**< buffer size */
 } ssd1306_t;
 
 /**
@@ -186,7 +189,8 @@ void ssd13606_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t w
 	@param[in] x_offset : offset of horizontal coordinate
 	@param[in] y_offset : offset of vertical coordinate
 */
-void ssd1306_bmp_show_image_with_offset(ssd1306_t *p, const uint8_t *data, const long size, uint32_t x_offset, uint32_t y_offset);
+void ssd1306_bmp_show_image_with_offset(ssd1306_t *p, const uint8_t *data, const long size, uint32_t x_offset,
+                                        uint32_t y_offset);
 
 /**
 	@brief draw monochrome bitmap
@@ -230,7 +234,7 @@ void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, cha
 	@param[in] font : pointer to font
 	@param[in] s : text to draw
 */
-void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char *s );
+void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char *s);
 
 /**
 	@brief draw string with builtin font
@@ -243,4 +247,7 @@ void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_
 */
 void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, char *s);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

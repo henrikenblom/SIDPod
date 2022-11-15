@@ -1,4 +1,4 @@
-#include "platform_config.h"
+#include "../../platform_config.h"
 
 #ifndef HW_USB_MANUFACTURER_STRING
 #define HW_USB_MANUFACTURER_STRING "Enblom"

@@ -1,5 +1,5 @@
 #include "tusb.h"
-#include "platform_config.h"
+#include "../platform_config.h"
 #include "diskio.h"
 #include "msc_control.h"
 

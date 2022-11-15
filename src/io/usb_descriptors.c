@@ -1,5 +1,5 @@
 #include "tusb.h"
-#include "platform_config.h"
+#include "../platform_config.h"
 #include "pico/unique_id.h"
 
 #define USBD_CDC_CMD_MAX_SIZE (8)

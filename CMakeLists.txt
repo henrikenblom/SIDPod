@@ -6,11 +6,12 @@ include(pico_extras_import.cmake)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
 set(PICO_SSD1306_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/pico-ssd1306)
-set(PICO_BOARD solderparty_rp2040_stamp)
+#set(PICO_BOARD solderparty_rp2040_stamp)
+set(PICO_BOARD pico)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
-set(USE_WAVESHARE_PICO_AUDIO 0)
+set(USE_WAVESHARE_PICO_AUDIO 1)
 
 project(SIDPod)
 
@@ -34,7 +35,7 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         ${PICO_SSD1306_PATH}/ssd1306.c
-        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDFile.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h)
+        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_rtc
@@ -79,6 +80,5 @@ if (USE_WAVESHARE_PICO_AUDIO)
 endif ()
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
-pico_enable_stdio_usb(${PROJECT_NAME} 0)
 
 pico_add_extra_outputs(${PROJECT_NAME})

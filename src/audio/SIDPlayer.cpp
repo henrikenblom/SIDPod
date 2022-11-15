@@ -5,7 +5,7 @@ static struct audio_buffer_pool *audioBufferPool;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 
-bool SIDPlayer::loadPSID(PSIDFile psidFile) {
+bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
     FIL pFile;
     BYTE buffer[psidFile.fileInfo.fsize];
     UINT bytes_read;
@@ -59,6 +59,21 @@ void SIDPlayer::generateSamples() {
     }
 }
 
+[[noreturn]] void SIDPlayer::sampleRenderingLoop() {
+    multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
+    while (true) {
+        struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
+        auto *samples = (int16_t *) buffer->buffer->bytes;
+        generateSamples();
+        for (uint i = 0; i < buffer->max_sample_count; i++) {
+            samples[i] = (int16_t) intermediateBuffer[i];
+        }
+        buffer->sample_count = buffer->max_sample_count;
+        multicore_fifo_push_timeout_us(NEW_AUDIO_DATA_AVAILABLE, 0);
+        give_audio_buffer(audioBufferPool, buffer);
+    }
+}
+
 void SIDPlayer::initAudio() {
     static audio_format_t audio_format = {
             .sample_freq = SAMPLE_RATE,
@@ -90,20 +105,5 @@ void SIDPlayer::initAudio() {
     ok = audio_i2s_connect(audioBufferPool);
     assert(ok);
     audio_i2s_set_enabled(true);
-}
-
-[[noreturn]] void SIDPlayer::sampleRenderingLoop() {
-    multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
-    while (true) {
-        struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-        auto *samples = (int16_t *) buffer->buffer->bytes;
-        generateSamples();
-        for (uint i = 0; i < buffer->max_sample_count; i++) {
-            samples[i] = (int16_t) intermediateBuffer[i];
-        }
-        buffer->sample_count = buffer->max_sample_count;
-        multicore_fifo_push_timeout_us(NEW_AUDIO_DATA_AVAILABLE, 0);
-        give_audio_buffer(audioBufferPool, buffer);
-    }
 }
 

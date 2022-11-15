@@ -5,7 +5,7 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
-#include "../PSIDFile.h"
+#include "../PSIDCatalogEntry.h"
 #include "pico/audio_i2s.h"
 
 #define NEW_AUDIO_DATA_AVAILABLE    123
@@ -38,7 +38,7 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(PSIDFile psidFile);
+    static bool loadPSID(PSIDCatalogEntry psidFile);
 
     static bool play();
 
