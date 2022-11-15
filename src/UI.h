@@ -11,10 +11,16 @@ public:
 
     static void showUI();
 
+    static void start();
+
+    static void stop();
+
 private:
     static void showSongSelector();
 
     static void encoderCallback(uint gpio, __attribute__((unused)) uint32_t events);
+
+    static void showRasterBars();
 };
 
 #endif //SIDPOD_UI_H

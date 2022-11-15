@@ -14,6 +14,7 @@
 ssd1306_t disp;
 unsigned long time = to_ms_since_boot(get_absolute_time());
 const int delayTime = 50;
+bool active = false;
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -23,6 +24,7 @@ void UI::initUI() {
     gpio_pull_up(3);
     disp.external_vcc = false;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
+    ssd1306_poweroff(&disp);
 
     gpio_init(ENC_SW);                    //Initialise a GPIO for (enabled I/O and set func to GPIO_FUNC_SIO)
     gpio_set_dir(ENC_SW, GPIO_IN);
@@ -42,8 +44,13 @@ void UI::initUI() {
 }
 
 void UI::showUI() {
-    showSongSelector();
+    if (active) {
+        showSongSelector();
+    } else {
+        showRasterBars();
+    }
 }
+
 
 void UI::showSongSelector() {
     ssd1306_clear(&disp);
@@ -99,4 +106,20 @@ void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
         }
 
     }
+}
+
+void UI::stop() {
+    active = false;
+}
+
+void UI::start() {
+    ssd1306_poweron(&disp);
+    active = true;
+}
+
+void UI::showRasterBars() {
+    ssd1306_clear(&disp);
+    int y = rand() % (32);
+    ssd1306_draw_line(&disp, 0, y, 127, y);
+    ssd1306_show(&disp);
 }
