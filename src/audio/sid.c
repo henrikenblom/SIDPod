@@ -180,7 +180,7 @@ static int sample_nibble IDATA_ATTR;
 static int internal_period, internal_order, internal_start, internal_end,
         internal_add, internal_repeat_times, internal_repeat_start IDATA_ATTR;
 
-int8_t map_shift_bits = 24;
+int8_t map_shift_bits = 2;
 
 /* ---------------------------------------------------------- constants */
 static const float attackTimes[16] ICONST_ATTR =
@@ -506,9 +506,6 @@ void sid_synth_render(uint16_t *buffer, size_t len) {
         int32_t digi = GenerateDigi(final_sample);
 
         *(buffer + bp) = map_sample(digi);
-        if (map_shift_bits > 4 && bp % 200 == 0) {
-            map_shift_bits--;
-        }
     }
 }
 

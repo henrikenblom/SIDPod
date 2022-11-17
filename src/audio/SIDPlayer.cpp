@@ -21,6 +21,7 @@ bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
 
 bool SIDPlayer::play() {
     if (sidInfo.play_addr != 0) {
+        busy_wait_ms(100);
         rendering = true;
         multicore_launch_core1(sampleRenderingLoop);
         multicore_fifo_pop_blocking();
@@ -34,7 +35,7 @@ void SIDPlayer::stop() {
     // TODO Figure out if the I2S buffer can be drained somehow, to avoid glitching during song switching
     if (rendering) {
         rendering = false;
-        busy_wait_ms(90);
+        busy_wait_ms(100);
         multicore_reset_core1();
     }
 }
@@ -108,7 +109,6 @@ void SIDPlayer::initAudio() {
         panic("PicoAudio: Unable to open audio device.\n");
     }
 
-    audio_i2s_connect_extra(audioBufferPool, false, 1,
-                            128, nullptr);
+    audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
 }
