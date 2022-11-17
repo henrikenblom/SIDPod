@@ -34,7 +34,7 @@ void SIDPlayer::stop() {
     // TODO Figure out if the I2S buffer can be drained somehow, to avoid glitching during song switching
     if (rendering) {
         rendering = false;
-        busy_wait_ms(100);
+        busy_wait_ms(90);
         multicore_reset_core1();
     }
 }
