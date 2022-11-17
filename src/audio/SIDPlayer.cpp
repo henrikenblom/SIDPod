@@ -1,14 +1,11 @@
 #include <pico/multicore.h>
 #include <cstdio>
-#include <cstring>
 #include "SIDPlayer.h"
 
 static struct audio_buffer_pool *audioBufferPool;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool rendering = false;
-
-// TODO Try to run the entire simulation on core1 (use nothing but the FIFO for comms)
 
 bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
     FIL pFile;
@@ -69,10 +66,10 @@ void SIDPlayer::generateSamples() {
 }
 
 void SIDPlayer::sampleRenderingLoop() {
-    sidPoke(24, 0); // TODO Seems to have no effect?
+    sidPoke(24, 15); // TODO Seems to have no effect?
     cpuJSR(sidInfo.init_addr, sidInfo.start_song);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
-    while (rendering) {
+    while (true) {
         struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
         auto *samples = (int16_t *) buffer->buffer->bytes;
         generateSamples();
@@ -80,7 +77,6 @@ void SIDPlayer::sampleRenderingLoop() {
             samples[i] = (int16_t) intermediateBuffer[i];
         }
         buffer->sample_count = buffer->max_sample_count;
-        multicore_fifo_push_timeout_us(NEW_AUDIO_DATA_AVAILABLE, 0);
         give_audio_buffer(audioBufferPool, buffer);
     }
 }

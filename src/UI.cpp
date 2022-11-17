@@ -13,7 +13,6 @@
 
 ssd1306_t disp;
 unsigned long time = to_ms_since_boot(get_absolute_time());
-const int delayTime = 60;
 bool active = false;
 
 void UI::initUI() {
@@ -61,13 +60,9 @@ void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
     uint8_t enc_value = (gpio_state & 0x03);
 
     if (gpio == ENC_SW) {
-        if ((to_ms_since_boot(get_absolute_time()) - time) > delayTime) {
-            uint32_t ints = save_and_disable_interrupts();
-            time = to_ms_since_boot(get_absolute_time());
-            SIDPlayer::loadPSID(PSIDCatalog::getCurrentEntry());
-            SIDPlayer::play();
-            restore_interrupts(ints);
-        }
+        time = to_ms_since_boot(get_absolute_time());
+        SIDPlayer::loadPSID(PSIDCatalog::getCurrentEntry());
+        SIDPlayer::play();
     }
     if (gpio == ENC_A) {
         if ((!cw_fall) && (enc_value == 0b10))
