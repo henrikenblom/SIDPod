@@ -20,7 +20,7 @@ private:
 
     static void encoderCallback(uint gpio, __attribute__((unused)) uint32_t events);
 
-    static void showRasterBars();
+    static inline void showRasterBars();
 };
 
 #endif //SIDPOD_UI_H

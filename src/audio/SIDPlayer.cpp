@@ -1,9 +1,12 @@
 #include <pico/multicore.h>
+#include <cstdio>
+#include <cstring>
 #include "SIDPlayer.h"
 
 static struct audio_buffer_pool *audioBufferPool;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
+bool rendering = false;
 
 bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
     FIL pFile;
@@ -19,6 +22,7 @@ bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
 
 bool SIDPlayer::play() {
     if (sidInfo.play_addr != 0) {
+        rendering = true;
         sidPoke(24, 15);
         cpuJSR(sidInfo.init_addr, sidInfo.start_song);
         multicore_launch_core1(sampleRenderingLoop);
@@ -30,7 +34,12 @@ bool SIDPlayer::play() {
 }
 
 void SIDPlayer::stop() {
-    multicore_reset_core1();
+    // TODO Figure out if the I2S buffer can be drained somehow, to avoid glitching during song switching
+    if (rendering) {
+        rendering = false;
+        busy_wait_ms(60);
+        multicore_reset_core1();
+    }
 }
 
 void SIDPlayer::generateSamples() {
@@ -59,9 +68,9 @@ void SIDPlayer::generateSamples() {
     }
 }
 
-[[noreturn]] void SIDPlayer::sampleRenderingLoop() {
+void SIDPlayer::sampleRenderingLoop() {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
-    while (true) {
+    while (rendering) {
         struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
         auto *samples = (int16_t *) buffer->buffer->bytes;
         generateSamples();
@@ -88,7 +97,6 @@ void SIDPlayer::initAudio() {
 
     audioBufferPool = audio_new_producer_pool(&producer_format, 2,
                                               SAMPLES_PER_BUFFER);
-    bool __unused ok;
     const struct audio_format *output_format;
     struct audio_i2s_config config = {
             .data_pin = PICO_AUDIO_I2S_DATA_PIN,
@@ -102,8 +110,7 @@ void SIDPlayer::initAudio() {
         panic("PicoAudio: Unable to open audio device.\n");
     }
 
-    ok = audio_i2s_connect(audioBufferPool);
-    assert(ok);
+    audio_i2s_connect_extra(audioBufferPool, false, 1,
+                            128, nullptr);
     audio_i2s_set_enabled(true);
 }
-

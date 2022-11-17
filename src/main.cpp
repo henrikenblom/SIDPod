@@ -47,9 +47,10 @@ void initUsb() {
 
 int main() {
     stdio_init_all();
+    UI::initUI();
+    UI::stop();
     filesystem_init();
     SIDPlayer::initAudio();
-    UI::initUI();
     initUsb();
     if (!connected) {
         PSIDCatalog::refresh();

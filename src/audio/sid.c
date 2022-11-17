@@ -59,6 +59,7 @@
 
 #include "sid.h"
 #include <string.h>
+#include <pico/printf.h>
 #include "kernal.h"
 
 #define ICODE_ATTR

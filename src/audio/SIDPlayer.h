@@ -48,8 +48,7 @@ private:
 
     static void generateSamples();
 
-    [[noreturn]] static void sampleRenderingLoop();
+    static void sampleRenderingLoop();
 };
-
 
 #endif //SIDPOD_SIDPLAYER_H

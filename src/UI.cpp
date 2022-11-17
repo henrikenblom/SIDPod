@@ -25,22 +25,6 @@ void UI::initUI() {
     disp.external_vcc = false;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     ssd1306_poweroff(&disp);
-
-    gpio_init(ENC_SW);                    //Initialise a GPIO for (enabled I/O and set func to GPIO_FUNC_SIO)
-    gpio_set_dir(ENC_SW, GPIO_IN);
-    gpio_pull_up(ENC_SW);
-
-    gpio_init(ENC_A);
-    gpio_set_dir(ENC_A, GPIO_IN);
-    gpio_disable_pulls(ENC_A);
-
-    gpio_init(ENC_B);
-    gpio_set_dir(ENC_B, GPIO_IN);
-    gpio_disable_pulls(ENC_B);
-
-    gpio_set_irq_enabled_with_callback(ENC_SW, GPIO_IRQ_EDGE_RISE, true, &encoderCallback);
-    gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(ENC_B, GPIO_IRQ_EDGE_FALL, true);
 }
 
 void UI::showUI() {
@@ -79,6 +63,7 @@ void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
     if (gpio == ENC_SW) {
         if ((to_ms_since_boot(get_absolute_time()) - time) > delayTime) {
             time = to_ms_since_boot(get_absolute_time());
+            SIDPlayer::stop();
             SIDPlayer::loadPSID(PSIDCatalog::getCurrentEntry());
             SIDPlayer::play();
         }
@@ -113,11 +98,26 @@ void UI::stop() {
 }
 
 void UI::start() {
-    ssd1306_poweron(&disp);
     active = true;
+    gpio_init(ENC_SW);                    //Initialise a GPIO for (enabled I/O and set func to GPIO_FUNC_SIO)
+    gpio_set_dir(ENC_SW, GPIO_IN);
+    gpio_pull_up(ENC_SW);
+
+    gpio_init(ENC_A);
+    gpio_set_dir(ENC_A, GPIO_IN);
+    gpio_disable_pulls(ENC_A);
+
+    gpio_init(ENC_B);
+    gpio_set_dir(ENC_B, GPIO_IN);
+    gpio_disable_pulls(ENC_B);
+
+    gpio_set_irq_enabled_with_callback(ENC_SW, GPIO_IRQ_EDGE_RISE, true, &encoderCallback);
+    gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(ENC_B, GPIO_IRQ_EDGE_FALL, true);
+    ssd1306_poweron(&disp);
 }
 
-void UI::showRasterBars() {
+inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
     int y = rand() % (32);
     ssd1306_draw_line(&disp, 0, y, 127, y);
