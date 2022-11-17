@@ -8,6 +8,8 @@ static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool rendering = false;
 
+// TODO Try to run the entire simulation on core1 (use nothing but the FIFO for comms)
+
 bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
     FIL pFile;
     BYTE buffer[psidFile.fileInfo.fsize];
@@ -23,8 +25,6 @@ bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
 bool SIDPlayer::play() {
     if (sidInfo.play_addr != 0) {
         rendering = true;
-        sidPoke(24, 15);
-        cpuJSR(sidInfo.init_addr, sidInfo.start_song);
         multicore_launch_core1(sampleRenderingLoop);
         multicore_fifo_pop_blocking();
         return true;
@@ -37,7 +37,7 @@ void SIDPlayer::stop() {
     // TODO Figure out if the I2S buffer can be drained somehow, to avoid glitching during song switching
     if (rendering) {
         rendering = false;
-        busy_wait_ms(60);
+        busy_wait_ms(100);
         multicore_reset_core1();
     }
 }
@@ -69,6 +69,8 @@ void SIDPlayer::generateSamples() {
 }
 
 void SIDPlayer::sampleRenderingLoop() {
+    sidPoke(24, 0); // TODO Seems to have no effect?
+    cpuJSR(sidInfo.init_addr, sidInfo.start_song);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (rendering) {
         struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
