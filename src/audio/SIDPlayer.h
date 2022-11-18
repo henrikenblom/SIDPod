@@ -41,7 +41,7 @@ public:
 
     static bool loadPSID(PSIDCatalogEntry psidFile);
 
-    static bool play();
+    static void play();
 
     static void stop();
 
