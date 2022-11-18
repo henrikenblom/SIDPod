@@ -6,6 +6,8 @@
 
 class PSIDCatalogEntry {
 public:
+    PSIDCatalogEntry() = default;
+
     FILINFO fileInfo{};
     char title[32]{};
     char author[32]{};

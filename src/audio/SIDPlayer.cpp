@@ -1,6 +1,7 @@
 #include <pico/multicore.h>
 #include <cstdio>
 #include <hardware/gpio.h>
+#include <cstring>
 #include "SIDPlayer.h"
 #include "../PSIDCatalog.h"
 
@@ -68,13 +69,22 @@ void SIDPlayer::mainLoop() {
     audio_i2s_set_enabled(true);
     bool rendering = false;
     bool loadingQueued = false;
+    PSIDCatalogEntry lastCatalogEntry;
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (true) {
         if (buttonPushed() || loadingQueued) {
-            loadPSID(PSIDCatalog::getCurrentEntry());
-            sidPoke(24, 15); // TODO Seems to have no effect?
-            cpuJSR(sidInfo.init_addr, sidInfo.start_song);
-            rendering = true;
+            PSIDCatalogEntry currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            if (strcmp(currentCatalogEntry.title, lastCatalogEntry.title) != 0) {
+                loadPSID(PSIDCatalog::getCurrentEntry());
+                sidPoke(24, 15); // TODO Seems to have no effect?
+                cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                lastCatalogEntry = currentCatalogEntry;
+                rendering = true;
+            } else if (rendering) {
+                rendering = false;
+            } else {
+                rendering = true;
+            }
             loadingQueued = false;
         }
         if (rendering && sidInfo.play_addr != 0) {
