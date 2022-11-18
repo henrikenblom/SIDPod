@@ -13,6 +13,7 @@
 
 ssd1306_t disp;
 bool active = false;
+bool lastButtonState = false;
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -48,6 +49,7 @@ void UI::showSongSelector() {
         y += 8;
     }
     ssd1306_show(&disp);
+    checkButtonPushed();
 }
 
 void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
@@ -112,4 +114,12 @@ inline void UI::showRasterBars() {
     int y = rand() % (32);
     ssd1306_draw_line(&disp, 0, y, 127, y);
     ssd1306_show(&disp);
+}
+
+void UI::checkButtonPushed() {
+    bool currentState = !gpio_get(ENC_SW);
+    if (currentState && currentState != lastButtonState) {
+        SIDPlayer::play();
+    }
+    lastButtonState = currentState;
 }

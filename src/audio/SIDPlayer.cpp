@@ -1,13 +1,16 @@
 #include <pico/multicore.h>
 #include <cstdio>
-#include <hardware/gpio.h>
 #include <cstring>
+#include <pico/util/queue.h>
 #include "SIDPlayer.h"
 #include "../PSIDCatalog.h"
 
+struct repeating_timer reapCommandTimer{};
+queue_t commandQueue;
+uint8_t pauseResumeCommand = 123;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
-bool lastButtonState = false;
+bool loadingQueued = false;
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -63,16 +66,17 @@ void SIDPlayer::generateSamples() {
     }
 }
 
-void SIDPlayer::mainLoop() {
+[[noreturn]] void SIDPlayer::core1Main() {
     audio_i2s_setup(&audio_format, &config);
     audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
     bool rendering = false;
-    bool loadingQueued = false;
+    queue_init(&commandQueue, 1, 1);
+    add_repeating_timer_ms(100, reapCommand, nullptr, &reapCommandTimer);
     PSIDCatalogEntry lastCatalogEntry;
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (true) {
-        if (buttonPushed() || loadingQueued) {
+        if (loadingQueued) {
             PSIDCatalogEntry currentCatalogEntry = PSIDCatalog::getCurrentEntry();
             if (strcmp(currentCatalogEntry.title, lastCatalogEntry.title) != 0) {
                 loadPSID(PSIDCatalog::getCurrentEntry());
@@ -93,10 +97,6 @@ void SIDPlayer::mainLoop() {
             generateSamples();
             for (uint i = 0; i < buffer->max_sample_count; i++) {
                 samples[i] = (int16_t) intermediateBuffer[i];
-                if (buttonPushed()) {
-                    loadingQueued = true;
-                    printf("Load queued\n");
-                }
             }
             buffer->sample_count = buffer->max_sample_count;
             give_audio_buffer(audioBufferPool, buffer);
@@ -104,26 +104,27 @@ void SIDPlayer::mainLoop() {
     }
 }
 
-bool SIDPlayer::buttonPushed() {
-    bool currentState = !gpio_get(ENC_SW);
-    bool pushed = false;
-    if (currentState && currentState != lastButtonState) {
-        pushed = true;
-    }
-    lastButtonState = currentState;
-    return pushed;
-}
-
 void SIDPlayer::initAudio() {
-    multicore_launch_core1(mainLoop);
+    multicore_launch_core1(core1Main);
     multicore_fifo_pop_blocking();
 }
 
 bool SIDPlayer::play() {
-    return false;
+    queue_add_blocking(&commandQueue, &pauseResumeCommand);
+    return true;
 }
 
 void SIDPlayer::stop() {
 
 
+}
+
+bool SIDPlayer::reapCommand(struct repeating_timer *t) {
+    (void) t;
+    uint8_t value = 0;
+    queue_try_remove(&commandQueue, &value);
+    if (value == pauseResumeCommand) {
+        loadingQueued = true;
+    }
+    return true;
 }

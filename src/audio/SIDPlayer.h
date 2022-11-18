@@ -49,9 +49,9 @@ private:
 
     static void generateSamples();
 
-    static void mainLoop();
+    [[noreturn]] static void core1Main();
 
-    static bool buttonPushed();
+    static bool reapCommand(struct repeating_timer *t);
 };
 
 #endif //SIDPOD_SIDPLAYER_H
