@@ -12,8 +12,6 @@
 #include "audio/SIDPlayer.h"
 
 ssd1306_t disp;
-unsigned long time = to_ms_since_boot(get_absolute_time());
-const int delayTime = 60;
 bool active = false;
 
 void UI::initUI() {
@@ -60,12 +58,6 @@ void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
 
     uint8_t enc_value = (gpio_state & 0x03);
 
-    if (gpio == ENC_SW) {
-        if ((to_ms_since_boot(get_absolute_time()) - time) > delayTime) {
-            SIDPlayer::loadPSID(PSIDCatalog::getCurrentEntry());
-            SIDPlayer::play();
-        }
-    }
     if (gpio == ENC_A) {
         if ((!cw_fall) && (enc_value == 0b10))
             cw_fall = true;
@@ -109,9 +101,9 @@ void UI::start() {
     gpio_set_dir(ENC_B, GPIO_IN);
     gpio_disable_pulls(ENC_B);
 
-    gpio_set_irq_enabled_with_callback(ENC_SW, GPIO_IRQ_EDGE_RISE, true, &encoderCallback);
+    gpio_set_irq_enabled_with_callback(ENC_B, GPIO_IRQ_EDGE_FALL, true, &encoderCallback);
     gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(ENC_B, GPIO_IRQ_EDGE_FALL, true);
+
     ssd1306_poweron(&disp);
 }
 

@@ -3,7 +3,6 @@
 
 #define ENC_A    10
 #define ENC_B    11
-#define ENC_SW    12
 
 class UI {
 public:

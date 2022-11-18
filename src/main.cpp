@@ -18,7 +18,6 @@ void tud_mount_cb(void) {
     connected = true;
     printf("mount\n");
     f_unmount("");
-    SIDPlayer::stop();
     UI::stop();
 }
 
@@ -50,11 +49,11 @@ int main() {
     UI::initUI();
     UI::stop();
     filesystem_init();
-    SIDPlayer::initAudio();
     initUsb();
     if (!connected) {
         PSIDCatalog::refresh();
         UI::start();
+        SIDPlayer::initAudio();
     }
     while (true) {
         UI::showUI();
