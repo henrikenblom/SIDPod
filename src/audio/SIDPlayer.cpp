@@ -7,13 +7,10 @@
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
-queue_t rxQueue;
 uint8_t playPauseCommand = 123;
-uint8_t ack = 125;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
-bool initialized = false;
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -34,23 +31,12 @@ struct audio_i2s_config config = {
 // core0 functions
 
 void SIDPlayer::initAudio() {
-    if (!initialized) {
-        audio_i2s_setup(&audio_format, &config);
-        audio_i2s_connect(audioBufferPool);
-        audio_i2s_set_enabled(true);
-        initialized = true;
-    }
     multicore_launch_core1(core1Main);
     multicore_fifo_pop_blocking();
 }
 
 void SIDPlayer::play() {
     queue_add_blocking(&txQueue, &playPauseCommand);
-}
-
-void SIDPlayer::stop() {
-    printf("stop called\n");
-    cancel_repeating_timer(&reapCommandTimer);
 }
 
 // core1 functions
@@ -104,10 +90,12 @@ void SIDPlayer::generateSamples() {
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
+    audio_i2s_setup(&audio_format, &config);
+    audio_i2s_connect(audioBufferPool);
+    audio_i2s_set_enabled(true);
     bool rendering = false;
     queue_init(&txQueue, 1, 1);
-    queue_init(&rxQueue, 1, 1);
-    add_repeating_timer_ms(1, reapCommand, nullptr, &reapCommandTimer);
+    add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     PSIDCatalogEntry lastCatalogEntry = {};
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (true) {

@@ -14,6 +14,10 @@ public:
 
     static void stop();
 
+    static void screenOff();
+
+    static void screenOn();
+
 private:
     static void showSongSelector();
 

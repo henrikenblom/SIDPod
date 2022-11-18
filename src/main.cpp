@@ -6,18 +6,22 @@
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include <pico/multicore.h>
+#include <hardware/watchdog.h>
 
 using namespace std;
 
 extern "C" void filesystem_init();
-extern "C" void set_msc_ready_to_attach();
 
 struct repeating_timer tudTaskTimer{};
 bool connected = false;
 
+[[noreturn]] void software_reset() {
+    watchdog_enable(200, false);
+    while (true);
+}
+
 void tud_mount_cb(void) {
     printf("mount\n");
-    SIDPlayer::stop();
     multicore_reset_core1();
     UI::stop();
     f_unmount("");
@@ -26,11 +30,7 @@ void tud_mount_cb(void) {
 
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void) remote_wakeup_en;
-    PSIDCatalog::refresh();
-    UI::start();
-    SIDPlayer::initAudio();
-    set_msc_ready_to_attach();
-    connected = false;
+    software_reset();
 }
 
 bool repeatingTudTask(struct repeating_timer *t) {
