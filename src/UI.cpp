@@ -113,7 +113,7 @@ inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
     int y = rand() % (32);
     ssd1306_draw_line(&disp, 0, y, 127, y);
-    ssd1306_show(&disp);
+    unacked_ssd1306_show(&disp);
 }
 
 void UI::checkButtonPushed() {

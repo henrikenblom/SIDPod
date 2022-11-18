@@ -131,6 +131,15 @@ void ssd1306_invert(ssd1306_t *p, uint8_t inv);
 void ssd1306_show(ssd1306_t *p);
 
 /**
+	@brief display buffer, should be called on change
+
+	@param[in] p : instance of display
+
+    Silently ignores write errors
+*/
+void unacked_ssd1306_show(ssd1306_t *p);
+
+/**
 	@brief clear display buffer
 
 	@param[in] p : instance of display
