@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_dma
         hardware_adc
         hardware_i2c
+        hardware_watchdog
         pico_bootsel_via_double_reset
         pico_stdlib
         pico_audio_i2s

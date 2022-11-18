@@ -43,8 +43,6 @@ public:
 
     static void play();
 
-    static void stop();
-
 private:
 
     static void generateSamples();

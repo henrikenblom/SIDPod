@@ -26,6 +26,19 @@ void UI::initUI() {
     ssd1306_poweroff(&disp);
 }
 
+
+void UI::screenOff() {
+    ssd1306_clear(&disp);
+    ssd1306_show(&disp);
+    ssd1306_poweroff(&disp);
+}
+
+void UI::screenOn() {
+    ssd1306_clear(&disp);
+    ssd1306_show(&disp);
+    ssd1306_poweron(&disp);
+}
+
 void UI::showUI() {
     if (active) {
         showSongSelector();
@@ -33,7 +46,6 @@ void UI::showUI() {
         showRasterBars();
     }
 }
-
 
 void UI::showSongSelector() {
     ssd1306_clear(&disp);
@@ -111,7 +123,7 @@ void UI::start() {
 
 inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
-    int y = rand() % (32);
+    int y = random() % (32);
     ssd1306_draw_line(&disp, 0, y, 127, y);
     unacked_ssd1306_show(&disp);
 }
