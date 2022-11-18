@@ -12,9 +12,8 @@
 #include "audio/SIDPlayer.h"
 
 ssd1306_t disp;
-unsigned long time = to_ms_since_boot(get_absolute_time());
-const int delayTime = 60;
 bool active = false;
+bool lastButtonState = false;
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -50,6 +49,7 @@ void UI::showSongSelector() {
         y += 8;
     }
     ssd1306_show(&disp);
+    checkButtonPushed();
 }
 
 void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
@@ -60,12 +60,6 @@ void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
 
     uint8_t enc_value = (gpio_state & 0x03);
 
-    if (gpio == ENC_SW) {
-        if ((to_ms_since_boot(get_absolute_time()) - time) > delayTime) {
-            SIDPlayer::loadPSID(PSIDCatalog::getCurrentEntry());
-            SIDPlayer::play();
-        }
-    }
     if (gpio == ENC_A) {
         if ((!cw_fall) && (enc_value == 0b10))
             cw_fall = true;
@@ -109,9 +103,9 @@ void UI::start() {
     gpio_set_dir(ENC_B, GPIO_IN);
     gpio_disable_pulls(ENC_B);
 
-    gpio_set_irq_enabled_with_callback(ENC_SW, GPIO_IRQ_EDGE_RISE, true, &encoderCallback);
+    gpio_set_irq_enabled_with_callback(ENC_B, GPIO_IRQ_EDGE_FALL, true, &encoderCallback);
     gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(ENC_B, GPIO_IRQ_EDGE_FALL, true);
+
     ssd1306_poweron(&disp);
 }
 
@@ -119,5 +113,13 @@ inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
     int y = rand() % (32);
     ssd1306_draw_line(&disp, 0, y, 127, y);
-    ssd1306_show(&disp);
+    unacked_ssd1306_show(&disp);
+}
+
+void UI::checkButtonPushed() {
+    bool currentState = !gpio_get(ENC_SW);
+    if (currentState && currentState != lastButtonState) {
+        SIDPlayer::play();
+    }
+    lastButtonState = currentState;
 }

@@ -1,43 +1,80 @@
 #include <pico/multicore.h>
 #include <cstdio>
+#include <cstring>
+#include <pico/util/queue.h>
 #include "SIDPlayer.h"
+#include "../PSIDCatalog.h"
 
-static struct audio_buffer_pool *audioBufferPool;
+struct repeating_timer reapCommandTimer{};
+queue_t txQueue;
+queue_t rxQueue;
+uint8_t playPauseCommand = 123;
+uint8_t ack = 125;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
-bool rendering = false;
+bool playPauseQueued = false;
+bool initialized = false;
+static audio_format_t audio_format = {
+        .sample_freq = SAMPLE_RATE,
+        .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+        .channel_count = 1,
+};
+static struct audio_buffer_format producer_format = {
+        .format = &audio_format,
+        .sample_stride = 2
+};
+static struct audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
+struct audio_i2s_config config = {
+        .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+        .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+        .dma_channel = 0,
+        .pio_sm = 0,
+};
+
+// core0 functions
+
+void SIDPlayer::initAudio() {
+    if (!initialized) {
+        audio_i2s_setup(&audio_format, &config);
+        audio_i2s_connect(audioBufferPool);
+        audio_i2s_set_enabled(true);
+        initialized = true;
+    }
+    multicore_launch_core1(core1Main);
+    multicore_fifo_pop_blocking();
+}
+
+void SIDPlayer::play() {
+    queue_add_blocking(&txQueue, &playPauseCommand);
+}
+
+void SIDPlayer::stop() {
+    printf("stop called\n");
+    cancel_repeating_timer(&reapCommandTimer);
+}
+
+// core1 functions
+
+bool SIDPlayer::reapCommand(struct repeating_timer *t) {
+    (void) t;
+    uint8_t value = 0;
+    queue_try_remove(&txQueue, &value);
+    if (value == playPauseCommand) {
+        printf("play/pause queued\n");
+        playPauseQueued = true;
+    }
+    return true;
+}
 
 bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
     FIL pFile;
     BYTE buffer[psidFile.fileInfo.fsize];
     UINT bytes_read;
-    stop();
     f_open(&pFile, psidFile.fileInfo.fname, FA_READ);
     f_read(&pFile, &buffer, psidFile.fileInfo.fsize, &bytes_read);
     f_close(&pFile);
     c64Init(SAMPLE_RATE);
     return sid_load_from_memory((char *) buffer, bytes_read, &sidInfo);
-}
-
-bool SIDPlayer::play() {
-    if (sidInfo.play_addr != 0) {
-        busy_wait_ms(100);
-        rendering = true;
-        multicore_launch_core1(sampleRenderingLoop);
-        multicore_fifo_pop_blocking();
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void SIDPlayer::stop() {
-    // TODO Figure out if the I2S buffer can be drained somehow, to avoid glitching during song switching
-    if (rendering) {
-        rendering = false;
-        busy_wait_ms(100);
-        multicore_reset_core1();
-    }
 }
 
 void SIDPlayer::generateSamples() {
@@ -66,49 +103,38 @@ void SIDPlayer::generateSamples() {
     }
 }
 
-void SIDPlayer::sampleRenderingLoop() {
-    sidPoke(24, 15); // TODO Seems to have no effect?
-    cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+[[noreturn]] void SIDPlayer::core1Main() {
+    bool rendering = false;
+    queue_init(&txQueue, 1, 1);
+    queue_init(&rxQueue, 1, 1);
+    add_repeating_timer_ms(1, reapCommand, nullptr, &reapCommandTimer);
+    PSIDCatalogEntry lastCatalogEntry = {};
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (true) {
-        struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-        auto *samples = (int16_t *) buffer->buffer->bytes;
-        generateSamples();
-        for (uint i = 0; i < buffer->max_sample_count; i++) {
-            samples[i] = (int16_t) intermediateBuffer[i];
+        if (playPauseQueued) {
+            PSIDCatalogEntry currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            if (strcmp(currentCatalogEntry.title, lastCatalogEntry.title) != 0) {
+                loadPSID(PSIDCatalog::getCurrentEntry());
+                sidPoke(24, 15); // TODO Seems to have no effect?
+                cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                lastCatalogEntry = currentCatalogEntry;
+                rendering = true;
+            } else if (rendering) {
+                rendering = false;
+            } else {
+                rendering = true;
+            }
+            playPauseQueued = false;
         }
-        buffer->sample_count = buffer->max_sample_count;
-        give_audio_buffer(audioBufferPool, buffer);
+        if (rendering && sidInfo.play_addr != 0) {
+            struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
+            auto *samples = (int16_t *) buffer->buffer->bytes;
+            generateSamples();
+            for (uint i = 0; i < buffer->max_sample_count; i++) {
+                samples[i] = (int16_t) intermediateBuffer[i];
+            }
+            buffer->sample_count = buffer->max_sample_count;
+            give_audio_buffer(audioBufferPool, buffer);
+        }
     }
-}
-
-void SIDPlayer::initAudio() {
-    static audio_format_t audio_format = {
-            .sample_freq = SAMPLE_RATE,
-            .format = AUDIO_BUFFER_FORMAT_PCM_S16,
-            .channel_count = 1,
-    };
-
-    static struct audio_buffer_format producer_format = {
-            .format = &audio_format,
-            .sample_stride = 2
-    };
-
-    audioBufferPool = audio_new_producer_pool(&producer_format, 2,
-                                              SAMPLES_PER_BUFFER);
-    const struct audio_format *output_format;
-    struct audio_i2s_config config = {
-            .data_pin = PICO_AUDIO_I2S_DATA_PIN,
-            .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-            .dma_channel = 0,
-            .pio_sm = 0,
-    };
-
-    output_format = audio_i2s_setup(&audio_format, &config);
-    if (!output_format) {
-        panic("PicoAudio: Unable to open audio device.\n");
-    }
-
-    audio_i2s_connect(audioBufferPool);
-    audio_i2s_set_enabled(true);
 }

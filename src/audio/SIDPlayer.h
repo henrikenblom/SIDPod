@@ -13,6 +13,8 @@
 #define SAMPLE_RATE             ((uint32_t)48000)
 #define SAMPLES_PER_BUFFER      (12 * 1024)
 
+#define ENC_SW    12
+
 extern "C" bool sid_load_from_memory(void *data, size_t size, struct sid_info *info);
 extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
 extern "C" void cpuJSR(unsigned short, unsigned char);
@@ -39,7 +41,7 @@ public:
 
     static bool loadPSID(PSIDCatalogEntry psidFile);
 
-    static bool play();
+    static void play();
 
     static void stop();
 
@@ -47,7 +49,9 @@ private:
 
     static void generateSamples();
 
-    static void sampleRenderingLoop();
+    [[noreturn]] static void core1Main();
+
+    static bool reapCommand(struct repeating_timer *t);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

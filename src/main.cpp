@@ -5,6 +5,7 @@
 #include "PSIDCatalog.h"
 #include "audio/SIDPlayer.h"
 #include "UI.h"
+#include <pico/multicore.h>
 
 using namespace std;
 
@@ -15,19 +16,21 @@ struct repeating_timer tudTaskTimer{};
 bool connected = false;
 
 void tud_mount_cb(void) {
-    connected = true;
     printf("mount\n");
-    f_unmount("");
     SIDPlayer::stop();
+    multicore_reset_core1();
     UI::stop();
+    f_unmount("");
+    connected = true;
 }
 
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void) remote_wakeup_en;
-    connected = false;
     PSIDCatalog::refresh();
     UI::start();
+    SIDPlayer::initAudio();
     set_msc_ready_to_attach();
+    connected = false;
 }
 
 bool repeatingTudTask(struct repeating_timer *t) {
@@ -50,11 +53,11 @@ int main() {
     UI::initUI();
     UI::stop();
     filesystem_init();
-    SIDPlayer::initAudio();
     initUsb();
     if (!connected) {
         PSIDCatalog::refresh();
         UI::start();
+        SIDPlayer::initAudio();
     }
     while (true) {
         UI::showUI();
