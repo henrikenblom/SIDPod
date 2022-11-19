@@ -46,7 +46,6 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
     uint8_t value = 0;
     queue_try_remove(&txQueue, &value);
     if (value == playPauseCommand) {
-        printf("play/pause queued\n");
         playPauseQueued = true;
     }
     return true;
@@ -103,7 +102,7 @@ void SIDPlayer::generateSamples() {
             PSIDCatalogEntry currentCatalogEntry = PSIDCatalog::getCurrentEntry();
             if (strcmp(currentCatalogEntry.title, lastCatalogEntry.title) != 0) {
                 loadPSID(PSIDCatalog::getCurrentEntry());
-                sidPoke(24, 15); // TODO Seems to have no effect?
+                sidPoke(24, 15);
                 cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                 lastCatalogEntry = currentCatalogEntry;
                 rendering = true;

@@ -15,13 +15,12 @@ extern "C" void filesystem_init();
 struct repeating_timer tudTaskTimer{};
 bool connected = false;
 
-[[noreturn]] void software_reset() {
+[[noreturn]] void janitorReset() {
     watchdog_enable(200, false);
     while (true);
 }
 
 void tud_mount_cb(void) {
-    printf("mount\n");
     multicore_reset_core1();
     UI::stop();
     f_unmount("");
@@ -30,7 +29,7 @@ void tud_mount_cb(void) {
 
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void) remote_wakeup_en;
-    software_reset();
+    janitorReset();
 }
 
 bool repeatingTudTask(struct repeating_timer *t) {
@@ -44,7 +43,6 @@ void initUsb() {
     for (int i = 0; i < 1000000; i++) {
         tud_task();
     }
-    printf("After initial check\n");
     add_repeating_timer_ms(1, repeatingTudTask, nullptr, &tudTaskTimer);
 }
 
