@@ -51,12 +51,12 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(PSIDCatalogEntry psidFile) {
+bool SIDPlayer::loadPSID(PSIDCatalogEntry *psidFile) {
     FIL pFile;
-    BYTE buffer[psidFile.fileInfo.fsize];
+    BYTE buffer[psidFile->fileInfo.fsize];
     UINT bytes_read;
-    f_open(&pFile, psidFile.fileInfo.fname, FA_READ);
-    f_read(&pFile, &buffer, psidFile.fileInfo.fsize, &bytes_read);
+    f_open(&pFile, psidFile->fileInfo.fname, FA_READ);
+    f_read(&pFile, &buffer, psidFile->fileInfo.fsize, &bytes_read);
     f_close(&pFile);
     c64Init(SAMPLE_RATE);
     return sid_load_from_memory((char *) buffer, bytes_read, &sidInfo);
@@ -95,18 +95,19 @@ void SIDPlayer::generateSamples() {
     bool rendering = false;
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
-    PSIDCatalogEntry lastCatalogEntry = {};
+    PSIDCatalogEntry *lastCatalogEntry = {};
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
     while (true) {
         if (playPauseQueued) {
-            PSIDCatalogEntry currentCatalogEntry = PSIDCatalog::getCurrentEntry();
-            if (strcmp(currentCatalogEntry.title, lastCatalogEntry.title) != 0) {
+            PSIDCatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            if (strcmp(currentCatalogEntry->title, lastCatalogEntry->title) != 0) {
                 loadPSID(PSIDCatalog::getCurrentEntry());
                 sidPoke(24, 15);
                 cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                 lastCatalogEntry = currentCatalogEntry;
                 rendering = true;
             } else if (rendering) {
+                memset(intermediateBuffer, 0, sizeof(intermediateBuffer));
                 rendering = false;
             } else {
                 rendering = true;

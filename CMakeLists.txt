@@ -35,7 +35,7 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         ${PICO_SSD1306_PATH}/ssd1306.c
-        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h)
+        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h src/visualization/DanceFloor.cpp src/visualization/DanceFloor.h)
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
 

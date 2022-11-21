@@ -33,8 +33,8 @@ void PSIDCatalog::refresh() {
     resetAccessors();
 }
 
-PSIDCatalogEntry PSIDCatalog::getCurrentEntry() {
-    return catalog.at(selectedPosition);
+PSIDCatalogEntry *PSIDCatalog::getCurrentEntry() {
+    return &catalog.at(selectedPosition);
 }
 
 size_t PSIDCatalog::getSize() {

@@ -11,11 +11,14 @@
 #include "PSIDCatalog.h"
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"
+#include "visualization/DanceFloor.h"
 
 ssd1306_t disp;
 bool active = false;
 bool lastButtonState = false;
+bool visualize = false;
 int encNewValue, encDelta, encOldValue = 0;
+struct repeating_timer userControlTimer{};
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -23,16 +26,15 @@ void UI::initUI() {
     gpio_set_function(3, GPIO_FUNC_I2C);
     gpio_pull_up(2);
     gpio_pull_up(3);
+    gpio_init(ENC_SW);
+    gpio_set_dir(ENC_SW, GPIO_IN);
+    gpio_pull_up(ENC_SW);
+    uint offset = pio_add_program(pio1, &quadrature_encoder_program);
+    quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
     disp.external_vcc = false;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     ssd1306_poweroff(&disp);
-}
-
-
-void UI::screenOff() {
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
-    ssd1306_poweroff(&disp);
+    DanceFloor::init(&disp);
 }
 
 void UI::screenOn() {
@@ -43,7 +45,11 @@ void UI::screenOn() {
 
 void UI::showUI() {
     if (active) {
-        showSongSelector();
+        if (visualize) {
+            DanceFloor::start(PSIDCatalog::getCurrentEntry());
+        } else {
+            showSongSelector();
+        }
     } else {
         showRasterBars();
     }
@@ -63,21 +69,16 @@ void UI::showSongSelector() {
         y += 8;
     }
     ssd1306_show(&disp);
-    checkButtonPushed();
-    pollForSongSelection();
 }
 
 void UI::stop() {
     active = false;
+    DanceFloor::stop();
 }
 
 void UI::start() {
     active = true;
-    gpio_init(ENC_SW);
-    gpio_set_dir(ENC_SW, GPIO_IN);
-    gpio_pull_up(ENC_SW);
-    uint offset = pio_add_program(pio1, &quadrature_encoder_program);
-    quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
+    add_repeating_timer_ms(50, pollUserControls, nullptr, &userControlTimer);
     screenOn();
 }
 
@@ -92,6 +93,7 @@ void UI::checkButtonPushed() {
     bool currentState = !gpio_get(ENC_SW);
     if (currentState && currentState != lastButtonState) {
         SIDPlayer::play();
+        visualize = true;
     }
     lastButtonState = currentState;
 }
@@ -101,13 +103,23 @@ void UI::pollForSongSelection() {
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
 
-    if (encDelta > 0) {
-        for (int i = 0; i < encDelta; i++) {
-            PSIDCatalog::selectNext();
+    if (encDelta != 0) {
+        if (encDelta > 0) {
+            for (int i = 0; i < encDelta; i++) {
+                PSIDCatalog::selectNext();
+            }
+        } else if (encDelta < 0) {
+            for (int i = 0; i < encDelta * -1; i++) {
+                PSIDCatalog::selectPrevious();
+            }
         }
-    } else if (encDelta < 0) {
-        for (int i = 0; i < encDelta * -1; i++) {
-            PSIDCatalog::selectPrevious();
-        }
+        visualize = false;
+        DanceFloor::stop();
     }
+}
+
+bool UI::pollUserControls(struct repeating_timer *t) {
+    checkButtonPushed();
+    pollForSongSelection();
+    return true;
 }
