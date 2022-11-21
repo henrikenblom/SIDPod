@@ -64,11 +64,7 @@ void PSIDCatalog::selectPrevious() {
 void PSIDCatalog::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
-    if (getSize() > windowSize) {
-        updateWindow();
-    } else {
-        window = catalog;
-    }
+    updateWindow();
 }
 
 void PSIDCatalog::tryToAddAsPsid(FILINFO fileInfo) {

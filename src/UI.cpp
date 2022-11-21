@@ -10,10 +10,12 @@
 #include "ssd1306.h"
 #include "PSIDCatalog.h"
 #include "audio/SIDPlayer.h"
+#include "quadrature_encoder.pio.h"
 
 ssd1306_t disp;
 bool active = false;
 bool lastButtonState = false;
+int encNewValue, encDelta, encOldValue = 0;
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -62,39 +64,7 @@ void UI::showSongSelector() {
     }
     ssd1306_show(&disp);
     checkButtonPushed();
-}
-
-void UI::encoderCallback(uint gpio, __attribute__((unused)) uint32_t events) {
-    uint32_t gpio_state = (gpio_get_all() >> 10) & 0b0111;
-
-    static bool ccw_fall = false;
-    static bool cw_fall = false;
-
-    uint8_t enc_value = (gpio_state & 0x03);
-
-    if (gpio == ENC_A) {
-        if ((!cw_fall) && (enc_value == 0b10))
-            cw_fall = true;
-
-        if ((ccw_fall) && (enc_value ==
-                           0b00)) {
-            cw_fall = false;
-            ccw_fall = false;
-            PSIDCatalog::selectPrevious();
-        }
-    }
-
-    if (gpio == ENC_B) {
-        if ((!ccw_fall) && (enc_value == 0b01))
-            ccw_fall = true;
-
-        if ((cw_fall) && (enc_value == 0b00)) {
-            cw_fall = false;
-            ccw_fall = false;
-            PSIDCatalog::selectNext();
-        }
-
-    }
+    pollForSongSelection();
 }
 
 void UI::stop() {
@@ -103,22 +73,12 @@ void UI::stop() {
 
 void UI::start() {
     active = true;
-    gpio_init(ENC_SW);                    //Initialise a GPIO for (enabled I/O and set func to GPIO_FUNC_SIO)
+    gpio_init(ENC_SW);
     gpio_set_dir(ENC_SW, GPIO_IN);
     gpio_pull_up(ENC_SW);
-
-    gpio_init(ENC_A);
-    gpio_set_dir(ENC_A, GPIO_IN);
-    gpio_disable_pulls(ENC_A);
-
-    gpio_init(ENC_B);
-    gpio_set_dir(ENC_B, GPIO_IN);
-    gpio_disable_pulls(ENC_B);
-
-    gpio_set_irq_enabled_with_callback(ENC_B, GPIO_IRQ_EDGE_FALL, true, &encoderCallback);
-    gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_FALL, true);
-
-    ssd1306_poweron(&disp);
+    uint offset = pio_add_program(pio1, &quadrature_encoder_program);
+    quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
+    screenOn();
 }
 
 inline void UI::showRasterBars() {
@@ -134,4 +94,20 @@ void UI::checkButtonPushed() {
         SIDPlayer::play();
     }
     lastButtonState = currentState;
+}
+
+void UI::pollForSongSelection() {
+    encNewValue = quadrature_encoder_get_count(pio1, 1) / 2;
+    encDelta = encNewValue - encOldValue;
+    encOldValue = encNewValue;
+
+    if (encDelta > 0) {
+        for (int i = 0; i < encDelta; i++) {
+            PSIDCatalog::selectNext();
+        }
+    } else if (encDelta < 0) {
+        for (int i = 0; i < encDelta * -1; i++) {
+            PSIDCatalog::selectPrevious();
+        }
+    }
 }
