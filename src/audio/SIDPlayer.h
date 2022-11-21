@@ -10,8 +10,8 @@
 
 #define AUDIO_RENDERING_STARTED     124
 
-#define SAMPLE_RATE             ((uint32_t)48000)
-#define SAMPLES_PER_BUFFER      (2 * 1024)
+#define SAMPLE_RATE             ((uint32_t)44100)
+#define SAMPLES_PER_BUFFER      (6 * 1024)
 
 extern "C" bool sid_load_from_memory(void *data, size_t size, struct sid_info *info);
 extern "C" void sid_synth_render(uint16_t *buffer, size_t len);

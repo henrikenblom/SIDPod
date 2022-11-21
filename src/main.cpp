@@ -6,6 +6,7 @@
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include <pico/multicore.h>
+#include "hardware/clocks.h"
 
 #define AIRCR_Register  (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ     0x5FA0004
@@ -49,6 +50,7 @@ void initUsb() {
 
 int main() {
     stdio_init_all();
+    set_sys_clock_pll(1500 * MHZ, 6, 2);
     UI::initUI();
     UI::stop();
     filesystem_init();
