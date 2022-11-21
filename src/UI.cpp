@@ -37,13 +37,6 @@ void UI::initUI() {
     DanceFloor::init(&disp);
 }
 
-
-void UI::screenOff() {
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
-    ssd1306_poweroff(&disp);
-}
-
 void UI::screenOn() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);

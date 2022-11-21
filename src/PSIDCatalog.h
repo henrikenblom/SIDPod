@@ -10,7 +10,7 @@ class PSIDCatalog {
 public:
     static void refresh();
 
-    static PSIDCatalogEntry getCurrentEntry();
+    static PSIDCatalogEntry* getCurrentEntry();
 
     static size_t getSize();
 

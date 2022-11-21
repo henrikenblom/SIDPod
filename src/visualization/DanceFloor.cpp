@@ -17,6 +17,7 @@ int rsOffset = DISPLAY_WIDTH + 32;
 uint32_t delay = 5;
 bool running = false;
 kiss_fftr_cfg fft_cfg;
+double factor = 0.000000004;
 DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT];
 DanceFloor::StarSprite starSprites[12] = {{6,   4},
                                           {14,  0},
@@ -30,9 +31,9 @@ DanceFloor::StarSprite starSprites[12] = {{6,   4},
                                           {108, 5},
                                           {116, 8},
                                           {124, 0}};
-static uint16_t fibonacci[FIBONACCI_NUMBER_COUNT];
-static kiss_fft_scalar fftIn[FFT_SAMPLES];
-static kiss_fft_cpx fftOut[FFT_SAMPLES];
+uint16_t fibonacci[FIBONACCI_NUMBER_COUNT];
+kiss_fft_scalar fftIn[FFT_SAMPLES];
+kiss_fft_cpx fftOut[FFT_SAMPLES];
 ssd1306_t *pDisp;
 
 void DanceFloor::initFibonacci() {
@@ -59,7 +60,7 @@ void DanceFloor::drawScroller() {
 
 void DanceFloor::drawStarrySky() {
     for (auto &sprite: starSprites) {
-        if (random() % (44) != 1) {
+        if (random() % (100) != 1) {
             ssd1306_draw_pixel(pDisp, sprite.x, sprite.y);
         }
     }
@@ -105,14 +106,13 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
     drawFibonacciLandscape();
     drawStarrySky();
     drawScroller();
-    double factor = 0.000000003;
     for (int x = 0; x < 127; x++) {
-        int i = (int) ((float) 256 / (float) 128 * (float) x);
+        int i = (int) (1.6 * (float) x);
         int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
                         fft_out[i + 1].r * fft_out[i + 1].r + fft_out[i + 1].i * fft_out[i + 1].i) *
                        factor);
         if (y > 0) {
-            if (y > 32) y /= 4;
+            if (y > 32) y /= 7;
             SoundSprite sprite = {.velocity = std::min(16, y), .distance = 20, .frequency_bin = x};
             soundSprites[sprite_index++] = sprite;
             if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
@@ -129,12 +129,12 @@ void DanceFloor::visualize() {
             sleep_ms(delay);
             uint64_t sum = 0;
             for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                sum += intermediateBuffer[i];
+                sum += intermediateBuffer[i] >> 2;
             }
             float avg = (float) sum / FFT_SAMPLES;
             int j = 0;
             for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                fftIn[j++] = (float) intermediateBuffer[i] - avg;
+                fftIn[j++] = (float) (intermediateBuffer[i] >> 2) - avg;
             }
 
             kiss_fftr(fft_cfg, fftIn, fftOut);
