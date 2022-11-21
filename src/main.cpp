@@ -6,7 +6,9 @@
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include <pico/multicore.h>
-#include <hardware/watchdog.h>
+
+#define AIRCR_Register  (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
+#define SYSRESETREQ     0x5FA0004
 
 using namespace std;
 
@@ -15,9 +17,8 @@ extern "C" void filesystem_init();
 struct repeating_timer tudTaskTimer{};
 bool connected = false;
 
-[[noreturn]] void janitorReset() {
-    watchdog_enable(200, false);
-    while (true);
+void reset() {
+    AIRCR_Register = SYSRESETREQ;
 }
 
 void tud_mount_cb(void) {
@@ -29,7 +30,7 @@ void tud_mount_cb(void) {
 
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void) remote_wakeup_en;
-    janitorReset();
+    reset();
 }
 
 bool repeatingTudTask(struct repeating_timer *t) {
