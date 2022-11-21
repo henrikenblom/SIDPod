@@ -9,8 +9,8 @@
 #include "../audio/SIDPlayer.h"
 
 int sprite_index = 0;
-char scrollText[96];
-int16_t scrollLimit = 0;
+char scrollText[160];
+int16_t scrollLimit = -2048;
 uint8_t horizontalLineDitherOffset = 0;
 int rvOffset = 0;
 int rsOffset = DISPLAY_WIDTH + 32;
@@ -150,7 +150,10 @@ void DanceFloor::init(ssd1306_t *_pDisp) {
     fft_cfg = kiss_fftr_alloc(FFT_SAMPLES, false, nullptr, nullptr);
 }
 
-void DanceFloor::start() {
+void DanceFloor::start(PSIDCatalogEntry *entry) {
+    snprintf(scrollText, 96, "This is %s by %s (%s) and you are experiencing it on a SIDPod.", entry->title, entry->author, entry->released);
+    rvOffset = 0;
+    rsOffset = DISPLAY_WIDTH + 32;
     running = true;
     visualize();
 }

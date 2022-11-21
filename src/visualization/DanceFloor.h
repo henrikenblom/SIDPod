@@ -8,6 +8,7 @@
 #include "ssd1306.h"
 #include "../platform_config.h"
 #include "kiss_fft.h"
+#include "../PSIDCatalogEntry.h"
 
 #define FIBONACCI_NUMBER_COUNT  20
 #define SOUND_SPRITE_COUNT      (32 * 128)
@@ -17,7 +18,7 @@ class DanceFloor {
 public:
     static void init(ssd1306_t *disp);
 
-    static void start();
+    static void start(PSIDCatalogEntry *entry);
 
     static void stop();
 

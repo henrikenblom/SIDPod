@@ -46,7 +46,7 @@ void UI::screenOn() {
 void UI::showUI() {
     if (active) {
         if (visualize) {
-            DanceFloor::start();
+            DanceFloor::start(PSIDCatalog::getCurrentEntry());
         } else {
             showSongSelector();
         }
@@ -73,6 +73,7 @@ void UI::showSongSelector() {
 
 void UI::stop() {
     active = false;
+    DanceFloor::stop();
 }
 
 void UI::start() {
