@@ -72,7 +72,7 @@ void SIDPlayer::generateSamples() {
 
             int n_refresh_cia = (int) (20000 * (memory[0xdc04] | (memory[0xdc05] << 8)) / 0x4c00);
             if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
-                n_refresh_cia = 20000;
+                n_refresh_cia = 21400;
 
             samples_to_render = SAMPLE_RATE * n_refresh_cia / 1000000;
         }
