@@ -151,7 +151,7 @@ void DanceFloor::init(ssd1306_t *_pDisp) {
 }
 
 void DanceFloor::start(PSIDCatalogEntry *entry) {
-    snprintf(scrollText, 96, "This is %s by %s (%s) and you are experiencing it on a SIDPod.", entry->title, entry->author, entry->released);
+    snprintf(scrollText, sizeof(scrollText), "This is %s by %s (%s) and you are experiencing it on a SIDPod.", entry->title, entry->author, entry->released);
     rvOffset = 0;
     rsOffset = DISPLAY_WIDTH + 32;
     running = true;
