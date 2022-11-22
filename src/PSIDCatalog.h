@@ -14,14 +14,16 @@ public:
 
     static size_t getSize();
 
-    static std::vector<PSIDCatalogEntry> getWindow();
+    static std::vector<PSIDCatalogEntry *> getWindow();
 
     static void selectNext();
 
     static void selectPrevious();
 
 private:
-    static void tryToAddAsPsid(FILINFO fileInfo);
+    static void tryToAddAsPsid(FILINFO *fileInfo);
+
+    static bool isRegularFile(FILINFO *fileInfo);
 
     static void resetAccessors();
 

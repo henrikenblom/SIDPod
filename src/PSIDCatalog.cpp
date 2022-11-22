@@ -1,5 +1,7 @@
 #include <cstring>
 #include <vector>
+#include <cstdio>
+#include <cstdlib>
 #include "PSIDCatalog.h"
 #include "sid.h"
 #include "PSIDCatalogEntry.h"
@@ -9,8 +11,8 @@
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
 uint8_t PSID_HEADER_SIZE = 0x88;
-std::vector<PSIDCatalogEntry> catalog;
-std::vector<PSIDCatalogEntry> window;
+std::vector<PSIDCatalogEntry *> catalog;
+std::vector<PSIDCatalogEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = WINDOW_SIZE;
@@ -23,10 +25,12 @@ void PSIDCatalog::refresh() {
     catalog.clear();
     f_mount(fs, "", FA_READ | FA_WRITE);
     f_opendir(dp, "");
-    fr = f_findfirst(dp, &fno, "", "*.sid");
-    while (fr == FR_OK && fno.fname[0]) {
-        tryToAddAsPsid(fno);
-        fr = f_findnext(dp, &fno);
+    while (true) {
+        fr = f_readdir(dp, &fno);
+        if (fr != FR_OK || fno.fname[0] == 0) break;
+        if (isRegularFile(&fno)) {
+            tryToAddAsPsid(&fno);
+        }
     }
     f_closedir(dp);
     delete dp;
@@ -34,14 +38,14 @@ void PSIDCatalog::refresh() {
 }
 
 PSIDCatalogEntry *PSIDCatalog::getCurrentEntry() {
-    return &catalog.at(selectedPosition);
+    return catalog.at(selectedPosition);
 }
 
 size_t PSIDCatalog::getSize() {
     return catalog.size();
 }
 
-std::vector<PSIDCatalogEntry> PSIDCatalog::getWindow() {
+std::vector<PSIDCatalogEntry *> PSIDCatalog::getWindow() {
     return window;
 }
 
@@ -64,23 +68,25 @@ void PSIDCatalog::selectPrevious() {
 void PSIDCatalog::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
-    updateWindow();
+    if (getSize() > 0) {
+        updateWindow();
+    }
 }
 
-void PSIDCatalog::tryToAddAsPsid(FILINFO fileInfo) {
+void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[PSID_HEADER_SIZE];
     UINT bytesRead;
-    f_open(&pFile, fileInfo.fname, FA_READ);
+    f_open(&pFile, fileInfo->fname, FA_READ);
     f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
     if (bytesRead == PSID_HEADER_SIZE) {
         uint32_t magic = header[3] | (header[2] << 0x08) | (header[1] << 0x10) | (header[0] << 0x18);
         if (magic == PSID_ID) {
-            PSIDCatalogEntry psidFile = PSIDCatalogEntry(fileInfo);
+            auto *psidFile = new PSIDCatalogEntry(*fileInfo);
             auto *pHeader = (unsigned char *) header;
-            strcpy(psidFile.title, (const char *) &pHeader[0x16]);
-            strcpy(psidFile.author, (const char *) &pHeader[0x36]);
-            strcpy(psidFile.released, (const char *) &pHeader[0x56]);
+            strcpy(psidFile->title, (const char *) &pHeader[0x16]);
+            strcpy(psidFile->author, (const char *) &pHeader[0x36]);
+            strcpy(psidFile->released, (const char *) &pHeader[0x56]);
             catalog.push_back(psidFile);
         }
     }
@@ -104,7 +110,11 @@ void PSIDCatalog::updateWindow() {
     window.clear();
     for (int i = 0; i < windowSize; i++) {
         auto entry = catalog.at(windowPosition + i);
-        entry.selected = windowPosition + i == selectedPosition;
+        entry->selected = windowPosition + i == selectedPosition;
         window.push_back(entry);
     }
+}
+
+bool PSIDCatalog::isRegularFile(FILINFO *fileInfo) {
+    return fileInfo->fattrib == 32 && fileInfo->fname[0] != 46;
 }

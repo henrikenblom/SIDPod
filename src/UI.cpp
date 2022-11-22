@@ -60,12 +60,12 @@ void UI::showSongSelector() {
     PSIDCatalog::getWindow();
     uint8_t y = 0;
     for (auto entry: PSIDCatalog::getWindow()) {
-        if (entry.selected) {
+        if (entry->selected) {
             ssd1306_draw_pixel(&disp, 0, y + 2);
             ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
             ssd1306_draw_pixel(&disp, 0, y + 4);
         }
-        ssd1306_draw_string(&disp, 4, y, 1, entry.title);
+        ssd1306_draw_string(&disp, 4, y, 1, entry->title);
         y += 8;
     }
     ssd1306_show(&disp);
