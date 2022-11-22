@@ -10,13 +10,13 @@ class UI {
 public:
     static void initUI();
 
+    static void showSplash();
+
     static void showUI();
 
     static void start();
 
     static void stop();
-
-    static void screenOff();
 
     static void screenOn();
 

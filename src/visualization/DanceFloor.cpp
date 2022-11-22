@@ -124,7 +124,6 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
 
 void DanceFloor::visualize() {
     while (running) {
-        //multicore_fifo_pop_blocking();
         for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
             sleep_ms(delay);
             uint64_t sum = 0;

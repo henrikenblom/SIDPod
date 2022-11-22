@@ -50,7 +50,7 @@ void initUsb() {
 int main() {
     stdio_init_all();
     UI::initUI();
-    UI::stop();
+    UI::showSplash();
     filesystem_init();
     initUsb();
     if (!connected) {

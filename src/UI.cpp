@@ -34,9 +34,6 @@ void UI::initUI() {
     quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
     disp.external_vcc = false;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
-    ssd1306_clear(&disp);
-    ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
-    ssd1306_show(&disp);
     DanceFloor::init(&disp);
 }
 
@@ -44,6 +41,12 @@ void UI::screenOn() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweron(&disp);
+}
+
+void UI::showSplash() {
+    ssd1306_clear(&disp);
+    ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
+    ssd1306_show(&disp);
 }
 
 void UI::showUI() {
