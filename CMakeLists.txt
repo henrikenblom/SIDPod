@@ -17,9 +17,6 @@ project(SIDPod)
 
 pico_sdk_init()
 
-add_custom_target(build-time-make-directory ALL
-        COMMAND ${CMAKE_COMMAND} -E make_directory cmake-build-debug)
-
 bin2h(SOURCE_FILE resources/kernal HEADER_FILE cmake-build-debug/generated/kernal.h VARIABLE_NAME KERNAL NULL_TERMINATE)
 
 add_executable(${PROJECT_NAME}
