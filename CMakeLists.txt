@@ -18,6 +18,7 @@ project(SIDPod)
 pico_sdk_init()
 
 bin2h(SOURCE_FILE resources/kernal HEADER_FILE cmake-build-debug/generated/kernal.h VARIABLE_NAME KERNAL NULL_TERMINATE)
+bin2h(SOURCE_FILE resources/sidpod.bmp HEADER_FILE cmake-build-debug/generated/sidpod_bmp.h VARIABLE_NAME SIDPOD_BMP NULL_TERMINATE)
 
 add_executable(${PROJECT_NAME}
         src/main.cpp

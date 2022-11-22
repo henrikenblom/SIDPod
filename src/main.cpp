@@ -41,7 +41,7 @@ bool repeatingTudTask(struct repeating_timer *t) {
 
 void initUsb() {
     tud_init(BOARD_TUD_RHPORT);
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 2000000; i++) {
         tud_task();
     }
     add_repeating_timer_ms(1, repeatingTudTask, nullptr, &tudTaskTimer);

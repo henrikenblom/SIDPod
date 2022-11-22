@@ -12,6 +12,7 @@
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"
 #include "visualization/DanceFloor.h"
+#include "sidpod_bmp.h"
 
 ssd1306_t disp;
 bool active = false;
@@ -33,7 +34,9 @@ void UI::initUI() {
     quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
     disp.external_vcc = false;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
-    ssd1306_poweroff(&disp);
+    ssd1306_clear(&disp);
+    ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
+    ssd1306_show(&disp);
     DanceFloor::init(&disp);
 }
 
