@@ -3,9 +3,6 @@
 
 #include "ssd1306.h"
 
-#define ENC_A    10
-#define ENC_SW    12
-
 class UI {
 public:
     static void initUI();

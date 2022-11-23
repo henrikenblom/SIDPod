@@ -2,8 +2,10 @@
 #include <cstdio>
 #include <cstring>
 #include <pico/util/queue.h>
+#include <hardware/gpio.h>
 #include "SIDPlayer.h"
 #include "../PSIDCatalog.h"
+#include "../platform_config.h"
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
@@ -37,6 +39,15 @@ void SIDPlayer::initAudio() {
 
 void SIDPlayer::play() {
     queue_add_blocking(&txQueue, &playPauseCommand);
+}
+
+
+void SIDPlayer::turnAmpOn() {
+    gpio_pull_up(AMP_CONTROL_PIN);
+}
+
+void SIDPlayer::turnAmpOff() {
+    gpio_pull_down(AMP_CONTROL_PIN);
 }
 
 // core1 functions
@@ -89,6 +100,7 @@ void SIDPlayer::generateSamples() {
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
+    turnAmpOff();
     audio_i2s_setup(&audio_format, &config);
     audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
@@ -96,7 +108,7 @@ void SIDPlayer::generateSamples() {
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     PSIDCatalogEntry *lastCatalogEntry = {};
-    multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED);
+    multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
             PSIDCatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
@@ -106,11 +118,14 @@ void SIDPlayer::generateSamples() {
                 cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                 lastCatalogEntry = currentCatalogEntry;
                 rendering = true;
+                turnAmpOn();
             } else if (rendering) {
                 memset(intermediateBuffer, 0, sizeof(intermediateBuffer));
                 rendering = false;
+                turnAmpOff();
             } else {
                 rendering = true;
+                turnAmpOn();
             }
             playPauseQueued = false;
         }

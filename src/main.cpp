@@ -23,6 +23,7 @@ void reset() {
 
 void tud_mount_cb(void) {
     multicore_reset_core1();
+    SIDPlayer::turnAmpOff();
     UI::stop();
     f_unmount("");
     connected = true;

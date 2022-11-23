@@ -1,17 +1,9 @@
-//
-// Created by Henrik Enblom on 2022-11-14.
-//
-
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
 #include "../PSIDCatalogEntry.h"
 #include "pico/audio_i2s.h"
-
-#define AUDIO_RENDERING_STARTED     124
-
-#define SAMPLE_RATE             ((uint32_t)44100)
-#define SAMPLES_PER_BUFFER      (6 * 1024)      // TODO Figure out why tempo increases with smaller buffer sizes
+#include "../platform_config.h"
 
 extern "C" bool sid_load_from_memory(void *data, size_t size, struct sid_info *info);
 extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
@@ -37,9 +29,13 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(PSIDCatalogEntry* psidFile);
+    static bool loadPSID(PSIDCatalogEntry *psidFile);
 
     static void play();
+
+    static void turnAmpOn();
+
+    static void turnAmpOff();
 
 private:
 
