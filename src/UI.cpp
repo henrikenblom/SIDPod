@@ -17,9 +17,11 @@
 ssd1306_t disp;
 bool active = false;
 bool lastButtonState = false;
+bool inDoubleClickSession = false;
 bool visualize = false;
 int encNewValue, encDelta, encOldValue = 0;
 struct repeating_timer userControlTimer{};
+alarm_id_t doubleClickTimer{};
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -98,8 +100,14 @@ inline void UI::showRasterBars() {
 void UI::checkButtonPushed() {
     bool currentState = !gpio_get(ENC_SW);
     if (currentState && currentState != lastButtonState) {
-        SIDPlayer::play();
-        visualize = true;
+        if (inDoubleClickSession) {
+            cancel_alarm(doubleClickTimer);
+            inDoubleClickSession = false;
+            printf("Was doubleclick\n");
+        } else {
+            inDoubleClickSession = true;
+            doubleClickTimer = add_alarm_in_ms(500, singleClickCallback, nullptr, false);
+        }
     }
     lastButtonState = currentState;
 }
@@ -128,4 +136,10 @@ bool UI::pollUserControls(struct repeating_timer *t) {
     checkButtonPushed();
     pollForSongSelection();
     return true;
+}
+
+int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
+    inDoubleClickSession = false;
+    SIDPlayer::play();
+    visualize = true;
 }

@@ -24,6 +24,8 @@ private:
 
     static void checkButtonPushed();
 
+    static int64_t singleClickCallback(alarm_id_t id, void *user_data);
+
     static void pollForSongSelection();
 
     static bool pollUserControls(struct repeating_timer *t);
