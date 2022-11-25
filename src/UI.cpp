@@ -90,12 +90,13 @@ void UI::start() {
 
 inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
-    int y = random() % (32);
-    ssd1306_draw_line(&disp, 0, y, 127, y);
+    int y = random() % (DISPLAY_HEIGHT);
+    ssd1306_draw_line(&disp, 0, y, DISPLAY_WIDTH - 1, y);
     unacked_ssd1306_show(&disp);
 }
 
 bool UI::pollUserControls(struct repeating_timer *t) {
+    (void) t;
     checkButtonPushed();
     pollForSongSelection();
     return true;
