@@ -22,17 +22,17 @@ alarm_id_t singleClickTimer;
 alarm_id_t longPressTimer;
 
 void UI::initUI() {
-    i2c_init(i2c1, I2C_BAUDRATE);
-    gpio_set_function(2, GPIO_FUNC_I2C);
-    gpio_set_function(3, GPIO_FUNC_I2C);
-    gpio_pull_up(2);
-    gpio_pull_up(3);
-    gpio_init(ENC_SW);
-    gpio_set_dir(ENC_SW, GPIO_IN);
-    gpio_pull_up(ENC_SW);
+    i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
+    gpio_set_function(DISP_GPIO_BASE_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(DISP_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
+    gpio_pull_up(DISP_GPIO_BASE_PIN);
+    gpio_pull_up(DISP_GPIO_BASE_PIN + 1);
+    gpio_init(ENC_SW_PIN);
+    gpio_set_dir(ENC_SW_PIN, GPIO_IN);
+    gpio_pull_up(ENC_SW_PIN);
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
-    quadrature_encoder_program_init(pio1, 1, offset, ENC_A, 0);
-    disp.external_vcc = false;
+    quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
+    disp.external_vcc = DISP_EXTERNAL_VCC;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     DanceFloor::init(&disp);
 }
@@ -84,7 +84,7 @@ void UI::stop() {
 
 void UI::start() {
     active = true;
-    add_repeating_timer_ms(50, pollUserControls, nullptr, &userControlTimer);
+    add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
     screenOn();
 }
 
@@ -95,33 +95,14 @@ inline void UI::showRasterBars() {
     unacked_ssd1306_show(&disp);
 }
 
-void UI::checkButtonPushed() {
-    bool currentState = !gpio_get(ENC_SW);
-    if (currentState && currentState != lastButtonState) {
-        if (inDoubleClickSession) {
-            cancel_alarm(singleClickTimer);
-            inDoubleClickSession = false;
-            printf("Was doubleclick\n");
-        } else {
-            inDoubleClickSession = true;
-            singleClickTimer = add_alarm_in_ms(DOUBLE_CLICK_SPEED_MS, singleClickCallback, nullptr, false);
-        }
-        if (inLongPressSession) {
-            cancel_alarm(longPressTimer);
-            inLongPressSession = false;
-        } else {
-            inLongPressSession = true;
-            longPressTimer = add_alarm_in_ms(LONG_PRESS_DURATION_MS, longPressCallback, nullptr, false);
-        }
-    } else if (!currentState && lastButtonState) {
-        if (longPressTimer) cancel_alarm(longPressTimer);
-        inLongPressSession = false;
-    }
-    lastButtonState = currentState;
+bool UI::pollUserControls(struct repeating_timer *t) {
+    checkButtonPushed();
+    pollForSongSelection();
+    return true;
 }
 
 void UI::pollForSongSelection() {
-    encNewValue = quadrature_encoder_get_count(pio1, 1) / 2;
+    encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
 
@@ -140,14 +121,32 @@ void UI::pollForSongSelection() {
     }
 }
 
-bool UI::pollUserControls(struct repeating_timer *t) {
-    checkButtonPushed();
-    pollForSongSelection();
-    return true;
+void UI::checkButtonPushed() {
+    bool currentState = !gpio_get(ENC_SW_PIN);
+    if (currentState && currentState != lastButtonState) {
+        if (inDoubleClickSession) {
+            endSingleClickSession();
+            endDoubleClickSession();
+            doubleClickCallback();
+        } else {
+            startDoubleClickSession();
+            startSingleClickSession();
+        }
+        if (inLongPressSession) {
+            endLongPressSession();
+        } else {
+            startLongPressSession();
+        }
+    } else if (!currentState && lastButtonState) {
+        endLongPressSession();
+    }
+    lastButtonState = currentState;
 }
 
 int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
-    inDoubleClickSession = false;
+    (void) id;
+    (void) user_data;
+    endDoubleClickSession();
     if (!inLongPressSession) {
         printf("singleClickCallback\n");
         SIDPlayer::play();
@@ -157,8 +156,40 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
 }
 
 int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
+    (void) id;
+    (void) user_data;
     printf("longPressCallback\n");
-    inLongPressSession = false;
-    inDoubleClickSession = false;
+    endLongPressSession();
+    endDoubleClickSession();
     return 0;
+}
+
+void UI::doubleClickCallback() {
+    printf("doubleClickCallBack\n");
+}
+
+void UI::startSingleClickSession() {
+    singleClickTimer = add_alarm_in_ms(DOUBLE_CLICK_SPEED_MS, singleClickCallback, nullptr, false);
+}
+
+void UI::startDoubleClickSession() {
+    inDoubleClickSession = true;
+}
+
+void UI::startLongPressSession() {
+    inLongPressSession = true;
+    longPressTimer = add_alarm_in_ms(LONG_PRESS_DURATION_MS, longPressCallback, nullptr, false);
+}
+
+void UI::endSingleClickSession() {
+    if (singleClickTimer) cancel_alarm(singleClickTimer);
+}
+
+void UI::endDoubleClickSession() {
+    inDoubleClickSession = false;
+}
+
+void UI::endLongPressSession() {
+    if (longPressTimer) cancel_alarm(longPressTimer);
+    inLongPressSession = false;
 }

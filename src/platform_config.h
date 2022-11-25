@@ -33,7 +33,15 @@
 
 #define AMP_CONTROL_PIN                     15
 
-#define ENC_A                               10
-#define ENC_SW                              12
+#define DISP_I2C_BLOCK                      i2c1
+#define DISP_GPIO_BASE_PIN                  2
+#define DISP_EXTERNAL_VCC                   0
+
+#define USER_CONTROLS_POLLRATE_MS           50
+
+#define ENC_PIO                             pio1
+#define ENC_SM                              1
+#define ENC_BASE_PIN                        10
+#define ENC_SW_PIN                          12
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1800

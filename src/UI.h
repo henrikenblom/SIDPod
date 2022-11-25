@@ -28,6 +28,20 @@ private:
 
     static int64_t longPressCallback(alarm_id_t id, void *user_data);
 
+    static void doubleClickCallback();
+
+    static void startSingleClickSession();
+
+    static void startDoubleClickSession();
+
+    static void startLongPressSession();
+
+    static void endSingleClickSession();
+
+    static void endDoubleClickSession();
+
+    static void endLongPressSession();
+
     static void pollForSongSelection();
 
     static bool pollUserControls(struct repeating_timer *t);
