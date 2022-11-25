@@ -20,6 +20,8 @@ public:
 private:
     static void showSongSelector();
 
+    static void showVolumeControl();
+
     static inline void showRasterBars();
 
     static void checkButtonPushed();

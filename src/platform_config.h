@@ -33,6 +33,8 @@
 
 #define AMP_CONTROL_PIN                     15
 
+#define VOLUME_STEPS                        20
+
 #define DISP_I2C_BLOCK                      i2c1
 #define DISP_GPIO_BASE_PIN                  2
 #define DISP_EXTERNAL_VCC                   0

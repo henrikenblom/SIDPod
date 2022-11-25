@@ -16,6 +16,7 @@ bool lastButtonState = false;
 bool inDoubleClickSession = false;
 bool inLongPressSession = false;
 bool visualize = false;
+bool volumeControl = false;
 int encNewValue, encDelta, encOldValue = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
@@ -53,6 +54,8 @@ void UI::showUI() {
     if (active) {
         if (visualize) {
             DanceFloor::start(PSIDCatalog::getCurrentEntry());
+        } else if (volumeControl) {
+            showVolumeControl();
         } else {
             showSongSelector();
         }
@@ -76,6 +79,17 @@ void UI::showSongSelector() {
     }
     ssd1306_show(&disp);
 }
+
+
+void UI::showVolumeControl() {
+    ssd1306_clear(&disp);
+    char label[7] = "Volume";
+    ssd1306_draw_string(&disp, 4, 4, 1, label);
+    ssd13606_draw_empty_square(&disp, 4, 12, 120, 12);
+    ssd1306_draw_square(&disp, 4, 12, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 12);
+    ssd1306_show(&disp);
+}
+
 
 void UI::stop() {
     active = false;
@@ -110,11 +124,19 @@ void UI::pollForSongSelection() {
     if (encDelta != 0) {
         if (encDelta > 0) {
             for (int i = 0; i < encDelta; i++) {
-                PSIDCatalog::selectNext();
+                if (volumeControl) {
+                    SIDPlayer::volumeUp();
+                } else {
+                    PSIDCatalog::selectNext();
+                }
             }
         } else if (encDelta < 0) {
             for (int i = 0; i < encDelta * -1; i++) {
-                PSIDCatalog::selectPrevious();
+                if (volumeControl) {
+                    SIDPlayer::volumeDown();
+                } else {
+                    PSIDCatalog::selectPrevious();
+                }
             }
         }
         visualize = false;
@@ -149,9 +171,17 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     endDoubleClickSession();
     if (!inLongPressSession) {
-        printf("singleClickCallback\n");
-        SIDPlayer::play();
-        visualize = true;
+        if (visualize) {
+            visualize = false;
+            volumeControl = true;
+            DanceFloor::stop();
+        } else if (volumeControl) {
+            visualize = true;
+            volumeControl = false;
+        } else {
+            SIDPlayer::togglePlayPause();
+            visualize = true;
+        }
     }
     return 0;
 }
@@ -166,7 +196,9 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
 }
 
 void UI::doubleClickCallback() {
-    printf("doubleClickCallBack\n");
+    if (visualize || volumeControl) {
+        SIDPlayer::togglePlayPause();
+    }
 }
 
 void UI::startSingleClickSession() {

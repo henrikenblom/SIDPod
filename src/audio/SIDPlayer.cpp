@@ -3,13 +3,15 @@
 #include <cstring>
 #include <pico/util/queue.h>
 #include <hardware/gpio.h>
+#include <cmath>
 #include "SIDPlayer.h"
 #include "../PSIDCatalog.h"
 #include "../platform_config.h"
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
-uint8_t playPauseCommand = 123;
+uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
+uint8_t volume = VOLUME_STEPS;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
@@ -37,7 +39,7 @@ void SIDPlayer::initAudio() {
     multicore_fifo_pop_blocking();
 }
 
-void SIDPlayer::play() {
+void SIDPlayer::togglePlayPause() {
     queue_add_blocking(&txQueue, &playPauseCommand);
 }
 
@@ -48,6 +50,28 @@ void SIDPlayer::turnAmpOn() {
 
 void SIDPlayer::turnAmpOff() {
     gpio_pull_down(AMP_CONTROL_PIN);
+}
+
+void SIDPlayer::volumeUp() {
+    if (volume < VOLUME_STEPS) {
+        if (volume == 0) {
+            turnAmpOn();
+        }
+        volume++;
+    }
+}
+
+void SIDPlayer::volumeDown() {
+    if (volume > 0) {
+        if (volume == 1) {
+            turnAmpOff();
+        }
+        volume--;
+    }
+}
+
+uint8_t SIDPlayer::getVolume() {
+    return volume;
 }
 
 // core1 functions
@@ -130,11 +154,12 @@ void SIDPlayer::generateSamples() {
             playPauseQueued = false;
         }
         if (rendering && sidInfo.play_addr != 0) {
+            float volumeFactor = (float) volume / VOLUME_STEPS;
             struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
             auto *samples = (int16_t *) buffer->buffer->bytes;
             generateSamples();
             for (uint i = 0; i < buffer->max_sample_count; i++) {
-                samples[i] = (int16_t) intermediateBuffer[i];
+                samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
             }
             buffer->sample_count = buffer->max_sample_count;
             give_audio_buffer(audioBufferPool, buffer);
