@@ -1,7 +1,3 @@
-//
-// Created by Henrik Enblom on 2022-11-15.
-//
-
 #include <hardware/i2c.h>
 #include <hardware/gpio.h>
 #include <cstdio>
@@ -17,9 +13,13 @@
 ssd1306_t disp;
 bool active = false;
 bool lastButtonState = false;
+bool inDoubleClickSession = false;
+bool inLongPressSession = false;
 bool visualize = false;
 int encNewValue, encDelta, encOldValue = 0;
-struct repeating_timer userControlTimer{};
+struct repeating_timer userControlTimer;
+alarm_id_t singleClickTimer;
+alarm_id_t longPressTimer;
 
 void UI::initUI() {
     i2c_init(i2c1, I2C_BAUDRATE);
@@ -98,8 +98,24 @@ inline void UI::showRasterBars() {
 void UI::checkButtonPushed() {
     bool currentState = !gpio_get(ENC_SW);
     if (currentState && currentState != lastButtonState) {
-        SIDPlayer::play();
-        visualize = true;
+        if (inDoubleClickSession) {
+            cancel_alarm(singleClickTimer);
+            inDoubleClickSession = false;
+            printf("Was doubleclick\n");
+        } else {
+            inDoubleClickSession = true;
+            singleClickTimer = add_alarm_in_ms(DOUBLE_CLICK_SPEED_MS, singleClickCallback, nullptr, false);
+        }
+        if (inLongPressSession) {
+            cancel_alarm(longPressTimer);
+            inLongPressSession = false;
+        } else {
+            inLongPressSession = true;
+            longPressTimer = add_alarm_in_ms(LONG_PRESS_DURATION_MS, longPressCallback, nullptr, false);
+        }
+    } else if (!currentState && lastButtonState) {
+        if (longPressTimer) cancel_alarm(longPressTimer);
+        inLongPressSession = false;
     }
     lastButtonState = currentState;
 }
@@ -128,4 +144,21 @@ bool UI::pollUserControls(struct repeating_timer *t) {
     checkButtonPushed();
     pollForSongSelection();
     return true;
+}
+
+int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
+    inDoubleClickSession = false;
+    if (!inLongPressSession) {
+        printf("singleClickCallback\n");
+        SIDPlayer::play();
+        visualize = true;
+    }
+    return 0;
+}
+
+int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
+    printf("longPressCallback\n");
+    inLongPressSession = false;
+    inDoubleClickSession = false;
+    return 0;
 }
