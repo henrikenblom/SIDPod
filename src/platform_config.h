@@ -35,3 +35,5 @@
 
 #define ENC_A                               10
 #define ENC_SW                              12
+#define DOUBLE_CLICK_SPEED_MS               250
+#define LONG_PRESS_DURATION_MS              1800
