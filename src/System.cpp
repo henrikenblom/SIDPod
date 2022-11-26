@@ -1,8 +1,3 @@
-//
-// Created by Henrik Enblom on 2022-11-26.
-//
-
-#include <cstdio>
 #include <pico/sleep.h>
 #include <hardware/pll.h>
 #include <hardware/clocks.h>
@@ -22,13 +17,11 @@ void System::configureClock() {
 }
 
 void System::goDormant() {
-    printf("Going to sleep\n");
     UI::screenOff();
     SIDPlayer::turnAmpOff();
     sleep_run_from_xosc();
     sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
     configureClock();
-    printf("Woke up\n");
     UI::screenOn();
     SIDPlayer::turnAmpOn();
 }
