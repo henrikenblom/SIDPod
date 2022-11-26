@@ -44,6 +44,8 @@ private:
 
     static void drawSoundSprite(SoundSprite sprite);
 
+    static void drawPausedLabel();
+
     static void updateSoundSprites();
 
     static void drawScene(kiss_fft_cpx *fft_out);

@@ -15,6 +15,7 @@ uint8_t volume = VOLUME_STEPS;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
+bool rendering = false;
 PSIDCatalogEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
@@ -75,6 +76,15 @@ uint8_t SIDPlayer::getVolume() {
     return volume;
 }
 
+
+PSIDCatalogEntry *SIDPlayer::getCurrentlyLoaded() {
+    return lastCatalogEntry;
+}
+
+bool SIDPlayer::isPlaying() {
+    return rendering;
+}
+
 // core1 functions
 
 bool SIDPlayer::reapCommand(struct repeating_timer *t) {
@@ -129,7 +139,6 @@ void SIDPlayer::generateSamples() {
     audio_i2s_setup(&audio_format, &config);
     audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
-    bool rendering = false;
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
@@ -165,8 +174,4 @@ void SIDPlayer::generateSamples() {
             give_audio_buffer(audioBufferPool, buffer);
         }
     }
-}
-
-PSIDCatalogEntry *SIDPlayer::getCurrentlyLoaded() {
-    return lastCatalogEntry;
 }

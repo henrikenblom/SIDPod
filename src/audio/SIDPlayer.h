@@ -47,6 +47,8 @@ public:
 
     static uint8_t getVolume();
 
+    static bool isPlaying();
+
 private:
 
     static void generateSamples();

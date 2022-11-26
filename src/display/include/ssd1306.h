@@ -157,6 +157,15 @@ void ssd1306_clear(ssd1306_t *p);
 void ssd1306_draw_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
 
 /**
+	@brief clear pixel on buffer
+
+	@param[in] p : instance of display
+	@param[in] x : x position
+	@param[in] y : y position
+*/
+void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
+
+/**
 	@brief draw pixel on buffer
 
 	@param[in] p : instance of display
@@ -177,6 +186,17 @@ void ssd1306_draw_line(ssd1306_t *p, int32_t x1, int32_t y1, int32_t x2, int32_t
 	@param[in] height : height of square
 */
 void ssd1306_draw_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+
+/**
+	@brief clear square at given position with given size
+
+	@param[in] p : instance of display
+	@param[in] x : x position of starting point
+	@param[in] y : y position of starting point
+	@param[in] width : width of square
+	@param[in] height : height of square
+*/
+void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 /**
 	@brief draw empty square at given position with given size

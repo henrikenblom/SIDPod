@@ -10,6 +10,7 @@
 
 int sprite_index = 0;
 char scrollText[160];
+char pausedLabel[7] = "PAUSED";
 int16_t scrollLimit = -2048;
 uint8_t horizontalLineDitherOffset = 0;
 int rvOffset = 0;
@@ -101,11 +102,22 @@ void DanceFloor::updateSoundSprites() {
     }
 }
 
+
+void DanceFloor::drawPausedLabel() {
+    ssd1306_clear_square(pDisp, (DISPLAY_WIDTH / 2) - 26, 4, 52, 9);
+    ssd13606_draw_empty_square(pDisp, (DISPLAY_WIDTH / 2) - 26, 4 - 3, 52, 13);
+    ssd1306_draw_string(pDisp, (DISPLAY_WIDTH / 2) - 22, 5, 1, pausedLabel);
+}
+
 void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
     ssd1306_clear(pDisp);
     drawFibonacciLandscape();
     drawStarrySky();
-    drawScroller();
+    if (SIDPlayer::isPlaying()) {
+        drawScroller();
+    } else {
+        drawPausedLabel();
+    }
     for (int x = 0; x < 127; x++) {
         int i = (int) (1.6 * (float) x);
         int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
@@ -150,7 +162,8 @@ void DanceFloor::init(ssd1306_t *_pDisp) {
 }
 
 void DanceFloor::start(PSIDCatalogEntry *entry) {
-    snprintf(scrollText, sizeof(scrollText), "This is %s by %s (%s) and you are experiencing it on a SIDPod.", entry->title, entry->author, entry->released);
+    snprintf(scrollText, sizeof(scrollText), "This is %s by %s (%s) and you are experiencing it on a SIDPod.",
+             entry->title, entry->author, entry->released);
     rvOffset = 0;
     rsOffset = DISPLAY_WIDTH + 32;
     running = true;

@@ -147,6 +147,12 @@ void ssd1306_draw_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
     p->buffer[x + p->width * (y >> 3)] |= 0x1 << (y & 0x07); // y>>3==y/8 && y&0x7==y%8
 }
 
+void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
+    if (x >= p->width || y >= p->height) return;
+
+    p->buffer[x + p->width * (y >> 3)] &= 0x1 << (y & 0x07);
+}
+
 void ssd1306_draw_line(ssd1306_t *p, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     if (x1 > x2) {
         swap(&x1, &x2);
@@ -174,6 +180,12 @@ void ssd1306_draw_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, u
         for (uint32_t j = 0; j < height; ++j)
             ssd1306_draw_pixel(p, x + i, y + j);
 
+}
+
+void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    for (uint32_t i = 0; i < width; ++i)
+        for (uint32_t j = 0; j < height; ++j)
+            ssd1306_clear_pixel(p, x + i, y + j);
 }
 
 void ssd13606_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
