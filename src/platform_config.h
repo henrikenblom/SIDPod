@@ -47,3 +47,4 @@
 #define ENC_SW_PIN                          12
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1800
+#define VOLUME_CONTROL_DISPLAY_TIMEOUT      1000

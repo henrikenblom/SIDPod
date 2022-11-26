@@ -21,6 +21,7 @@ int encNewValue, encDelta, encOldValue = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
 alarm_id_t longPressTimer;
+alarm_id_t showVolumeControlTimer;
 
 void UI::initUI() {
     i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
@@ -85,8 +86,8 @@ void UI::showVolumeControl() {
     ssd1306_clear(&disp);
     char label[7] = "Volume";
     ssd1306_draw_string(&disp, 4, 4, 1, label);
-    ssd13606_draw_empty_square(&disp, 4, 12, 120, 12);
-    ssd1306_draw_square(&disp, 4, 12, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 12);
+    ssd13606_draw_empty_square(&disp, 4, 13, 120, 10);
+    ssd1306_draw_square(&disp, 4, 13, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
     ssd1306_show(&disp);
 }
 
@@ -111,17 +112,23 @@ inline void UI::showRasterBars() {
 
 bool UI::pollUserControls(struct repeating_timer *t) {
     (void) t;
-    checkButtonPushed();
-    pollForSongSelection();
+    pollSwitch();
+    pollEncoder();
     return true;
 }
 
-void UI::pollForSongSelection() {
+void UI::pollEncoder() {
     encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
 
     if (encDelta != 0) {
+        if (visualize) {
+            startVolumeControlSession();
+        }
+        if (volumeControl) {
+            resetVolumeControlSessionTimer();
+        }
         if (encDelta > 0) {
             for (int i = 0; i < encDelta; i++) {
                 if (volumeControl) {
@@ -144,7 +151,7 @@ void UI::pollForSongSelection() {
     }
 }
 
-void UI::checkButtonPushed() {
+void UI::pollSwitch() {
     bool currentState = !gpio_get(ENC_SW_PIN);
     if (currentState && currentState != lastButtonState) {
         if (inDoubleClickSession) {
@@ -173,11 +180,10 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     if (!inLongPressSession) {
         if (visualize) {
             visualize = false;
-            volumeControl = true;
             DanceFloor::stop();
         } else if (volumeControl) {
+            endVolumeControlSession();
             visualize = true;
-            volumeControl = false;
         } else {
             SIDPlayer::togglePlayPause();
             visualize = true;
@@ -225,4 +231,33 @@ void UI::endDoubleClickSession() {
 void UI::endLongPressSession() {
     if (longPressTimer) cancel_alarm(longPressTimer);
     inLongPressSession = false;
+}
+
+int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
+    endVolumeControlSession();
+    visualize = true;
+    return 0;
+}
+
+void UI::startVolumeControlSession() {
+    visualize = false;
+    volumeControl = true;
+    DanceFloor::stop();
+}
+
+void UI::resetVolumeControlSessionTimer() {
+    if (showVolumeControlTimer) {
+        cancel_alarm(showVolumeControlTimer);
+    }
+    showVolumeControlTimer = add_alarm_in_ms(VOLUME_CONTROL_DISPLAY_TIMEOUT,
+                                             endVolumeControlSessionCallback,
+                                             nullptr,
+                                             false);
+}
+
+void UI::endVolumeControlSession() {
+    if (showVolumeControlTimer) {
+        cancel_alarm(showVolumeControlTimer);
+    }
+    volumeControl = false;
 }

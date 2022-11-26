@@ -24,11 +24,19 @@ private:
 
     static inline void showRasterBars();
 
-    static void checkButtonPushed();
+    static void pollSwitch();
 
     static int64_t singleClickCallback(alarm_id_t id, void *user_data);
 
     static int64_t longPressCallback(alarm_id_t id, void *user_data);
+
+    static int64_t endVolumeControlSessionCallback(alarm_id_t id, void *user_data);
+
+    static void startVolumeControlSession();
+
+    static void resetVolumeControlSessionTimer();
+
+    static void endVolumeControlSession();
 
     static void doubleClickCallback();
 
@@ -44,7 +52,7 @@ private:
 
     static void endLongPressSession();
 
-    static void pollForSongSelection();
+    static void pollEncoder();
 
     static bool pollUserControls(struct repeating_timer *t);
 };
