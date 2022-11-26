@@ -5,7 +5,6 @@ include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
-set(PICO_SSD1306_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/pico-ssd1306)
 #set(PICO_BOARD solderparty_rp2040_stamp)
 set(PICO_BOARD pico)
 set(BOARD pico_sdk)
@@ -32,7 +31,7 @@ add_executable(${PROJECT_NAME}
         src/audio/sid.c
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
-        ${PICO_SSD1306_PATH}/ssd1306.c
+        src/display/ssd1306.c
         src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h src/visualization/DanceFloor.cpp src/visualization/DanceFloor.h)
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -60,11 +59,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/include/
+        ${CMAKE_CURRENT_LIST_DIR}/src/display/include/
         ${CMAKE_CURRENT_LIST_DIR}/cmake-build-debug/generated/
         ${TINYUSB_PATH}/src/
         ${TINYUSB_PATH}/src/common/
         ${TINYUSB_PATH}/hw/
-        ${PICO_SSD1306_PATH}/
         )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC

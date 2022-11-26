@@ -30,8 +30,8 @@ SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 
-#include "ssd1306.h"
-#include "font.h"
+#include "include/ssd1306.h"
+#include "include/font.h"
 
 inline static void swap(int32_t *a, int32_t *b) {
     int32_t *t = a;

@@ -3,7 +3,7 @@
 #include <cstdio>
 #include "UI.h"
 #include "platform_config.h"
-#include "ssd1306.h"
+#include "display/include/ssd1306.h"
 #include "PSIDCatalog.h"
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"

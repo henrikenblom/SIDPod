@@ -5,7 +5,7 @@
 #ifndef SIDPOD_DANCEFLOOR_H
 #define SIDPOD_DANCEFLOOR_H
 
-#include "ssd1306.h"
+#include "../display/include/ssd1306.h"
 #include "../platform_config.h"
 #include "kiss_fft.h"
 #include "../PSIDCatalogEntry.h"
