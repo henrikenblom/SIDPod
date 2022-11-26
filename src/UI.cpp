@@ -22,6 +22,7 @@ struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
 alarm_id_t longPressTimer;
 alarm_id_t showVolumeControlTimer;
+char volumeLabel[7] = "Volume";
 
 void UI::initUI() {
     i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
@@ -84,8 +85,7 @@ void UI::showSongSelector() {
 
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
-    char label[7] = "Volume";
-    ssd1306_draw_string(&disp, 4, 4, 1, label);
+    ssd1306_draw_string(&disp, 4, 4, 1, volumeLabel);
     ssd13606_draw_empty_square(&disp, 4, 13, 120, 10);
     ssd1306_draw_square(&disp, 4, 13, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
     ssd1306_show(&disp);
