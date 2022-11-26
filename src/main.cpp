@@ -5,6 +5,7 @@
 #include "PSIDCatalog.h"
 #include "audio/SIDPlayer.h"
 #include "UI.h"
+#include "System.h"
 #include <pico/multicore.h>
 
 #define AIRCR_Register  (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
@@ -49,7 +50,7 @@ void initUsb() {
 }
 
 int main() {
-    stdio_init_all();
+    System::configureClock();
     UI::initUI();
     UI::showSplash();
     filesystem_init();

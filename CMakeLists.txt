@@ -32,7 +32,7 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
-        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h src/visualization/DanceFloor.cpp src/visualization/DanceFloor.h)
+        src/PSIDCatalog.cpp src/PSIDCatalog.h src/PSIDCatalogEntry.h src/audio/SIDPlayer.cpp src/audio/SIDPlayer.h src/UI.cpp src/UI.h src/visualization/DanceFloor.cpp src/visualization/DanceFloor.h src/System.cpp src/System.h)
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
 
@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_adc
         hardware_i2c
         hardware_clocks
+        hardware_sleep
         pico_bootsel_via_double_reset
         pico_stdlib
         pico_audio_i2s

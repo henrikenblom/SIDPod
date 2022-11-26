@@ -9,6 +9,7 @@
 #include "quadrature_encoder.pio.h"
 #include "visualization/DanceFloor.h"
 #include "sidpod_bmp.h"
+#include "System.h"
 
 ssd1306_t disp;
 bool active = false;
@@ -17,6 +18,7 @@ bool inDoubleClickSession = false;
 bool inLongPressSession = false;
 bool visualize = false;
 bool volumeControl = false;
+bool screenSleeping = false;
 int encNewValue, encDelta, encOldValue = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
@@ -44,6 +46,14 @@ void UI::screenOn() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweron(&disp);
+    screenSleeping = false;
+}
+
+void UI::screenOff() {
+    ssd1306_clear(&disp);
+    ssd1306_show(&disp);
+    ssd1306_poweroff(&disp);
+    screenSleeping = true;
 }
 
 void UI::showSplash() {
@@ -112,7 +122,9 @@ inline void UI::showRasterBars() {
 
 bool UI::pollUserControls(struct repeating_timer *t) {
     (void) t;
-    pollSwitch();
+    if (pollSwitch() && screenSleeping) {
+        screenOn();
+    }
     pollEncoder();
     return true;
 }
@@ -123,54 +135,61 @@ void UI::pollEncoder() {
     encOldValue = encNewValue;
 
     if (encDelta != 0) {
-        if (visualize) {
-            startVolumeControlSession();
-        }
-        if (volumeControl) {
-            resetVolumeControlSessionTimer();
-        }
-        if (encDelta > 0) {
-            for (int i = 0; i < encDelta; i++) {
-                if (volumeControl) {
-                    SIDPlayer::volumeUp();
-                } else {
-                    PSIDCatalog::selectNext();
+        if (!screenSleeping) {
+            if (visualize) {
+                startVolumeControlSession();
+            }
+            if (volumeControl) {
+                resetVolumeControlSessionTimer();
+            }
+            if (encDelta > 0) {
+                for (int i = 0; i < encDelta; i++) {
+                    if (volumeControl) {
+                        SIDPlayer::volumeUp();
+                    } else {
+                        PSIDCatalog::selectNext();
+                    }
+                }
+            } else if (encDelta < 0) {
+                for (int i = 0; i < encDelta * -1; i++) {
+                    if (volumeControl) {
+                        SIDPlayer::volumeDown();
+                    } else {
+                        PSIDCatalog::selectPrevious();
+                    }
                 }
             }
-        } else if (encDelta < 0) {
-            for (int i = 0; i < encDelta * -1; i++) {
-                if (volumeControl) {
-                    SIDPlayer::volumeDown();
-                } else {
-                    PSIDCatalog::selectPrevious();
-                }
-            }
+            visualize = false;
+            DanceFloor::stop();
         }
-        visualize = false;
-        DanceFloor::stop();
     }
 }
 
-void UI::pollSwitch() {
+bool UI::pollSwitch() {
+    bool used = false;
     bool currentState = !gpio_get(ENC_SW_PIN);
     if (currentState && currentState != lastButtonState) {
-        if (inDoubleClickSession) {
-            endSingleClickSession();
-            endDoubleClickSession();
-            doubleClickCallback();
-        } else {
-            startDoubleClickSession();
-            startSingleClickSession();
-        }
-        if (inLongPressSession) {
-            endLongPressSession();
-        } else {
-            startLongPressSession();
+        used = true;
+        if (!screenSleeping) {
+            if (inDoubleClickSession) {
+                endSingleClickSession();
+                endDoubleClickSession();
+                doubleClickCallback();
+            } else {
+                startDoubleClickSession();
+                startSingleClickSession();
+            }
+            if (inLongPressSession) {
+                endLongPressSession();
+            } else {
+                startLongPressSession();
+            }
         }
     } else if (!currentState && lastButtonState) {
         endLongPressSession();
     }
     lastButtonState = currentState;
+    return used;
 }
 
 int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
@@ -198,9 +217,19 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
 int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     (void) id;
     (void) user_data;
-    printf("longPressCallback\n");
     endLongPressSession();
     endDoubleClickSession();
+    screenOff();
+    int i = 0;
+    while (!gpio_get(ENC_SW_PIN)) {
+        busy_wait_ms(1);
+        i++;
+    }
+    if (i > DORMANT_ADDITIONAL_DURATION_MS) {
+        System::goDormant();
+    } else {
+        screenOff();
+    }
     return 0;
 }
 

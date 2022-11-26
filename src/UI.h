@@ -17,14 +17,14 @@ public:
 
     static void screenOn();
 
+    static void screenOff();
+
 private:
     static void showSongSelector();
 
     static void showVolumeControl();
 
     static inline void showRasterBars();
-
-    static void pollSwitch();
 
     static int64_t singleClickCallback(alarm_id_t id, void *user_data);
 
@@ -51,6 +51,8 @@ private:
     static void endDoubleClickSession();
 
     static void endLongPressSession();
+
+    static bool pollSwitch();
 
     static void pollEncoder();
 
