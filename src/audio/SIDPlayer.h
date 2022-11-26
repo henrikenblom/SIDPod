@@ -33,6 +33,8 @@ public:
 
     static bool loadPSID(PSIDCatalogEntry *psidFile);
 
+    static PSIDCatalogEntry *getCurrentlyLoaded();
+
     static void togglePlayPause();
 
     static void turnAmpOn();

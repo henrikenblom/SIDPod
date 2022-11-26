@@ -15,6 +15,7 @@ uint8_t volume = VOLUME_STEPS;
 static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
+PSIDCatalogEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -131,12 +132,11 @@ void SIDPlayer::generateSamples() {
     bool rendering = false;
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
-    PSIDCatalogEntry *lastCatalogEntry = {};
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
             PSIDCatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
-            if (strcmp(currentCatalogEntry->title, lastCatalogEntry->title) != 0) {
+            if (strcmp(currentCatalogEntry->fileInfo.altname, lastCatalogEntry->fileInfo.altname) != 0) {
                 loadPSID(PSIDCatalog::getCurrentEntry());
                 sidPoke(24, 15);
                 cpuJSR(sidInfo.init_addr, sidInfo.start_song);
@@ -165,4 +165,8 @@ void SIDPlayer::generateSamples() {
             give_audio_buffer(audioBufferPool, buffer);
         }
     }
+}
+
+PSIDCatalogEntry *SIDPlayer::getCurrentlyLoaded() {
+    return lastCatalogEntry;
 }

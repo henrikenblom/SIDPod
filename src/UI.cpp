@@ -185,7 +185,10 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
             endVolumeControlSession();
             visualize = true;
         } else {
-            SIDPlayer::togglePlayPause();
+            if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileInfo.altname,
+                       PSIDCatalog::getCurrentEntry()->fileInfo.altname) != 0) {
+                SIDPlayer::togglePlayPause();
+            }
             visualize = true;
         }
     }
