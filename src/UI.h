@@ -1,7 +1,7 @@
 #ifndef SIDPOD_UI_H
 #define SIDPOD_UI_H
 
-#include "ssd1306.h"
+#include "display/include/ssd1306.h"
 
 class UI {
 public:
