@@ -64,7 +64,7 @@ void UI::showSplash() {
 
 void UI::showUI() {
     if (active) {
-        if (visualize) {
+        if (visualize && SIDPlayer::isPlaying()) {
             DanceFloor::start(PSIDCatalog::getCurrentEntry());
         } else if (volumeControl) {
             showVolumeControl();

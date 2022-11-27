@@ -17,6 +17,7 @@ int rvOffset = 0;
 int rsOffset = DISPLAY_WIDTH + 32;
 uint32_t delay = 5;
 bool running = false;
+bool freeze = false;
 kiss_fftr_cfg fft_cfg;
 double factor = 0.000000004;
 DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT];
@@ -113,11 +114,7 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
     ssd1306_clear(pDisp);
     drawFibonacciLandscape();
     drawStarrySky();
-    if (SIDPlayer::isPlaying()) {
-        drawScroller();
-    } else {
-        drawPausedLabel();
-    }
+    drawScroller();
     for (int x = 0; x < 127; x++) {
         int i = (int) (1.6 * (float) x);
         int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
@@ -136,21 +133,31 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
 
 void DanceFloor::visualize() {
     while (running) {
-        for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
-            sleep_ms(delay);
-            uint64_t sum = 0;
-            for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                sum += intermediateBuffer[i] >> 2;
-            }
-            float avg = (float) sum / FFT_SAMPLES;
-            int j = 0;
-            for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                fftIn[j++] = (float) (intermediateBuffer[i] >> 2) - avg;
-            }
+        if (SIDPlayer::isPlaying()) {
+            freeze = false;
+            for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
+                sleep_ms(delay);
+                uint64_t sum = 0;
+                for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
+                    sum += intermediateBuffer[i] >> 2;
+                }
+                float avg = (float) sum / FFT_SAMPLES;
+                int j = 0;
+                for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
+                    fftIn[j++] = (float) (intermediateBuffer[i] >> 2) - avg;
+                }
 
-            kiss_fftr(fft_cfg, fftIn, fftOut);
+                kiss_fftr(fft_cfg, fftIn, fftOut);
 
-            drawScene(fftOut);
+                drawScene(fftOut);
+            }
+        } else if (!freeze) {
+            ssd1306_clear(pDisp);
+            drawFibonacciLandscape();
+            drawStarrySky();
+            drawPausedLabel();
+            ssd1306_show(pDisp);
+            freeze = true;
         }
     }
 }
@@ -167,6 +174,7 @@ void DanceFloor::start(PSIDCatalogEntry *entry) {
     rvOffset = 0;
     rsOffset = DISPLAY_WIDTH + 32;
     running = true;
+    freeze = false;
     visualize();
 }
 
