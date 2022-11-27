@@ -22,6 +22,8 @@ public:
 private:
     static void showSongSelector();
 
+    static void showFlashEmptyScreen();
+
     static void showVolumeControl();
 
     static inline void showRasterBars();

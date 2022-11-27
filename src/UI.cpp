@@ -77,21 +77,36 @@ void UI::showUI() {
 }
 
 void UI::showSongSelector() {
-    ssd1306_clear(&disp);
-    PSIDCatalog::getWindow();
-    uint8_t y = 0;
-    for (auto entry: PSIDCatalog::getWindow()) {
-        if (entry->selected) {
-            ssd1306_draw_pixel(&disp, 0, y + 2);
-            ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
-            ssd1306_draw_pixel(&disp, 0, y + 4);
+    if (PSIDCatalog::getSize()) {
+        ssd1306_clear(&disp);
+        uint8_t y = 0;
+        for (auto entry: PSIDCatalog::getWindow()) {
+            if (entry->selected) {
+                ssd1306_draw_pixel(&disp, 0, y + 2);
+                ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
+                ssd1306_draw_pixel(&disp, 0, y + 4);
+            }
+            ssd1306_draw_string(&disp, 4, y, 1, entry->title);
+            y += 8;
         }
-        ssd1306_draw_string(&disp, 4, y, 1, entry->title);
-        y += 8;
+        ssd1306_show(&disp);
+    } else {
+        showFlashEmptyScreen();
     }
-    ssd1306_show(&disp);
 }
 
+void UI::showFlashEmptyScreen() {
+    ssd1306_clear(&disp);
+    char emptyFlashMsgLine1[17] = "No playable SIDs";
+    char emptyFlashMsgLine2[16] = "found. Transfer";
+    char emptyFlashMsgLine3[17] = "your funky tunes";
+    char emptyFlashMsgLine4[11] = "using USB.";
+    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 0, 1, emptyFlashMsgLine1);
+    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 8, 1, emptyFlashMsgLine2);
+    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 16, 1, emptyFlashMsgLine3);
+    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 24, 1, emptyFlashMsgLine4);
+    ssd1306_show(&disp);
+}
 
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
@@ -203,7 +218,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
         } else if (volumeControl) {
             endVolumeControlSession();
             visualize = true;
-        } else {
+        } else if (PSIDCatalog::getSize()) {
             if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileInfo.altname,
                        PSIDCatalog::getCurrentEntry()->fileInfo.altname) != 0) {
                 SIDPlayer::togglePlayPause();

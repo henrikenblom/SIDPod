@@ -107,11 +107,13 @@ void PSIDCatalog::slideUp() {
 }
 
 void PSIDCatalog::updateWindow() {
-    window.clear();
-    for (int i = 0; i < windowSize; i++) {
-        auto entry = catalog.at(windowPosition + i);
-        entry->selected = windowPosition + i == selectedPosition;
-        window.push_back(entry);
+    if (getSize()) {
+        window.clear();
+        for (int i = 0; i < windowSize; i++) {
+            auto entry = catalog.at(windowPosition + i);
+            entry->selected = windowPosition + i == selectedPosition;
+            window.push_back(entry);
+        }
     }
 }
 
