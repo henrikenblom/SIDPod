@@ -17,11 +17,11 @@ MP_WEAK DWORD get_fattime(void) {
 void filesystem_init() {
     FATFS *fs;
     fs = malloc(sizeof(FATFS));
-    if (f_mount(fs, "", FA_READ | FA_WRITE) != FR_OK) {
+    if (f_mount(fs, "", FA_READ) != FR_OK) {
         BYTE work[FLASH_SECTOR_SIZE];
         f_mkfs("", 0, work, FLASH_SECTOR_SIZE);
         f_setlabel(FS_LABEL);
-        f_mount(fs, "", FA_READ | FA_WRITE);
+        f_mount(fs, "", FA_READ);
     }
     free(fs);
     f_unmount("");

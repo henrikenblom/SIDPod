@@ -1,12 +1,9 @@
 #include <cstring>
 #include <vector>
-#include <cstdio>
-#include <cstdlib>
 #include "PSIDCatalog.h"
 #include "sid.h"
 #include "PSIDCatalogEntry.h"
-
-#define WINDOW_SIZE 4;
+#include "platform_config.h"
 
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
@@ -15,7 +12,7 @@ std::vector<PSIDCatalogEntry *> catalog;
 std::vector<PSIDCatalogEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
-uint8_t windowSize = WINDOW_SIZE;
+uint8_t windowSize = CATALOG_WINDOW_SIZE;
 
 void PSIDCatalog::refresh() {
     DIR *dp;
@@ -23,7 +20,7 @@ void PSIDCatalog::refresh() {
     FRESULT fr;
     dp = new DIR;
     catalog.clear();
-    f_mount(fs, "", FA_READ | FA_WRITE);
+    f_mount(fs, "", FA_READ);
     f_opendir(dp, "");
     while (true) {
         fr = f_readdir(dp, &fno);

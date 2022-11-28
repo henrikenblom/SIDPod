@@ -26,6 +26,8 @@
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
 
+#define CATALOG_WINDOW_SIZE                         4
+
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
