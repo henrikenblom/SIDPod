@@ -22,6 +22,11 @@ void System::goDormant() {
     sleep_run_from_xosc();
     sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
     configureClock();
+    UI::initDisplay();
     UI::screenOn();
     SIDPlayer::turnAmpOn();
+}
+
+void System::softReset() {
+    AIRCR_Register = SYSRESETREQ;
 }

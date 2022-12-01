@@ -116,7 +116,6 @@ void UI::showVolumeControl() {
     ssd1306_show(&disp);
 }
 
-
 void UI::stop() {
     active = false;
     DanceFloor::stop();
@@ -138,6 +137,8 @@ inline void UI::showRasterBars() {
 bool UI::pollUserControls(struct repeating_timer *t) {
     (void) t;
     if (pollSwitch() && screenSleeping) {
+        UI::initDisplay();
+        busy_wait_ms(250);
         screenOn();
     }
     pollEncoder();
@@ -242,8 +243,6 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     }
     if (i > DORMANT_ADDITIONAL_DURATION_MS) {
         System::goDormant();
-    } else {
-        screenOff();
     }
     return 0;
 }
@@ -307,4 +306,8 @@ void UI::endVolumeControlSession() {
         cancel_alarm(showVolumeControlTimer);
     }
     volumeControl = false;
+}
+
+void UI::initDisplay() {
+    ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
 }

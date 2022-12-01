@@ -6,6 +6,8 @@ public:
     static void configureClock();
 
     static void goDormant();
+
+    static void softReset();
 };
 
 #endif //SIDPOD_SYSTEM_H

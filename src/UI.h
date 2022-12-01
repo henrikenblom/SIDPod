@@ -15,6 +15,8 @@ public:
 
     static void stop();
 
+    static void initDisplay();
+
     static void screenOn();
 
     static void screenOff();

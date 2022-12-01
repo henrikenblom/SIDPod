@@ -1,4 +1,3 @@
-#include <pico/stdio.h>
 #include <pico/time.h>
 #include "device/usbd.h"
 #include "ff.h"
@@ -8,19 +7,12 @@
 #include "System.h"
 #include <pico/multicore.h>
 
-#define AIRCR_Register  (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
-#define SYSRESETREQ     0x5FA0004
-
 using namespace std;
 
 extern "C" void filesystem_init();
 
 struct repeating_timer tudTaskTimer{};
 bool connected = false;
-
-void reset() {
-    AIRCR_Register = SYSRESETREQ;
-}
 
 void tud_mount_cb(void) {
     multicore_reset_core1();
@@ -32,7 +24,7 @@ void tud_mount_cb(void) {
 
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void) remote_wakeup_en;
-    reset();
+    System::softReset();
 }
 
 bool repeatingTudTask(struct repeating_timer *t) {
