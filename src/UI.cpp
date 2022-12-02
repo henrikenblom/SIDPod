@@ -43,9 +43,8 @@ void UI::initUI() {
 }
 
 void UI::screenOn() {
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
     ssd1306_poweron(&disp);
+    busy_wait_ms(250);
     screenSleeping = false;
 }
 
@@ -53,6 +52,7 @@ void UI::screenOff() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
+    busy_wait_ms(250);
     screenSleeping = true;
 }
 
