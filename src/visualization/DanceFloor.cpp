@@ -20,6 +20,9 @@ bool running = false;
 bool freeze = false;
 kiss_fftr_cfg fft_cfg;
 double factor = 0.000000004;
+
+void (*callback)() = nullptr;
+
 DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT];
 DanceFloor::StarSprite starSprites[12] = {{6,   4},
                                           {14,  0},
@@ -160,6 +163,10 @@ void DanceFloor::visualize() {
             freeze = true;
         }
     }
+    if (callback != nullptr) {
+        (*callback)();
+        callback = nullptr;
+    }
 }
 
 void DanceFloor::init(ssd1306_t *_pDisp) {
@@ -179,5 +186,10 @@ void DanceFloor::start(PSIDCatalogEntry *entry) {
 }
 
 void DanceFloor::stop() {
+    running = false;
+}
+
+void DanceFloor::stopWithCallback(void (*ptr)()) {
+    callback = ptr;
     running = false;
 }

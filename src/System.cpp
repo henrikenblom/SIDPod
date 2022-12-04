@@ -1,6 +1,7 @@
 #include <pico/sleep.h>
 #include <hardware/pll.h>
 #include <hardware/clocks.h>
+#include <cstdio>
 #include "System.h"
 #include "UI.h"
 #include "platform_config.h"

@@ -61,6 +61,8 @@ private:
     static void pollEncoder();
 
     static bool pollUserControls(struct repeating_timer *t);
+
+    static void powerOffScreenCallback();
 };
 
 #endif //SIDPOD_UI_H

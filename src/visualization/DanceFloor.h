@@ -22,6 +22,8 @@ public:
 
     static void stop();
 
+    static void stopWithCallback(void (*ptr)());
+
     struct StarSprite {
         int x;
         int y;

@@ -24,6 +24,7 @@ struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
 alarm_id_t longPressTimer;
 alarm_id_t showVolumeControlTimer;
+alarm_id_t clearScreenTimer;
 char volumeLabel[7] = "Volume";
 
 void UI::initUI() {
@@ -44,15 +45,12 @@ void UI::initUI() {
 
 void UI::screenOn() {
     ssd1306_poweron(&disp);
-    busy_wait_ms(250);
+    busy_wait_ms(SCREEN_STATE_CHANGE_DELAY_MS);
     screenSleeping = false;
 }
 
 void UI::screenOff() {
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
-    ssd1306_poweroff(&disp);
-    busy_wait_ms(250);
+    DanceFloor::stopWithCallback(powerOffScreenCallback);
     screenSleeping = true;
 }
 
@@ -64,12 +62,14 @@ void UI::showSplash() {
 
 void UI::showUI() {
     if (active) {
-        if (visualize && SIDPlayer::isPlaying()) {
-            DanceFloor::start(PSIDCatalog::getCurrentEntry());
-        } else if (volumeControl) {
-            showVolumeControl();
-        } else {
-            showSongSelector();
+        if (!screenSleeping) {
+            if (visualize && SIDPlayer::isPlaying()) {
+                DanceFloor::start(PSIDCatalog::getCurrentEntry());
+            } else if (volumeControl) {
+                showVolumeControl();
+            } else {
+                showSongSelector();
+            }
         }
     } else {
         showRasterBars();
@@ -137,8 +137,6 @@ inline void UI::showRasterBars() {
 bool UI::pollUserControls(struct repeating_timer *t) {
     (void) t;
     if (pollSwitch() && screenSleeping) {
-        UI::initDisplay();
-        busy_wait_ms(250);
         screenOn();
     }
     pollEncoder();
@@ -310,4 +308,10 @@ void UI::endVolumeControlSession() {
 
 void UI::initDisplay() {
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
+}
+
+void UI::powerOffScreenCallback() {
+    ssd1306_clear(&disp);
+    ssd1306_show(&disp);
+    ssd1306_poweroff(&disp);
 }

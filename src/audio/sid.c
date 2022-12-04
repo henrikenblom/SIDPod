@@ -60,6 +60,7 @@
 #include "sid.h"
 #include <string.h>
 #include "kernal.h"
+#include "../platform_config.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -1137,38 +1138,46 @@ void c64Init(int nSampleRate) {
     cpuReset();
 }
 
-bool sid_load_from_memory(void *data, size_t size, struct sid_info *info) {
-    if (!data || !size || !info)
-        return false;
+bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info) {
+    FIL pFile;
+    BYTE header[PSID_HEADER_SIZE];
+    BYTE buffer[SID_LOAD_BUFFER_SIZE];
+    UINT bytesRead;
+    f_open(&pFile, fileInfo.fname, FA_READ);
+    f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
+    unsigned char *pHeader = (unsigned char *) header;
+    unsigned char data_file_offset = pHeader[7];
 
-    unsigned char *pData;
-    unsigned char data_file_offset;
+    info->load_addr = pHeader[8] << 8;
+    info->load_addr |= pHeader[9];
 
-    pData = (unsigned char *) data;
-    data_file_offset = pData[7];
+    info->init_addr = pHeader[10] << 8;
+    info->init_addr |= pHeader[11];
 
-    info->load_addr = pData[8] << 8;
-    info->load_addr |= pData[9];
+    info->play_addr = pHeader[12] << 8;
+    info->play_addr |= pHeader[13];
 
-    info->init_addr = pData[10] << 8;
-    info->init_addr |= pData[11];
+    info->subsongs = pHeader[0xf] - 1;
+    info->start_song = pHeader[0x11] - 1;
 
-    info->play_addr = pData[12] << 8;
-    info->play_addr |= pData[13];
+    info->load_addr = pHeader[data_file_offset];
+    info->load_addr |= pHeader[data_file_offset + 1] << 8;
 
-    info->subsongs = pData[0xf] - 1;
-    info->start_song = pData[0x11] - 1;
+    info->speed = pHeader[0x15];
 
-    info->load_addr = pData[data_file_offset];
-    info->load_addr |= pData[data_file_offset + 1] << 8;
+    strcpy(info->title, (const char *) &pHeader[0x16]);
+    strcpy(info->author, (const char *) &pHeader[0x36]);
+    strcpy(info->released, (const char *) &pHeader[0x56]);
 
-    info->speed = pData[0x15];
-
-    memcpy(&memory[info->load_addr], &pData[data_file_offset + 2], size - (data_file_offset + 2));
-
-    strcpy(info->title, (const char *) &pData[0x16]);
-    strcpy(info->author, (const char *) &pData[0x36]);
-    strcpy(info->released, (const char *) &pData[0x56]);
+    f_lseek(&pFile, data_file_offset + 2);
+    uint16_t offset = info->load_addr;
+    while (true) {
+        f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
+        if (bytesRead == 0) break;
+        memcpy(&memory[offset], &buffer, bytesRead);
+        offset += SID_LOAD_BUFFER_SIZE;
+    }
+    f_close(&pFile);
 
     if (info->play_addr == 0) {
         installKernal();
