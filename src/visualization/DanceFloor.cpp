@@ -136,6 +136,11 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
 
 void DanceFloor::visualize() {
     while (running) {
+        if (SIDPlayer::lineLevelOn()) {
+            factor = 0.00000004;
+        } else {
+            factor = 0.000000004;
+        }
         if (SIDPlayer::isPlaying()) {
             freeze = false;
             for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {

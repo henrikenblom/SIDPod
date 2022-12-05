@@ -7,6 +7,8 @@
 
 #define PLAY_PAUSE_COMMAND_CODE     123
 
+extern "C" void setLineLevel(bool on);
+extern "C" bool getLineLevelOn();
 extern "C" bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info);
 extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
 extern "C" void cpuJSR(unsigned short, unsigned char);
@@ -36,6 +38,10 @@ public:
     static uint8_t getVolume();
 
     static bool isPlaying();
+
+    static void toggleLineLevel();
+
+    static bool lineLevelOn();
 
 private:
 

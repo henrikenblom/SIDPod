@@ -819,15 +819,6 @@ void cpuReset(void) {
     pc = getaddr(0xfffc);
 }
 
-void cpuResetTo(unsigned short npc, unsigned char na) {
-    a = na;
-    x = 0;
-    y = 0;
-    p = 0;
-    s = 255;
-    pc = npc;
-}
-
 static inline void cpuParse(void) {
     unsigned char opc = getmem(pc++);
     int cmd = opcodes[opc];
@@ -1186,4 +1177,16 @@ bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info) {
     }
 
     return true;
+}
+
+void setLineLevel(bool on) {
+    if (on) {
+        map_shift_bits = 4;
+    } else {
+        map_shift_bits = 2;
+    }
+}
+
+bool getLineLevelOn() {
+    return map_shift_bits == 4;
 }

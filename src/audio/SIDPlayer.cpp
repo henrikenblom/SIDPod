@@ -169,3 +169,15 @@ void SIDPlayer::generateSamples() {
         }
     }
 }
+
+void SIDPlayer::toggleLineLevel() {
+    if (getLineLevelOn()) {
+        setLineLevel(false);
+    } else {
+        setLineLevel(true);
+    }
+}
+
+bool SIDPlayer::lineLevelOn() {
+    return getLineLevelOn();
+}

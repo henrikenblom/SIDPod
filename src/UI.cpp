@@ -24,8 +24,10 @@ struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer;
 alarm_id_t longPressTimer;
 alarm_id_t showVolumeControlTimer;
-alarm_id_t clearScreenTimer;
 char volumeLabel[7] = "Volume";
+char lineLevelLabel[12] = "Line level:";
+char yesLabel[4] = "Yes";
+char noLabel[3] = "No";
 
 void UI::initUI() {
     i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
@@ -110,9 +112,15 @@ void UI::showFlashEmptyScreen() {
 
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
-    ssd1306_draw_string(&disp, 4, 4, 1, volumeLabel);
-    ssd13606_draw_empty_square(&disp, 4, 13, 120, 10);
-    ssd1306_draw_square(&disp, 4, 13, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
+    ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
+    ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
+    ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
+    ssd1306_draw_string(&disp, 4, 24, 1, lineLevelLabel);
+    if (SIDPlayer::lineLevelOn()) {
+        ssd1306_draw_string(&disp, 92, 24, 1, yesLabel);
+    } else {
+        ssd1306_draw_string(&disp, 92, 24, 1, noLabel);
+    }
     ssd1306_show(&disp);
 }
 
@@ -215,8 +223,8 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
             visualize = false;
             DanceFloor::stop();
         } else if (volumeControl) {
-            endVolumeControlSession();
-            visualize = true;
+            SIDPlayer::toggleLineLevel();
+            resetVolumeControlSessionTimer();
         } else if (PSIDCatalog::getSize()) {
             if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileInfo.altname,
                        PSIDCatalog::getCurrentEntry()->fileInfo.altname) != 0) {

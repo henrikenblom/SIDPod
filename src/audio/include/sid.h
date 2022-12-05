@@ -21,11 +21,13 @@ void sidPoke(int reg, unsigned char val);
 
 void cpuReset(void);
 
-void cpuResetTo(unsigned short npc, unsigned char na);
-
 void cpuJSR(unsigned short npc, unsigned char na);
 
 void c64Init(int nSampleRate);
+
+void setLineLevel(bool on);
+
+bool getLineLevelOn();
 
 struct sid_info {
     uint16_t version;
