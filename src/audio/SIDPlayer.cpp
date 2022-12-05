@@ -3,10 +3,10 @@
 #include <cstring>
 #include <pico/util/queue.h>
 #include <hardware/gpio.h>
-#include <cmath>
 #include "SIDPlayer.h"
 #include "../PSIDCatalog.h"
 #include "../platform_config.h"
+#include "sid.h"
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
@@ -98,14 +98,8 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
 }
 
 bool SIDPlayer::loadPSID(PSIDCatalogEntry *psidFile) {
-    FIL pFile;
-    BYTE buffer[psidFile->fileInfo.fsize];
-    UINT bytes_read;
-    f_open(&pFile, psidFile->fileInfo.fname, FA_READ);
-    f_read(&pFile, &buffer, psidFile->fileInfo.fsize, &bytes_read);
-    f_close(&pFile);
     c64Init(SAMPLE_RATE);
-    return sid_load_from_memory((char *) buffer, bytes_read, &sidInfo);
+    return sid_load_from_file(psidFile->fileInfo, &sidInfo);
 }
 
 void SIDPlayer::generateSamples() {

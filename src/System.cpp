@@ -1,6 +1,7 @@
 #include <pico/sleep.h>
 #include <hardware/pll.h>
 #include <hardware/clocks.h>
+#include <cstdio>
 #include "System.h"
 #include "UI.h"
 #include "platform_config.h"
@@ -17,7 +18,8 @@ void System::configureClock() {
 }
 
 void System::goDormant() {
-    UI::screenOff();
+    UI::powerOffScreenCallback();
+    busy_wait_ms(SCREEN_STATE_CHANGE_DELAY_MS);
     SIDPlayer::turnAmpOff();
     sleep_run_from_xosc();
     sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);

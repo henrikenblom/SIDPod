@@ -29,10 +29,13 @@
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
-
+#define SCREEN_STATE_CHANGE_DELAY_MS        300
 #define CATALOG_WINDOW_SIZE                 4
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
+
+#define PSID_HEADER_SIZE                    ((uint8_t) 0x88)
+#define SID_LOAD_BUFFER_SIZE                1024
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
 #define SAMPLES_PER_BUFFER                  (6 * 1024)

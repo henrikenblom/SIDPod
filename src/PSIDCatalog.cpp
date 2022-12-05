@@ -1,13 +1,11 @@
 #include <cstring>
 #include <vector>
 #include "PSIDCatalog.h"
-#include "sid.h"
 #include "PSIDCatalogEntry.h"
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
-uint8_t PSID_HEADER_SIZE = 0x88;
 std::vector<PSIDCatalogEntry *> catalog;
 std::vector<PSIDCatalogEntry *> window;
 uint8_t windowPosition = 0;
@@ -106,7 +104,7 @@ void PSIDCatalog::slideUp() {
 void PSIDCatalog::updateWindow() {
     if (getSize()) {
         window.clear();
-        for (int i = 0; i < windowSize; i++) {
+        for (int i = 0; i < std::min(windowSize, (uint8_t) getSize()); i++) {
             auto entry = catalog.at(windowPosition + i);
             entry->selected = windowPosition + i == selectedPosition;
             window.push_back(entry);
