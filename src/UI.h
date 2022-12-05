@@ -21,6 +21,8 @@ public:
 
     static void screenOff();
 
+    static void powerOffScreenCallback();
+
 private:
     static void showSongSelector();
 
@@ -61,8 +63,6 @@ private:
     static void pollEncoder();
 
     static bool pollUserControls(struct repeating_timer *t);
-
-    static void powerOffScreenCallback();
 };
 
 #endif //SIDPOD_UI_H

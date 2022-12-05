@@ -233,7 +233,6 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     endLongPressSession();
     endDoubleClickSession();
-    screenOff();
     int i = 0;
     while (!gpio_get(ENC_SW_PIN)) {
         busy_wait_ms(1);
@@ -241,6 +240,8 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     }
     if (i > DORMANT_ADDITIONAL_DURATION_MS) {
         System::goDormant();
+    } else {
+        screenOff();
     }
     return 0;
 }
@@ -315,3 +316,4 @@ void UI::powerOffScreenCallback() {
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
 }
+
