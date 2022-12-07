@@ -1,4 +1,5 @@
 #include <malloc.h>
+#include <pico/printf.h>
 #include "ff_util.h"
 #include "hardware/rtc.h"
 #include "../platform_config.h"
@@ -17,7 +18,7 @@ MP_WEAK DWORD get_fattime(void) {
 void filesystem_init() {
     FATFS *fs;
     fs = malloc(sizeof(FATFS));
-    if (f_mount(fs, "", FA_READ) != FR_OK) {
+    if (!verify_filesystem(fs)) {
         BYTE work[FLASH_SECTOR_SIZE];
         f_mkfs("", 0, work, FLASH_SECTOR_SIZE);
         f_setlabel(FS_LABEL);
@@ -25,4 +26,12 @@ void filesystem_init() {
     }
     free(fs);
     f_unmount("");
+}
+
+bool verify_filesystem(FATFS *fs) {
+    DWORD fre_clust, tot_sect;
+    if (f_mount(fs, "", FA_READ) != FR_OK) return false;
+    if (f_getfree("", &fre_clust, &fs) != FR_OK) return false;
+    if ((fs->n_fatent - 2) * fs->csize != SECTOR_COUNT) return false;
+    return true;
 }

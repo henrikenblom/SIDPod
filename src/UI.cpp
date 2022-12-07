@@ -101,7 +101,7 @@ void UI::showFlashEmptyScreen() {
     ssd1306_clear(&disp);
     char emptyFlashMsgLine1[17] = "No playable SIDs";
     char emptyFlashMsgLine2[16] = "found. Transfer";
-    char emptyFlashMsgLine3[17] = "your funky tunes";
+    char emptyFlashMsgLine3[17] = "your funky PSIDs";
     char emptyFlashMsgLine4[11] = "using USB.";
     ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 0, 1, emptyFlashMsgLine1);
     ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 8, 1, emptyFlashMsgLine2);

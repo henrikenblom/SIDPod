@@ -5,4 +5,6 @@
 
 void filesystem_init();
 
+bool verify_filesystem(FATFS *fs);
+
 #endif //SIDPOD_FF_UTIL_H
