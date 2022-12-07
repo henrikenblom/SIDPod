@@ -51,7 +51,9 @@ void SIDPlayer::turnAmpOn() {
 }
 
 void SIDPlayer::turnAmpOff() {
-    gpio_pull_down(AMP_CONTROL_PIN);
+    if (!getLineLevelOn()) {
+        gpio_pull_down(AMP_CONTROL_PIN);
+    }
 }
 
 void SIDPlayer::volumeUp() {
