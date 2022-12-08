@@ -1,12 +1,8 @@
-//
-// Created by Henrik Enblom on 2022-11-21.
-//
-
-#include <random>
 #include "DanceFloor.h"
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../audio/SIDPlayer.h"
+#include "sid.h"
 
 int sprite_index = 0;
 char scrollText[160];
@@ -18,8 +14,10 @@ int rsOffset = DISPLAY_WIDTH + 32;
 uint32_t delay = 5;
 bool running = false;
 bool freeze = false;
+bool showScroller = false;
 kiss_fftr_cfg fft_cfg;
 double factor = 0.000000004;
+catalogEntry *selectedEntry;
 
 void (*callback)() = nullptr;
 
@@ -59,8 +57,10 @@ void DanceFloor::drawHorizontalLine(uint8_t y) {
 }
 
 void DanceFloor::drawScroller() {
-    ssd1306_draw_string(pDisp, rsOffset--, 1, 1, scrollText);
-    if (rsOffset < scrollLimit) rsOffset = DISPLAY_WIDTH + 1;
+    if (showScroller) {
+        ssd1306_draw_string(pDisp, rsOffset--, 1, 1, scrollText);
+        if (rsOffset < scrollLimit) rsOffset = DISPLAY_WIDTH + 1;
+    }
 }
 
 void DanceFloor::drawStarrySky() {
@@ -136,6 +136,12 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
 
 void DanceFloor::visualize() {
     while (running) {
+        if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
+            sid_info *entry = SIDPlayer::getSidInfo();
+            snprintf(scrollText, sizeof(scrollText), "This is %s by %s (%s) and you are experiencing it on a SIDPod.",
+                     entry->title, entry->author, entry->released);
+            showScroller = true;
+        }
         if (SIDPlayer::lineLevelOn()) {
             factor = 0.00000004;
         } else {
@@ -180,13 +186,13 @@ void DanceFloor::init(ssd1306_t *_pDisp) {
     fft_cfg = kiss_fftr_alloc(FFT_SAMPLES, false, nullptr, nullptr);
 }
 
-void DanceFloor::start(PSIDCatalogEntry *entry) {
-    snprintf(scrollText, sizeof(scrollText), "This is %s by %s (%s) and you are experiencing it on a SIDPod.",
-             entry->title, entry->author, entry->released);
+void DanceFloor::start(catalogEntry *_selectedEntry) {
+    selectedEntry = _selectedEntry;
     rvOffset = 0;
     rsOffset = DISPLAY_WIDTH + 32;
     running = true;
     freeze = false;
+    showScroller = false;
     visualize();
 }
 

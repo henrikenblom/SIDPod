@@ -1,13 +1,12 @@
 #include <cstring>
 #include <vector>
 #include "PSIDCatalog.h"
-#include "PSIDCatalogEntry.h"
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
-std::vector<PSIDCatalogEntry *> catalog;
-std::vector<PSIDCatalogEntry *> window;
+std::vector<catalogEntry> catalog;
+std::vector<catalogEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = CATALOG_WINDOW_SIZE;
@@ -32,15 +31,15 @@ void PSIDCatalog::refresh() {
     resetAccessors();
 }
 
-PSIDCatalogEntry *PSIDCatalog::getCurrentEntry() {
-    return catalog.at(selectedPosition);
+catalogEntry *PSIDCatalog::getCurrentEntry() {
+    return &catalog.at(selectedPosition);
 }
 
 size_t PSIDCatalog::getSize() {
     return catalog.size();
 }
 
-std::vector<PSIDCatalogEntry *> PSIDCatalog::getWindow() {
+std::vector<catalogEntry *> PSIDCatalog::getWindow() {
     return window;
 }
 
@@ -70,19 +69,18 @@ void PSIDCatalog::resetAccessors() {
 
 void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
-    BYTE header[PSID_HEADER_SIZE];
+    BYTE header[PSID_MINIMAL_HEADER_SIZE];
     UINT bytesRead;
-    f_open(&pFile, fileInfo->fname, FA_READ);
-    f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
-    if (bytesRead == PSID_HEADER_SIZE) {
+    f_open(&pFile, fileInfo->altname, FA_READ);
+    f_read(&pFile, &header, PSID_MINIMAL_HEADER_SIZE, &bytesRead);
+    if (bytesRead == PSID_MINIMAL_HEADER_SIZE) {
         uint32_t magic = header[3] | (header[2] << 0x08) | (header[1] << 0x10) | (header[0] << 0x18);
         if (magic == PSID_ID) {
-            auto *psidFile = new PSIDCatalogEntry(*fileInfo);
             auto *pHeader = (unsigned char *) header;
-            strcpy(psidFile->title, (const char *) &pHeader[0x16]);
-            strcpy(psidFile->author, (const char *) &pHeader[0x36]);
-            strcpy(psidFile->released, (const char *) &pHeader[0x56]);
-            catalog.push_back(psidFile);
+            catalogEntry entry{};
+            strcpy(entry.fileName, fileInfo->altname);
+            strcpy(entry.title, (const char *) &pHeader[0x16]);
+            catalog.push_back(entry);
         }
     }
     f_close(&pFile);
@@ -105,7 +103,7 @@ void PSIDCatalog::updateWindow() {
     if (getSize()) {
         window.clear();
         for (int i = 0; i < std::min(windowSize, (uint8_t) getSize()); i++) {
-            auto entry = catalog.at(windowPosition + i);
+            auto entry = &catalog.at(windowPosition + i);
             entry->selected = windowPosition + i == selectedPosition;
             window.push_back(entry);
         }

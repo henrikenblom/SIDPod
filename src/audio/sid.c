@@ -1124,12 +1124,12 @@ void c64Init(int nSampleRate) {
     cpuReset();
 }
 
-bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info) {
+bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     FIL pFile;
     BYTE header[PSID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
     UINT bytesRead;
-    f_open(&pFile, fileInfo.fname, FA_READ);
+    f_open(&pFile, file_name, FA_READ);
     f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
     unsigned char *pHeader = (unsigned char *) header;
     unsigned char data_file_offset = pHeader[7];

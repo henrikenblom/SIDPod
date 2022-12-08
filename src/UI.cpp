@@ -226,8 +226,8 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
             SIDPlayer::toggleLineLevel();
             resetVolumeControlSessionTimer();
         } else if (PSIDCatalog::getSize()) {
-            if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileInfo.altname,
-                       PSIDCatalog::getCurrentEntry()->fileInfo.altname) != 0) {
+            if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                       PSIDCatalog::getCurrentEntry()->fileName) != 0) {
                 SIDPlayer::togglePlayPause();
             }
             visualize = true;

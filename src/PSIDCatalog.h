@@ -3,18 +3,23 @@
 
 #include <vector>
 #include "ff.h"
-#include "PSIDCatalogEntry.h"
+
+struct catalogEntry {
+    TCHAR fileName[FF_SFN_BUF + 1];
+    char title[32];
+    bool selected;
+};
 
 class PSIDCatalog {
 
 public:
     static void refresh();
 
-    static PSIDCatalogEntry* getCurrentEntry();
+    static catalogEntry *getCurrentEntry();
 
     static size_t getSize();
 
-    static std::vector<PSIDCatalogEntry *> getWindow();
+    static std::vector<catalogEntry *> getWindow();
 
     static void selectNext();
 

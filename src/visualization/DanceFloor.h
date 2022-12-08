@@ -1,14 +1,10 @@
-//
-// Created by Henrik Enblom on 2022-11-21.
-//
-
 #ifndef SIDPOD_DANCEFLOOR_H
 #define SIDPOD_DANCEFLOOR_H
 
 #include "../display/include/ssd1306.h"
 #include "../platform_config.h"
 #include "kiss_fft.h"
-#include "../PSIDCatalogEntry.h"
+#include "../PSIDCatalog.h"
 
 #define FIBONACCI_NUMBER_COUNT  20
 #define SOUND_SPRITE_COUNT      (32 * 128)
@@ -18,7 +14,7 @@ class DanceFloor {
 public:
     static void init(ssd1306_t *disp);
 
-    static void start(PSIDCatalogEntry *entry);
+    static void start(catalogEntry *selectedEntry);
 
     static void stop();
 

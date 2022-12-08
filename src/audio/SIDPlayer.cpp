@@ -4,7 +4,6 @@
 #include <pico/util/queue.h>
 #include <hardware/gpio.h>
 #include "SIDPlayer.h"
-#include "../PSIDCatalog.h"
 #include "../platform_config.h"
 #include "sid.h"
 
@@ -16,7 +15,7 @@ static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
 bool rendering = false;
-PSIDCatalogEntry *lastCatalogEntry = {};
+catalogEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -79,7 +78,7 @@ uint8_t SIDPlayer::getVolume() {
 }
 
 
-PSIDCatalogEntry *SIDPlayer::getCurrentlyLoaded() {
+catalogEntry *SIDPlayer::getCurrentlyLoaded() {
     return lastCatalogEntry;
 }
 
@@ -99,9 +98,9 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(PSIDCatalogEntry *psidFile) {
+bool SIDPlayer::loadPSID(catalogEntry *psidFile) {
     c64Init(SAMPLE_RATE);
-    return sid_load_from_file(psidFile->fileInfo, &sidInfo);
+    return sid_load_from_file(psidFile->fileName, &sidInfo);
 }
 
 void SIDPlayer::generateSamples() {
@@ -140,8 +139,8 @@ void SIDPlayer::generateSamples() {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            PSIDCatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
-            if (strcmp(currentCatalogEntry->fileInfo.altname, lastCatalogEntry->fileInfo.altname) != 0) {
+            catalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
                 loadPSID(PSIDCatalog::getCurrentEntry());
                 sidPoke(24, 15);
                 cpuJSR(sidInfo.init_addr, sidInfo.start_song);
@@ -182,4 +181,8 @@ void SIDPlayer::toggleLineLevel() {
 
 bool SIDPlayer::lineLevelOn() {
     return getLineLevelOn();
+}
+
+sid_info *SIDPlayer::getSidInfo() {
+    return &sidInfo;
 }

@@ -42,7 +42,7 @@ struct sid_info {
     char released[32];
 };
 
-bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info);
+bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
 
 void sid_synth_render(uint16_t *buffer, size_t len);
 

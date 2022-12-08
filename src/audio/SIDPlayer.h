@@ -1,15 +1,15 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
-#include "../PSIDCatalogEntry.h"
 #include "pico/audio_i2s.h"
 #include "../platform_config.h"
+#include "../PSIDCatalog.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
 
 extern "C" void setLineLevel(bool on);
 extern "C" bool getLineLevelOn();
-extern "C" bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info);
+extern "C" bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
 extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
 extern "C" void cpuJSR(unsigned short, unsigned char);
 extern "C" void sidPoke(int reg, unsigned char val);
@@ -21,9 +21,9 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(PSIDCatalogEntry *psidFile);
+    static bool loadPSID(catalogEntry *psidFile);
 
-    static PSIDCatalogEntry *getCurrentlyLoaded();
+    static catalogEntry *getCurrentlyLoaded();
 
     static void togglePlayPause();
 
@@ -42,6 +42,8 @@ public:
     static void toggleLineLevel();
 
     static bool lineLevelOn();
+
+    static sid_info * getSidInfo();
 
 private:
 
