@@ -74,7 +74,7 @@ DRESULT disk_ioctl(
         }
 
         case GET_SECTOR_SIZE: {
-            *((DWORD *) buff) = FLASH_SECTOR_SIZE;
+            *((WORD *) buff) = FLASH_SECTOR_SIZE;
             return RES_OK;
         }
 

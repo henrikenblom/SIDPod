@@ -59,7 +59,6 @@
 
 #include "sid.h"
 #include <string.h>
-#include "kernal.h"
 #include "../platform_config.h"
 
 #define ICODE_ATTR
@@ -1119,10 +1118,6 @@ void cpuJSR(unsigned short npc, unsigned char na) {
 
 }
 
-void installKernal() {
-    memcpy(&memory[0xe000], &KERNAL, KERNAL_SIZE);
-}
-
 void c64Init(int nSampleRate) {
     synth_init(nSampleRate);
     memset(memory, 0, sizeof(memory));
@@ -1171,9 +1166,8 @@ bool sid_load_from_file(FILINFO fileInfo, struct sid_info *info) {
     f_close(&pFile);
 
     if (info->play_addr == 0) {
-        installKernal();
         cpuJSR(info->init_addr, 0);
-        info->play_addr = (memory[0xffff] << 8) + memory[0xfffe];
+        info->play_addr = (memory[0xffff] << 8) | memory[0xfffe];
     }
 
     return true;
