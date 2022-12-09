@@ -15,8 +15,6 @@ public:
 
     static void stop();
 
-    static void initDisplay();
-
     static void screenOn();
 
     static void screenOff();
@@ -25,6 +23,10 @@ public:
 
 private:
     static void showSongSelector();
+
+    static void drawPlaySymbol(int32_t y);
+
+    static void drawNowPlayingSymbol(int32_t y);
 
     static void showFlashEmptyScreen();
 

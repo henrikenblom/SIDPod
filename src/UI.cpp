@@ -83,10 +83,10 @@ void UI::showSongSelector() {
         ssd1306_clear(&disp);
         uint8_t y = 0;
         for (auto entry: PSIDCatalog::getWindow()) {
-            if (entry->selected) {
-                ssd1306_draw_pixel(&disp, 0, y + 2);
-                ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
-                ssd1306_draw_pixel(&disp, 0, y + 4);
+            if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
+                drawNowPlayingSymbol(y);
+            } else if (entry->selected) {
+                drawPlaySymbol(y);
             }
             ssd1306_draw_string(&disp, 4, y, 1, entry->title);
             y += 8;
@@ -95,6 +95,18 @@ void UI::showSongSelector() {
     } else {
         showFlashEmptyScreen();
     }
+}
+
+void UI::drawPlaySymbol(int32_t y) {
+    ssd1306_draw_pixel(&disp, 0, y + 2);
+    ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
+    ssd1306_draw_pixel(&disp, 0, y + 4);
+}
+
+void UI::drawNowPlayingSymbol(int32_t y) {
+    ssd1306_draw_pixel(&disp, 2, y);
+    ssd1306_draw_line(&disp, 1, y, 1, y + 4);
+    ssd1306_draw_line(&disp, 0, y + 3, 0, y + 4);
 }
 
 void UI::showFlashEmptyScreen() {
@@ -313,10 +325,6 @@ void UI::endVolumeControlSession() {
         cancel_alarm(showVolumeControlTimer);
     }
     volumeControl = false;
-}
-
-void UI::initDisplay() {
-    ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
 }
 
 void UI::powerOffScreenCallback() {
