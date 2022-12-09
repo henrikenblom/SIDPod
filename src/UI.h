@@ -28,6 +28,8 @@ private:
 
     static void drawNowPlayingSymbol(int32_t y);
 
+    static void animateLongTitle(char title[32], int32_t y);
+
     static void showFlashEmptyScreen();
 
     static void showVolumeControl();

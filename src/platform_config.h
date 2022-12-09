@@ -31,6 +31,7 @@
 #define DISPLAY_I2C_ADDRESS                 0x3C
 #define SCREEN_STATE_CHANGE_DELAY_MS        300
 #define CATALOG_WINDOW_SIZE                 4
+#define SONG_LIST_LEFT_MARGIN               6
 #define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000004)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000004)
 

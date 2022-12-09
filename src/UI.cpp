@@ -28,6 +28,7 @@ char volumeLabel[7] = "Volume";
 char lineLevelLabel[12] = "Line level:";
 char yesLabel[4] = "Yes";
 char noLabel[3] = "No";
+float longTitleScrollOffset = 0;
 
 void UI::initUI() {
     i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
@@ -83,18 +84,34 @@ void UI::showSongSelector() {
         ssd1306_clear(&disp);
         uint8_t y = 0;
         for (auto entry: PSIDCatalog::getWindow()) {
+            if (entry->selected && strlen(entry->title) * 8 > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                animateLongTitle(entry->title, y);
+            } else {
+                ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
+            }
             if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
                 drawPlaySymbol(y);
             }
-            ssd1306_draw_string(&disp, 4, y, 1, entry->title);
             y += 8;
         }
         ssd1306_show(&disp);
     } else {
         showFlashEmptyScreen();
     }
+}
+
+void UI::animateLongTitle(char *title, int32_t y) {
+    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - (int32_t) longTitleScrollOffset, y, 1, title);
+    int scrollRange = (int) strlen(title) * 8 - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
+    float advancement =
+            longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
+            ? 0.4
+            : 0.02;
+    if ((int) (longTitleScrollOffset += advancement) > scrollRange)
+        longTitleScrollOffset = 0;
+    ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + 8);
 }
 
 void UI::drawPlaySymbol(int32_t y) {
@@ -104,9 +121,9 @@ void UI::drawPlaySymbol(int32_t y) {
 }
 
 void UI::drawNowPlayingSymbol(int32_t y) {
-    ssd1306_draw_pixel(&disp, 2, y);
-    ssd1306_draw_line(&disp, 1, y, 1, y + 4);
-    ssd1306_draw_line(&disp, 0, y + 3, 0, y + 4);
+    ssd1306_draw_pixel(&disp, 2, y + 1);
+    ssd1306_draw_line(&disp, 1, y + 1, 1, y + 5);
+    ssd1306_draw_line(&disp, 0, y + 4, 0, y + 5);
 }
 
 void UI::showFlashEmptyScreen() {
@@ -182,6 +199,7 @@ void UI::pollEncoder() {
                         SIDPlayer::volumeUp();
                     } else {
                         PSIDCatalog::selectNext();
+                        longTitleScrollOffset = 0;
                     }
                 }
             } else if (encDelta < 0) {
@@ -190,6 +208,7 @@ void UI::pollEncoder() {
                         SIDPlayer::volumeDown();
                     } else {
                         PSIDCatalog::selectPrevious();
+                        longTitleScrollOffset = 0;
                     }
                 }
             }
@@ -332,4 +351,3 @@ void UI::powerOffScreenCallback() {
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
 }
-
