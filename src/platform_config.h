@@ -14,7 +14,7 @@
 #define FLASH_BASE_ADDR                     (PICO_FLASH_SIZE_BYTES - FLASH_STORAGE_BYTES)
 #define FLASH_MMAP_ADDR                     (XIP_BASE + FLASH_BASE_ADDR)
 
-#define FS_LABEL                            "SIDPod"
+#define FS_LABEL                            "SIDPOD"
 
 #define BOARD_TUD_RHPORT                    0
 
@@ -31,6 +31,8 @@
 #define DISPLAY_I2C_ADDRESS                 0x3C
 #define SCREEN_STATE_CHANGE_DELAY_MS        300
 #define CATALOG_WINDOW_SIZE                 4
+#define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000004)
+#define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000004)
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 

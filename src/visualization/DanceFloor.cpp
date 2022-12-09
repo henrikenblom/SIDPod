@@ -16,10 +16,10 @@ bool running = false;
 bool freeze = false;
 bool showScroller = false;
 kiss_fftr_cfg fft_cfg;
-double factor = 0.000000004;
+double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
 catalogEntry *selectedEntry;
 
-void (*callback)() = nullptr;
+void (*stopCallback)() = nullptr;
 
 DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT];
 DanceFloor::StarSprite starSprites[12] = {{6,   4},
@@ -122,10 +122,10 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
         int i = (int) (1.6 * (float) x);
         int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
                         fft_out[i + 1].r * fft_out[i + 1].r + fft_out[i + 1].i * fft_out[i + 1].i) *
-                       factor);
+                       compFactor);
         if (y > 0) {
-            if (y > 32) y /= 7;
-            SoundSprite sprite = {.velocity = std::min(16, y), .distance = 20, .frequency_bin = x};
+            if (y > 28) y /= 8;
+            SoundSprite sprite = {.velocity = static_cast<int8_t>(std::min(16, y)), .distance = 20, .frequency_bin = x};
             soundSprites[sprite_index++] = sprite;
             if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
         }
@@ -142,11 +142,7 @@ void DanceFloor::visualize() {
                      entry->title, entry->author, entry->released);
             showScroller = true;
         }
-        if (SIDPlayer::lineLevelOn()) {
-            factor = 0.00000004;
-        } else {
-            factor = 0.000000004;
-        }
+        compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
         if (SIDPlayer::isPlaying()) {
             freeze = false;
             for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
@@ -174,9 +170,9 @@ void DanceFloor::visualize() {
             freeze = true;
         }
     }
-    if (callback != nullptr) {
-        (*callback)();
-        callback = nullptr;
+    if (stopCallback != nullptr) {
+        (*stopCallback)();
+        stopCallback = nullptr;
     }
 }
 
@@ -200,7 +196,7 @@ void DanceFloor::stop() {
     running = false;
 }
 
-void DanceFloor::stopWithCallback(void (*ptr)()) {
-    callback = ptr;
+void DanceFloor::stopWithCallback(void (*callback)()) {
+    stopCallback = callback;
     running = false;
 }

@@ -18,15 +18,15 @@ public:
 
     static void stop();
 
-    static void stopWithCallback(void (*ptr)());
+    static void stopWithCallback(void (*callback)());
 
     struct StarSprite {
-        int x;
-        int y;
+        uint8_t x;
+        uint8_t y;
     };
     struct SoundSprite {
-        int velocity;
-        int distance;
+        int8_t velocity;
+        int8_t distance;
         int frequency_bin;
     };
 private:
