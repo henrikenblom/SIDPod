@@ -118,7 +118,7 @@ void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
     drawFibonacciLandscape();
     drawStarrySky();
     drawScroller();
-    for (int x = 0; x < 127; x++) {
+    for (uint8_t x = 0; x < 127; x++) {
         int i = (int) (1.6 * (float) x);
         int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
                         fft_out[i + 1].r * fft_out[i + 1].r + fft_out[i + 1].i * fft_out[i + 1].i) *

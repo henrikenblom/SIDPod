@@ -27,7 +27,7 @@ public:
     struct SoundSprite {
         int8_t velocity;
         int8_t distance;
-        int frequency_bin;
+        uint8_t frequency_bin;
     };
 private:
     static void initFibonacci();
