@@ -16,7 +16,7 @@ bool connected = false;
 
 void tud_mount_cb(void) {
     multicore_reset_core1();
-    SIDPlayer::turnAmpOff();
+    SIDPlayer::ampOff();
     UI::stop();
     f_unmount("");
     connected = true;

@@ -15,7 +15,8 @@ static sid_info sidInfo{};
 uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
 bool rendering = false;
-catalogEntry *lastCatalogEntry = {};
+bool loadingSuccessful = true;
+CatalogEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
         .sample_freq = SAMPLE_RATE,
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -40,16 +41,24 @@ void SIDPlayer::initAudio() {
     multicore_fifo_pop_blocking();
 }
 
+void SIDPlayer::resetState() {
+    playPauseQueued = false;
+    rendering = false;
+    loadingSuccessful = true;
+    lastCatalogEntry = {};
+    memset(intermediateBuffer, 0, SAMPLES_PER_BUFFER);
+    c64Init(SAMPLE_RATE);
+}
+
 void SIDPlayer::togglePlayPause() {
     queue_add_blocking(&txQueue, &playPauseCommand);
 }
 
-
-void SIDPlayer::turnAmpOn() {
+void SIDPlayer::ampOn() {
     gpio_pull_up(AMP_CONTROL_PIN);
 }
 
-void SIDPlayer::turnAmpOff() {
+void SIDPlayer::ampOff() {
     if (!getLineLevelOn()) {
         gpio_pull_down(AMP_CONTROL_PIN);
     }
@@ -58,7 +67,7 @@ void SIDPlayer::turnAmpOff() {
 void SIDPlayer::volumeUp() {
     if (volume < VOLUME_STEPS) {
         if (volume == 0) {
-            turnAmpOn();
+            ampOn();
         }
         volume++;
     }
@@ -67,7 +76,7 @@ void SIDPlayer::volumeUp() {
 void SIDPlayer::volumeDown() {
     if (volume > 0) {
         if (volume == 1) {
-            turnAmpOff();
+            ampOff();
         }
         volume--;
     }
@@ -78,12 +87,32 @@ uint8_t SIDPlayer::getVolume() {
 }
 
 
-catalogEntry *SIDPlayer::getCurrentlyLoaded() {
+CatalogEntry *SIDPlayer::getCurrentlyLoaded() {
     return lastCatalogEntry;
 }
 
 bool SIDPlayer::isPlaying() {
     return rendering;
+}
+
+void SIDPlayer::toggleLineLevel() {
+    if (getLineLevelOn()) {
+        setLineLevel(false);
+    } else {
+        setLineLevel(true);
+    }
+}
+
+bool SIDPlayer::lineLevelOn() {
+    return getLineLevelOn();
+}
+
+sid_info *SIDPlayer::getSidInfo() {
+    return &sidInfo;
+}
+
+bool SIDPlayer::loadingWasSuccessful() {
+    return loadingSuccessful;
 }
 
 // core1 functions
@@ -98,8 +127,7 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(catalogEntry *psidFile) {
-    c64Init(SAMPLE_RATE);
+bool SIDPlayer::loadPSID(CatalogEntry *psidFile) {
     return sid_load_from_file(psidFile->fileName, &sidInfo);
 }
 
@@ -130,7 +158,7 @@ void SIDPlayer::generateSamples() {
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
-    turnAmpOff();
+    ampOff();
     audio_i2s_setup(&audio_format, &config);
     audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
@@ -139,21 +167,26 @@ void SIDPlayer::generateSamples() {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            catalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
             if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
-                loadPSID(PSIDCatalog::getCurrentEntry());
-                sidPoke(24, 15);
-                cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                resetState();
+                if (loadPSID(PSIDCatalog::getCurrentEntry())) {
+                    loadingSuccessful = true;
+                    sidPoke(24, 15);
+                    cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                    rendering = true;
+                    ampOn();
+                } else {
+                    loadingSuccessful = false;
+                }
                 lastCatalogEntry = currentCatalogEntry;
-                rendering = true;
-                turnAmpOn();
             } else if (rendering) {
                 memset(intermediateBuffer, 0, sizeof(intermediateBuffer));
                 rendering = false;
-                turnAmpOff();
+                ampOff();
             } else {
                 rendering = true;
-                turnAmpOn();
+                ampOn();
             }
             playPauseQueued = false;
         }
@@ -169,20 +202,4 @@ void SIDPlayer::generateSamples() {
             give_audio_buffer(audioBufferPool, buffer);
         }
     }
-}
-
-void SIDPlayer::toggleLineLevel() {
-    if (getLineLevelOn()) {
-        setLineLevel(false);
-    } else {
-        setLineLevel(true);
-    }
-}
-
-bool SIDPlayer::lineLevelOn() {
-    return getLineLevelOn();
-}
-
-sid_info *SIDPlayer::getSidInfo() {
-    return &sidInfo;
 }

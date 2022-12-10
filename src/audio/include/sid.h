@@ -23,6 +23,8 @@ void cpuReset(void);
 
 void cpuJSR(unsigned short npc, unsigned char na);
 
+bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na);
+
 void c64Init(int nSampleRate);
 
 void setLineLevel(bool on);

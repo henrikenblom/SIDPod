@@ -39,7 +39,8 @@
 
 #define PSID_HEADER_SIZE                    ((uint8_t) 0x88)
 #define PSID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x48)
-#define SID_LOAD_BUFFER_SIZE                1024
+#define SID_LOAD_BUFFER_SIZE                ((int) 1024)
+#define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
 #define SAMPLES_PER_BUFFER                  (6 * 1024)

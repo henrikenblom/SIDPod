@@ -158,6 +158,8 @@ static struct s6581 sid IDATA_ATTR;
 static struct sidosc osc[3] IDATA_ATTR;
 static struct sidflt filter IDATA_ATTR;
 
+static long watchdog_counter = 0;
+
 /* ------------------------------------------------------ C64 Emu Stuff */
 static unsigned char bval IDATA_ATTR;
 static unsigned short wval IDATA_ATTR;
@@ -1118,6 +1120,23 @@ void cpuJSR(unsigned short npc, unsigned char na) {
 
 }
 
+bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
+    watchdog_counter = 0;
+    a = na;
+    x = 0;
+    y = 0;
+    p = 0;
+    s = 255;
+    pc = npc;
+    push(0);
+    push(0);
+
+    while (pc > 1 && watchdog_counter++ < CPU_JSR_WATCHDOG_ABORT_LIMIT)
+        cpuParse();
+
+    return watchdog_counter < CPU_JSR_WATCHDOG_ABORT_LIMIT;
+}
+
 void c64Init(int nSampleRate) {
     synth_init(nSampleRate);
     memset(memory, 0, sizeof(memory));
@@ -1129,8 +1148,9 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     BYTE header[PSID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
     UINT bytesRead;
-    f_open(&pFile, file_name, FA_READ);
-    f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead);
+    if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
+    if (f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
+    if (bytesRead < PSID_HEADER_SIZE) return false;
     unsigned char *pHeader = (unsigned char *) header;
     unsigned char data_file_offset = pHeader[7];
 
@@ -1166,10 +1186,9 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     f_close(&pFile);
 
     if (info->play_addr == 0) {
-        cpuJSR(info->init_addr, 0);
+        if (!cpuJSRWithWatchdog(info->init_addr, 0)) return false;
         info->play_addr = (memory[0xffff] << 8) | memory[0xfffe];
     }
-
     return true;
 }
 

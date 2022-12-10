@@ -4,7 +4,8 @@
 #include <vector>
 #include "ff.h"
 
-struct catalogEntry {
+struct CatalogEntry {
+    bool unplayable;
     TCHAR fileName[FF_SFN_BUF + 1];
     char title[32];
     bool selected;
@@ -15,15 +16,17 @@ class PSIDCatalog {
 public:
     static void refresh();
 
-    static catalogEntry *getCurrentEntry();
+    static CatalogEntry *getCurrentEntry();
 
     static size_t getSize();
 
-    static std::vector<catalogEntry *> getWindow();
+    static std::vector<CatalogEntry *> getWindow();
 
     static void selectNext();
 
     static void selectPrevious();
+
+    static void markCurrentEntryAsUnplayable();
 
 private:
     static void tryToAddAsPsid(FILINFO *fileInfo);

@@ -1,12 +1,13 @@
 #include <cstring>
 #include <vector>
+#include <cstdio>
 #include "PSIDCatalog.h"
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
 uint32_t PSID_ID = 0x50534944;
-std::vector<catalogEntry> catalog;
-std::vector<catalogEntry *> window;
+std::vector<CatalogEntry> catalog;
+std::vector<CatalogEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = CATALOG_WINDOW_SIZE;
@@ -31,7 +32,7 @@ void PSIDCatalog::refresh() {
     resetAccessors();
 }
 
-catalogEntry *PSIDCatalog::getCurrentEntry() {
+CatalogEntry *PSIDCatalog::getCurrentEntry() {
     return &catalog.at(selectedPosition);
 }
 
@@ -39,7 +40,7 @@ size_t PSIDCatalog::getSize() {
     return catalog.size();
 }
 
-std::vector<catalogEntry *> PSIDCatalog::getWindow() {
+std::vector<CatalogEntry *> PSIDCatalog::getWindow() {
     return window;
 }
 
@@ -77,7 +78,8 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
         uint32_t magic = header[3] | (header[2] << 0x08) | (header[1] << 0x10) | (header[0] << 0x18);
         if (magic == PSID_ID) {
             auto *pHeader = (unsigned char *) header;
-            catalogEntry entry{};
+            CatalogEntry entry{};
+            entry.unplayable = false;
             strcpy(entry.fileName, fileInfo->altname);
             strcpy(entry.title, (const char *) &pHeader[0x16]);
             catalog.push_back(entry);
@@ -112,4 +114,8 @@ void PSIDCatalog::updateWindow() {
 
 bool PSIDCatalog::isRegularFile(FILINFO *fileInfo) {
     return fileInfo->fattrib == 32 && fileInfo->fname[0] != 46;
+}
+
+void PSIDCatalog::markCurrentEntryAsUnplayable() {
+    getCurrentEntry()->unplayable = true;
 }

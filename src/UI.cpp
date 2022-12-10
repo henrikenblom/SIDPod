@@ -71,6 +71,12 @@ void UI::showUI() {
             } else if (volumeControl) {
                 showVolumeControl();
             } else {
+                if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+                    && !SIDPlayer::loadingWasSuccessful()) {
+                    PSIDCatalog::markCurrentEntryAsUnplayable();
+                    SIDPlayer::resetState();
+                    visualize = false;
+                }
                 showSongSelector();
             }
         }
@@ -89,11 +95,13 @@ void UI::showSongSelector() {
             } else {
                 ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
             }
-            if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
+            if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
+                && SIDPlayer::loadingWasSuccessful()) {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
                 drawPlaySymbol(y);
             }
+            if (entry->unplayable) crossOutLine(y);
             y += 8;
         }
         ssd1306_show(&disp);
@@ -124,6 +132,10 @@ void UI::drawNowPlayingSymbol(int32_t y) {
     ssd1306_draw_pixel(&disp, 2, y + 1);
     ssd1306_draw_line(&disp, 1, y + 1, 1, y + 5);
     ssd1306_draw_line(&disp, 0, y + 4, 0, y + 5);
+}
+
+void UI::crossOutLine(int32_t y) {
+    ssd1306_draw_line(&disp, SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
 }
 
 void UI::showFlashEmptyScreen() {
@@ -256,7 +268,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
         } else if (volumeControl) {
             SIDPlayer::toggleLineLevel();
             resetVolumeControlSessionTimer();
-        } else if (PSIDCatalog::getSize()) {
+        } else if (PSIDCatalog::getSize() && !PSIDCatalog::getCurrentEntry()->unplayable) {
             if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
                        PSIDCatalog::getCurrentEntry()->fileName) != 0) {
                 SIDPlayer::togglePlayPause();

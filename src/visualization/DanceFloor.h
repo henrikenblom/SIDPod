@@ -14,7 +14,7 @@ class DanceFloor {
 public:
     static void init(ssd1306_t *disp);
 
-    static void start(catalogEntry *selectedEntry);
+    static void start(CatalogEntry *selectedEntry);
 
     static void stop();
 

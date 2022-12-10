@@ -17,7 +17,7 @@ bool freeze = false;
 bool showScroller = false;
 kiss_fftr_cfg fft_cfg;
 double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
-catalogEntry *selectedEntry;
+CatalogEntry *selectedEntry;
 
 void (*stopCallback)() = nullptr;
 
@@ -161,6 +161,8 @@ void DanceFloor::visualize() {
 
                 drawScene(fftOut);
             }
+        } else if (!SIDPlayer::loadingWasSuccessful()) {
+            stop();
         } else if (!freeze) {
             ssd1306_clear(pDisp);
             drawFibonacciLandscape();
@@ -182,7 +184,7 @@ void DanceFloor::init(ssd1306_t *_pDisp) {
     fft_cfg = kiss_fftr_alloc(FFT_SAMPLES, false, nullptr, nullptr);
 }
 
-void DanceFloor::start(catalogEntry *_selectedEntry) {
+void DanceFloor::start(CatalogEntry *_selectedEntry) {
     selectedEntry = _selectedEntry;
     rvOffset = 0;
     rsOffset = DISPLAY_WIDTH + 32;

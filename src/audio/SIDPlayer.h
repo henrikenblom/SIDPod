@@ -21,15 +21,15 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(catalogEntry *psidFile);
+    static bool loadPSID(CatalogEntry *psidFile);
 
-    static catalogEntry *getCurrentlyLoaded();
+    static CatalogEntry *getCurrentlyLoaded();
 
     static void togglePlayPause();
 
-    static void turnAmpOn();
+    static void ampOn();
 
-    static void turnAmpOff();
+    static void ampOff();
 
     static void volumeUp();
 
@@ -44,6 +44,10 @@ public:
     static bool lineLevelOn();
 
     static sid_info * getSidInfo();
+
+    static bool loadingWasSuccessful();
+
+    static void resetState();
 
 private:
 
