@@ -6,7 +6,7 @@
 #include "kiss_fft.h"
 #include "../PSIDCatalog.h"
 
-#define FIBONACCI_NUMBER_COUNT  20
+#define FIBONACCI_NUMBER_COUNT  16
 #define SOUND_SPRITE_COUNT      (32 * 128)
 #define FFT_SAMPLES             1024
 

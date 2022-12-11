@@ -11,7 +11,6 @@ int16_t scrollLimit = -2048;
 uint8_t horizontalLineDitherOffset = 0;
 int rvOffset = 0;
 int rsOffset = DISPLAY_WIDTH + 32;
-uint32_t delay = 5;
 bool running = false;
 bool freeze = false;
 bool showScroller = false;
@@ -76,24 +75,25 @@ void DanceFloor::drawFibonacciLandscape() {
     for (int i = 0; i < 16; i++) {
         drawHorizontalLine(10 + (fibonacci[i] / (20 - rvOffset)));
     }
-    ssd1306_draw_line(pDisp, 0, 23, 32, 10); // Leftmost
-    ssd1306_draw_line(pDisp, 43, 31, 56, 10);
-    ssd1306_draw_line(pDisp, 71, 10, 85, 31);
-    ssd1306_draw_line(pDisp, 96, 10, 127, 23); // Rightmost
+    ssd1306_draw_line(pDisp, 0, 25, 23, 10); // Leftmost
+    ssd1306_draw_line(pDisp, 42, 31, 48, 10);
+    ssd1306_draw_line(pDisp, 79, 10, 86, 31);
+    ssd1306_draw_line(pDisp, 104, 10, 127, 25); // Rightmost
     if (rvOffset++ > 4) rvOffset = 0;
 }
 
 void DanceFloor::drawSoundSprite(DanceFloor::SoundSprite sprite) {
     int x;
+    double f = 0.012;
     int y1 = 39 - sprite.distance - sprite.velocity - 10;
-    int y2 = sprite.distance < 7 ? y1
+    int y2 = sprite.distance < 7 ? (int) (y1 + sprite.velocity * 0.4)
                                  : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
     int perspectiveComp;
     if (sprite.frequency_bin <= 64) {
-        perspectiveComp = (int) ((64 - sprite.frequency_bin) * (sprite.distance * 0.029));
+        perspectiveComp = (int) ((64 - sprite.frequency_bin) * (sprite.distance * f));
         x = sprite.frequency_bin + perspectiveComp;
     } else {
-        perspectiveComp = (int) ((sprite.frequency_bin - 64) * (sprite.distance * 0.029));
+        perspectiveComp = (int) ((sprite.frequency_bin - 64) * (sprite.distance * f));
         x = sprite.frequency_bin - perspectiveComp;
     }
     ssd1306_draw_line(pDisp, x, std::max(0, y1), x, std::min(31, y2));
@@ -150,7 +150,6 @@ void DanceFloor::visualize() {
         if (SIDPlayer::isPlaying()) {
             freeze = false;
             for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
-                sleep_ms(delay);
                 uint64_t sum = 0;
                 for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
                     sum += intermediateBuffer[i] >> 2;
