@@ -33,7 +33,7 @@
 #define CATALOG_WINDOW_SIZE                 4
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
-#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.1)
+#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.2)
 #define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000004)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000004)
 

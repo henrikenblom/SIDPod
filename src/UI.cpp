@@ -136,10 +136,10 @@ void UI::drawNowPlayingSymbol(int32_t y) {
     int bar4 = 3;
     if (SIDPlayer::isPlaying()) {
         bar1 = (int) playingSymbolAnimationCounter;
-        bar2 = (int) ((NOW_PLAYING_SYMBOL_HEIGHT - bar1) * 0.5);
+        bar2 = random() % (NOW_PLAYING_SYMBOL_HEIGHT);
         bar3 = (int) (sin(playingSymbolAnimationCounter) * (NOW_PLAYING_SYMBOL_HEIGHT - 2))
                + NOW_PLAYING_SYMBOL_HEIGHT - 3;
-        bar4 = NOW_PLAYING_SYMBOL_HEIGHT - bar3;
+        bar4 = (int) ((NOW_PLAYING_SYMBOL_HEIGHT - bar1) * 0.5 + (bar2 * 0.5));
         if ((playingSymbolAnimationCounter += NOW_PLAYING_SYMBOL_ANIMATION_SPEED) >
             NOW_PLAYING_SYMBOL_HEIGHT)
             playingSymbolAnimationCounter = 0;
