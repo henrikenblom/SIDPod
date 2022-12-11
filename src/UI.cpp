@@ -29,6 +29,7 @@ char lineLevelLabel[12] = "Line level:";
 char yesLabel[4] = "Yes";
 char noLabel[3] = "No";
 float longTitleScrollOffset = 0;
+float playingSymbolAnimationCounter = 0;
 
 void UI::initUI() {
     i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
@@ -129,9 +130,24 @@ void UI::drawPlaySymbol(int32_t y) {
 }
 
 void UI::drawNowPlayingSymbol(int32_t y) {
-    ssd1306_draw_pixel(&disp, 2, y + 1);
-    ssd1306_draw_line(&disp, 1, y + 1, 1, y + 5);
-    ssd1306_draw_line(&disp, 0, y + 4, 0, y + 5);
+    int bar1 = 4;
+    int bar2 = 1;
+    int bar3 = 5;
+    int bar4 = 3;
+    if (SIDPlayer::isPlaying()) {
+        bar1 = (int) playingSymbolAnimationCounter;
+        bar2 = (int) ((NOW_PLAYING_SYMBOL_HEIGHT - bar1) * 0.5);
+        bar3 = (int) (sin(playingSymbolAnimationCounter) * (NOW_PLAYING_SYMBOL_HEIGHT - 2))
+               + NOW_PLAYING_SYMBOL_HEIGHT - 3;
+        bar4 = NOW_PLAYING_SYMBOL_HEIGHT - bar3;
+        if ((playingSymbolAnimationCounter += NOW_PLAYING_SYMBOL_ANIMATION_SPEED) >
+            NOW_PLAYING_SYMBOL_HEIGHT)
+            playingSymbolAnimationCounter = 0;
+    }
+    ssd1306_draw_line(&disp, 0, y + NOW_PLAYING_SYMBOL_HEIGHT - bar1, 0, y + NOW_PLAYING_SYMBOL_HEIGHT);
+    ssd1306_draw_line(&disp, 1, y + NOW_PLAYING_SYMBOL_HEIGHT - bar2, 1, y + NOW_PLAYING_SYMBOL_HEIGHT);
+    ssd1306_draw_line(&disp, 2, y + NOW_PLAYING_SYMBOL_HEIGHT - bar3, 2, y + NOW_PLAYING_SYMBOL_HEIGHT);
+    ssd1306_draw_line(&disp, 3, y + NOW_PLAYING_SYMBOL_HEIGHT - bar4, 3, y + NOW_PLAYING_SYMBOL_HEIGHT);
 }
 
 void UI::crossOutLine(int32_t y) {
