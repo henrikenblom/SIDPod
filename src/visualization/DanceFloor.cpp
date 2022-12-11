@@ -76,21 +76,25 @@ void DanceFloor::drawFibonacciLandscape() {
     for (int i = 0; i < 16; i++) {
         drawHorizontalLine(10 + (fibonacci[i] / (20 - rvOffset)));
     }
-    ssd1306_draw_line(pDisp, 96, 10, 127, 23);
-    ssd1306_draw_line(pDisp, 0, 23, 32, 10);
-    ssd1306_draw_line(pDisp, 68, 10, 80, 31);
-    ssd1306_draw_line(pDisp, 39, 40, 60, 10);
+    ssd1306_draw_line(pDisp, 0, 23, 32, 10); // Leftmost
+    ssd1306_draw_line(pDisp, 43, 31, 56, 10);
+    ssd1306_draw_line(pDisp, 71, 10, 85, 31);
+    ssd1306_draw_line(pDisp, 96, 10, 127, 23); // Rightmost
     if (rvOffset++ > 4) rvOffset = 0;
 }
 
 void DanceFloor::drawSoundSprite(DanceFloor::SoundSprite sprite) {
     int x;
     int y1 = 39 - sprite.distance - sprite.velocity - 10;
-    int y2 = y1 + sprite.velocity;
+    int y2 = sprite.distance < 7 ? y1
+                                 : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
+    int perspectiveComp;
     if (sprite.frequency_bin <= 64) {
-        x = sprite.frequency_bin + (fibonacci[sprite.distance] / 4);
+        perspectiveComp = (int) ((64 - sprite.frequency_bin) * (sprite.distance * 0.029));
+        x = sprite.frequency_bin + perspectiveComp;
     } else {
-        x = sprite.frequency_bin - (fibonacci[sprite.distance] / 4);
+        perspectiveComp = (int) ((sprite.frequency_bin - 64) * (sprite.distance * 0.029));
+        x = sprite.frequency_bin - perspectiveComp;
     }
     ssd1306_draw_line(pDisp, x, std::max(0, y1), x, std::min(31, y2));
 }
