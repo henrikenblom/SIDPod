@@ -30,31 +30,32 @@ char yesLabel[4] = "Yes";
 char noLabel[3] = "No";
 float longTitleScrollOffset = 0;
 float playingSymbolAnimationCounter = 0;
+Visualization::DanceFloor *danceFloor;
 
 void UI::initUI() {
-    i2c_init(DISP_I2C_BLOCK, I2C_BAUDRATE);
-    gpio_set_function(DISP_GPIO_BASE_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(DISP_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
-    gpio_pull_up(DISP_GPIO_BASE_PIN);
-    gpio_pull_up(DISP_GPIO_BASE_PIN + 1);
+    i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
+    gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
+    gpio_pull_up(DISPLAY_GPIO_BASE_PIN);
+    gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
     gpio_init(ENC_SW_PIN);
     gpio_set_dir(ENC_SW_PIN, GPIO_IN);
     gpio_pull_up(ENC_SW_PIN);
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
-    disp.external_vcc = DISP_EXTERNAL_VCC;
+    disp.external_vcc = DISPLAY_EXTERNAL_VCC;
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
-    DanceFloor::init(&disp);
+    danceFloor = new Visualization::DanceFloor(&disp);
 }
 
 void UI::screenOn() {
     ssd1306_poweron(&disp);
-    busy_wait_ms(SCREEN_STATE_CHANGE_DELAY_MS);
+    busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     screenSleeping = false;
 }
 
 void UI::screenOff() {
-    DanceFloor::stopWithCallback(powerOffScreenCallback);
+    danceFloor->stopWithCallback(powerOffScreenCallback);
     screenSleeping = true;
 }
 
@@ -68,7 +69,7 @@ void UI::showUI() {
     if (active) {
         if (!screenSleeping) {
             if (visualize && SIDPlayer::isPlaying()) {
-                DanceFloor::start(PSIDCatalog::getCurrentEntry());
+                danceFloor->start(PSIDCatalog::getCurrentEntry());
             } else if (volumeControl) {
                 showVolumeControl();
             } else {
@@ -183,7 +184,7 @@ void UI::showVolumeControl() {
 
 void UI::stop() {
     active = false;
-    DanceFloor::stop();
+    danceFloor->stop();
 }
 
 void UI::start() {
@@ -241,7 +242,7 @@ void UI::pollEncoder() {
                 }
             }
             visualize = false;
-            DanceFloor::stop();
+            danceFloor->stop();
         }
     }
 }
@@ -280,7 +281,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     if (!inLongPressSession) {
         if (visualize) {
             visualize = false;
-            DanceFloor::stop();
+            danceFloor->stop();
         } else if (volumeControl) {
             SIDPlayer::toggleLineLevel();
             resetVolumeControlSessionTimer();
@@ -346,6 +347,8 @@ void UI::endLongPressSession() {
 }
 
 int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
+    (void) user_data;
+    (void) id;
     endVolumeControlSession();
     visualize = true;
     return 0;
@@ -354,7 +357,7 @@ int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
 void UI::startVolumeControlSession() {
     visualize = false;
     volumeControl = true;
-    DanceFloor::stop();
+    danceFloor->stop();
 }
 
 void UI::resetVolumeControlSessionTimer() {

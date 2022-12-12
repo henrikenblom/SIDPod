@@ -5,50 +5,81 @@
 #include "../platform_config.h"
 #include "kiss_fft.h"
 #include "../PSIDCatalog.h"
+#include "kiss_fftr.h"
 
-#define FIBONACCI_NUMBER_COUNT  16
-#define SOUND_SPRITE_COUNT      (32 * 128)
-#define FFT_SAMPLES             1024
+namespace Visualization {
+    class DanceFloor {
+    public:
+        explicit DanceFloor(ssd1306_t *disp);
 
-class DanceFloor {
-public:
-    static void init(ssd1306_t *disp);
+        void start(CatalogEntry *selectedEntry);
 
-    static void start(CatalogEntry *selectedEntry);
+        void stop();
 
-    static void stop();
+        void stopWithCallback(void (*callback)());
 
-    static void stopWithCallback(void (*callback)());
+        struct StarSprite {
+            uint8_t x;
+            uint8_t y;
+        };
+        struct SoundSprite {
+            int8_t velocity;
+            int8_t distance;
+            uint8_t frequency_bin;
+        };
+    private:
+        void drawHorizontalLine(uint8_t y);
 
-    struct StarSprite {
-        uint8_t x;
-        uint8_t y;
+        void drawScroller();
+
+        void drawStarrySky();
+
+        void drawFibonacciLandscape();
+
+        void drawSoundSprite(SoundSprite sprite) const;
+
+        void drawPausedLabel();
+
+        void updateSoundSprites();
+
+        void drawScene(kiss_fft_cpx *fft_out);
+
+        void visualize();
+
+        int sprite_index = 0;
+        char scrollText[160]{};
+        char pausedLabel[7] = "PAUSED";
+        int16_t scrollLimit = -2048;
+        uint8_t horizontalLineDitherOffset = 0;
+        int rvOffset = 0;
+        int rsOffset = DISPLAY_WIDTH + 32;
+        int displayCenter = DISPLAY_WIDTH / 2;
+        bool running = false;
+        bool freeze = false;
+        bool showScroller = false;
+        kiss_fftr_cfg fft_cfg{};
+        double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
+        CatalogEntry *selectedEntry{};
+
+        void (*stopCallback)() = nullptr;
+
+        DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
+        DanceFloor::StarSprite starSprites[12] = {{6,   4},
+                                                  {14,  0},
+                                                  {28,  8},
+                                                  {34,  5},
+                                                  {42,  9},
+                                                  {60,  4},
+                                                  {72,  3},
+                                                  {80,  6},
+                                                  {96,  1},
+                                                  {108, 5},
+                                                  {116, 8},
+                                                  {124, 0}};
+        uint16_t fibonacci[HORIZONTAL_LANDSCAPE_LINES]{};
+        kiss_fft_scalar fftIn[FFT_SAMPLES]{};
+        kiss_fft_cpx fftOut[FFT_SAMPLES]{};
+        ssd1306_t *pDisp;
     };
-    struct SoundSprite {
-        int8_t velocity;
-        int8_t distance;
-        uint8_t frequency_bin;
-    };
-private:
-    static void initFibonacci();
-
-    static void drawHorizontalLine(uint8_t y);
-
-    static void drawScroller();
-
-    static void drawStarrySky();
-
-    static void drawFibonacciLandscape();
-
-    static void drawSoundSprite(SoundSprite sprite);
-
-    static void drawPausedLabel();
-
-    static void updateSoundSprites();
-
-    static void drawScene(kiss_fft_cpx *fft_out);
-
-    static void visualize();
-};
-
+}
 #endif //SIDPOD_DANCEFLOOR_H

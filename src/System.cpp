@@ -19,7 +19,7 @@ void System::configureClock() {
 
 void System::goDormant() {
     UI::powerOffScreenCallback();
-    busy_wait_ms(SCREEN_STATE_CHANGE_DELAY_MS);
+    busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     SIDPlayer::ampOff();
     sleep_run_from_xosc();
     sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);

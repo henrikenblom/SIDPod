@@ -26,16 +26,22 @@
 #endif
 
 #define I2C_BAUDRATE                        400000
+#define DISPLAY_I2C_BLOCK                   i2c1
+#define DISPLAY_GPIO_BASE_PIN               2
+#define DISPLAY_EXTERNAL_VCC                0
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
-#define SCREEN_STATE_CHANGE_DELAY_MS        300
-#define CATALOG_WINDOW_SIZE                 4
+#define DISPLAY_STATE_CHANGE_DELAY_MS       400
+#define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / 8)
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
-#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.2)
+#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)
 #define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000004)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000004)
+#define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
+#define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
+#define FFT_SAMPLES                         1024
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
@@ -50,10 +56,6 @@
 #define AMP_CONTROL_PIN                     15
 
 #define VOLUME_STEPS                        20
-
-#define DISP_I2C_BLOCK                      i2c1
-#define DISP_GPIO_BASE_PIN                  2
-#define DISP_EXTERNAL_VCC                   0
 
 #define USER_CONTROLS_POLLRATE_MS           50
 
