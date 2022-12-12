@@ -21,6 +21,8 @@ public:
 
     static void powerOffScreenCallback();
 
+    static void goDormantCallback();
+
 private:
     static void showSongSelector();
 

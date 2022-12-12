@@ -33,22 +33,22 @@ float playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 
 void UI::initUI() {
-    i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
-    gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
-    gpio_pull_up(DISPLAY_GPIO_BASE_PIN);
-    gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
     gpio_init(ENC_SW_PIN);
     gpio_set_dir(ENC_SW_PIN, GPIO_IN);
     gpio_pull_up(ENC_SW_PIN);
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
-    disp.external_vcc = DISPLAY_EXTERNAL_VCC;
-    ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     danceFloor = new Visualization::DanceFloor(&disp);
 }
 
 void UI::screenOn() {
+    i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
+    gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
+    gpio_pull_up(DISPLAY_GPIO_BASE_PIN);
+    gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
+    disp.external_vcc = DISPLAY_EXTERNAL_VCC;
+    ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     ssd1306_poweron(&disp);
     busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     screenSleeping = false;
@@ -190,7 +190,6 @@ void UI::stop() {
 void UI::start() {
     active = true;
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
-    screenOn();
 }
 
 inline void UI::showRasterBars() {
@@ -307,7 +306,11 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
         i++;
     }
     if (i > DORMANT_ADDITIONAL_DURATION_MS) {
-        System::goDormant();
+        if (danceFloor->isRunning()) {
+            danceFloor->stopWithCallback(goDormantCallback);
+        } else {
+            goDormantCallback();
+        }
     } else {
         screenOff();
     }
@@ -381,4 +384,19 @@ void UI::powerOffScreenCallback() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
+    ssd1306_deinit(&disp);
+    i2c_deinit(DISPLAY_I2C_BLOCK);
+}
+
+void UI::goDormantCallback() {
+    cancel_repeating_timer(&userControlTimer);
+    visualize = false;
+    SIDPlayer::resetState();
+    System::goDormant();
+    screenOn();
+    showSplash();
+    busy_wait_ms(SPLASH_DISPLAY_DURATION);
+    gpio_pull_up(ENC_SW_PIN);
+    lastButtonState = false;
+    start();
 }

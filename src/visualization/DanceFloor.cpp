@@ -170,4 +170,8 @@ namespace Visualization {
         stopCallback = callback;
         stop();
     }
+
+    bool DanceFloor::isRunning() {
+        return running;
+    }
 }

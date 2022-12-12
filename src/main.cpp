@@ -35,7 +35,7 @@ bool repeatingTudTask(struct repeating_timer *t) {
 
 void initUsb() {
     tud_init(BOARD_TUD_RHPORT);
-    for (int i = 0; i < 2000000; i++) {
+    for (int i = 0; i < SPLASH_DISPLAY_DURATION * 1000; i++) {
         tud_task();
     }
     add_repeating_timer_ms(1, repeatingTudTask, nullptr, &tudTaskTimer);
@@ -44,6 +44,7 @@ void initUsb() {
 int main() {
     System::configureClock();
     UI::initUI();
+    UI::screenOn();
     UI::showSplash();
     filesystem_init();
     initUsb();

@@ -24,8 +24,6 @@ void System::goDormant() {
     sleep_run_from_xosc();
     sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
     configureClock();
-    UI::screenOn();
-    SIDPlayer::ampOn();
 }
 
 void System::softReset() {

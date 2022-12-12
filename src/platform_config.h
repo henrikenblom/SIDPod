@@ -32,7 +32,7 @@
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
-#define DISPLAY_STATE_CHANGE_DELAY_MS       400
+#define DISPLAY_STATE_CHANGE_DELAY_MS       250
 #define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / 8)
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
@@ -67,3 +67,4 @@
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      2000
+#define SPLASH_DISPLAY_DURATION             2000
