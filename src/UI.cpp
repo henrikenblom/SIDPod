@@ -13,7 +13,7 @@
 
 ssd1306_t disp;
 bool active = false;
-bool lastButtonState = false;
+bool lastSwitchState = false;
 bool inDoubleClickSession = false;
 bool inLongPressSession = false;
 bool visualize = false;
@@ -42,6 +42,7 @@ void UI::initUI() {
 }
 
 void UI::screenOn() {
+    busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
     gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
     gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
@@ -248,8 +249,8 @@ void UI::pollEncoder() {
 
 bool UI::pollSwitch() {
     bool used = false;
-    bool currentState = !gpio_get(ENC_SW_PIN);
-    if (currentState && currentState != lastButtonState) {
+    bool currentSwitchState = !gpio_get(ENC_SW_PIN);
+    if (currentSwitchState && currentSwitchState != lastSwitchState) {
         used = true;
         if (!screenSleeping) {
             if (inDoubleClickSession) {
@@ -266,10 +267,10 @@ bool UI::pollSwitch() {
                 startLongPressSession();
             }
         }
-    } else if (!currentState && lastButtonState) {
+    } else if (!currentSwitchState && lastSwitchState) {
         endLongPressSession();
     }
-    lastButtonState = currentState;
+    lastSwitchState = currentSwitchState;
     return used;
 }
 
@@ -384,7 +385,6 @@ void UI::powerOffScreenCallback() {
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
-    ssd1306_deinit(&disp);
     i2c_deinit(DISPLAY_I2C_BLOCK);
 }
 
@@ -396,7 +396,6 @@ void UI::goDormantCallback() {
     screenOn();
     showSplash();
     busy_wait_ms(SPLASH_DISPLAY_DURATION);
-    gpio_pull_up(ENC_SW_PIN);
-    lastButtonState = false;
+    lastSwitchState = false;
     start();
 }

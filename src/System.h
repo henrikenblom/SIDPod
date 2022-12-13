@@ -8,6 +8,9 @@ public:
     static void goDormant();
 
     static void softReset();
+
+private:
+    static void sleepUntilDoubleClick();
 };
 
 #endif //SIDPOD_SYSTEM_H

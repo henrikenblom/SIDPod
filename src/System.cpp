@@ -17,15 +17,38 @@ void System::configureClock() {
     stdio_init_all();
 }
 
+void System::softReset() {
+    AIRCR_Register = SYSRESETREQ;
+}
+
 void System::goDormant() {
     UI::powerOffScreenCallback();
     busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     SIDPlayer::ampOff();
     sleep_run_from_xosc();
-    sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
+    sleepUntilDoubleClick();
     configureClock();
 }
 
-void System::softReset() {
-    AIRCR_Register = SYSRESETREQ;
+void System::sleepUntilDoubleClick() {
+    sleep_run_from_xosc();
+    bool sleep = true;
+    while (sleep) {
+        sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
+        gpio_pull_up(ENC_SW_PIN);
+        bool lastSwitchState = !gpio_get(ENC_SW_PIN);
+        bool inDoubleClickSession = false;
+        for (int i = 0; i < DOUBLE_CLICK_SPEED_MS; i++) {
+            bool currentSwitchState = !gpio_get(ENC_SW_PIN);
+            if (currentSwitchState && currentSwitchState != lastSwitchState) {
+                inDoubleClickSession = true;
+            } else if (currentSwitchState != lastSwitchState && inDoubleClickSession) {
+                sleep = false;
+                break;
+            }
+            lastSwitchState = currentSwitchState;
+            busy_wait_ms(1);
+        }
+    }
+    gpio_pull_up(ENC_SW_PIN);
 }
