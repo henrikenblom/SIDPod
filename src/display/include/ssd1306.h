@@ -256,7 +256,7 @@ void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, c
 
     Silently ignores write errors
 */
-void unacked_ssd1306_show(ssd1306_t *p);
+void ssd1306_show_unacked(ssd1306_t *p);
 
 /**
 	@brief clear pixel on buffer

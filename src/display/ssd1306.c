@@ -296,7 +296,7 @@ void ssd1306_show(ssd1306_t *p) {
     fancy_write(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, "ssd1306_show");
 }
 
-void unacked_ssd1306_show(ssd1306_t *p) {
+void ssd1306_show_unacked(ssd1306_t *p) {
     uint8_t payload[] = {SET_COL_ADDR, 0, p->width - 1, SET_PAGE_ADDR, 0, p->pages - 1};
     if (p->width == 64) {
         payload[1] += 32;

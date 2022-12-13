@@ -201,7 +201,7 @@ inline void UI::showRasterBars() {
     ssd1306_clear(&disp);
     int y = random() % (DISPLAY_HEIGHT);
     ssd1306_draw_line(&disp, 0, y, DISPLAY_WIDTH - 1, y);
-    unacked_ssd1306_show(&disp);
+    ssd1306_show_unacked(&disp);
 }
 
 bool UI::pollUserControls(struct repeating_timer *t) {
