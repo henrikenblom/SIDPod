@@ -114,14 +114,14 @@ void UI::showSongSelector() {
 
 void UI::animateLongTitle(char *title, int32_t y) {
     ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - (int32_t) longTitleScrollOffset, y, 1, title);
-    int scrollRange = (int) strlen(title) * 8 - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
+    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
     float advancement =
             longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
             ? 0.4
             : 0.02;
     if ((int) (longTitleScrollOffset += advancement) > scrollRange)
         longTitleScrollOffset = 0;
-    ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + 8);
+    ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
 }
 
 void UI::drawPlaySymbol(int32_t y) {

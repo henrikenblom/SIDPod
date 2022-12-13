@@ -30,8 +30,8 @@ SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 
-#include "include/ssd1306.h"
-#include "include/font.h"
+#include "ssd1306.h"
+#include "font.h"
 
 inline static void swap(int32_t *a, int32_t *b) {
     int32_t *t = a;
@@ -52,7 +52,6 @@ inline static void fancy_write(i2c_inst_t *i2c, uint8_t addr, const uint8_t *src
             break;
     }
 }
-
 
 inline static void ssd1306_write(ssd1306_t *p, uint8_t val) {
     uint8_t d[2] = {0x00, val};
@@ -147,12 +146,6 @@ void ssd1306_draw_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
     p->buffer[x + p->width * (y >> 3)] |= 0x1 << (y & 0x07); // y>>3==y/8 && y&0x7==y%8
 }
 
-void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
-    if (x >= p->width || y >= p->height) return;
-
-    p->buffer[x + p->width * (y >> 3)] &= 0x1 << (y & 0x07);
-}
-
 void ssd1306_draw_line(ssd1306_t *p, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     if (x1 > x2) {
         swap(&x1, &x2);
@@ -182,12 +175,6 @@ void ssd1306_draw_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, u
 
 }
 
-void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-    for (uint32_t i = 0; i < width; ++i)
-        for (uint32_t j = 0; j < height; ++j)
-            ssd1306_clear_pixel(p, x + i, y + j);
-}
-
 void ssd13606_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     ssd1306_draw_line(p, x, y, x + width, y);
     ssd1306_draw_line(p, x, y + height, x + width, y + height);
@@ -196,21 +183,28 @@ void ssd13606_draw_empty_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t w
 }
 
 void ssd1306_draw_char_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char c) {
-    if (c > '~')
+    if (c < font[3] || c > font[4])
         return;
 
-    for (uint8_t i = 0; i < font[1]; ++i) {
-        uint8_t line = (uint8_t) (font[(c - 0x20) * font[1] + i + 2]);
+    uint32_t parts_per_line = (font[0] >> 3) + ((font[0] & 7) > 0);
+    for (uint8_t w = 0; w < font[1]; ++w) { // width
+        uint32_t pp = (c - font[3]) * font[1] * parts_per_line + w * parts_per_line + 5;
+        for (uint32_t lp = 0; lp < parts_per_line; ++lp) {
+            uint8_t line = font[pp];
 
-        for (int8_t j = 0; j < font[0]; ++j, line >>= 1) {
-            if (line & 1)
-                ssd1306_draw_square(p, x + i * scale, y + j * scale, scale, scale);
+            for (int8_t j = 0; j < 8; ++j, line >>= 1) {
+                if (line & 1)
+                    ssd1306_draw_square(p, x + w * scale, y + ((lp << 3) + j) * scale, scale, scale);
+            }
+
+            ++pp;
         }
     }
 }
 
-void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char *s) {
-    for (int32_t x_n = x; *s; x_n += font[0] * scale) {
+void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font,
+                                   const char *s) {
+    for (int32_t x_n = x; *s; x_n += (font[1] + font[2]) * scale) {
         ssd1306_draw_char_with_font(p, x_n, y, scale, font, *(s++));
     }
 }
@@ -219,7 +213,7 @@ void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, cha
     ssd1306_draw_char_with_font(p, x, y, scale, font_8x5, c);
 }
 
-void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, char *s) {
+void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const char *s) {
     ssd1306_draw_string_with_font(p, x, y, scale, font_8x5, s);
 }
 
@@ -317,4 +311,16 @@ void unacked_ssd1306_show(ssd1306_t *p) {
     *(p->buffer - 1) = 0x40;
 
     i2c_write_blocking(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, false);
+}
+
+void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
+    if (x >= p->width || y >= p->height) return;
+
+    p->buffer[x + p->width * (y >> 3)] &= 0x1 << (y & 0x07);
+}
+
+void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    for (uint32_t i = 0; i < width; ++i)
+        for (uint32_t j = 0; j < height; ++j)
+            ssd1306_clear_pixel(p, x + i, y + j);
 }

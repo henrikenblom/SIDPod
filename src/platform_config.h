@@ -32,8 +32,10 @@
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
-#define DISPLAY_STATE_CHANGE_DELAY_MS       250
-#define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / 8)
+#define DISPLAY_STATE_CHANGE_DELAY_MS       400
+#define FONT_WIDTH                          6
+#define FONT_HEIGHT                         8
+#define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / FONT_HEIGHT)
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
 #define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)
@@ -42,6 +44,7 @@
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
 #define FFT_SAMPLES                         1024
+
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 

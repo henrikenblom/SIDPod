@@ -51,7 +51,7 @@ namespace Visualization {
         int sprite_index = 0;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
-        int16_t scrollLimit = -2048;
+        int16_t scrollLimit = -1600;
         uint8_t horizontalLineDitherOffset = 0;
         int rvOffset = 0;
         int rsOffset = DISPLAY_WIDTH + 32;

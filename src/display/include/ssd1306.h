@@ -33,6 +33,7 @@ SOFTWARE.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #include <pico/stdlib.h>
 #include <hardware/i2c.h>
 
@@ -81,14 +82,12 @@ typedef struct {
 *	@param[in] height : heigth of display
 *	@param[in] address : i2c address of display
 *	@param[in] i2c_instance : instance of i2c connection
-*	
+*
 * 	@return bool.
 *	@retval true for Success
 *	@retval false if initialization failed
 */
 bool ssd1306_init(ssd1306_t *p, uint16_t width, uint16_t height, uint8_t address, i2c_inst_t *i2c_instance);
-
-void ssd1306_deinit(ssd1306_t *p);
 
 /**
 *	@brief turn off display
@@ -133,15 +132,6 @@ void ssd1306_invert(ssd1306_t *p, uint8_t inv);
 void ssd1306_show(ssd1306_t *p);
 
 /**
-	@brief display buffer, should be called on change
-
-	@param[in] p : instance of display
-
-    Silently ignores write errors
-*/
-void unacked_ssd1306_show(ssd1306_t *p);
-
-/**
 	@brief clear display buffer
 
 	@param[in] p : instance of display
@@ -157,15 +147,6 @@ void ssd1306_clear(ssd1306_t *p);
 	@param[in] y : y position
 */
 void ssd1306_draw_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
-
-/**
-	@brief clear pixel on buffer
-
-	@param[in] p : instance of display
-	@param[in] x : x position
-	@param[in] y : y position
-*/
-void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
 
 /**
 	@brief draw pixel on buffer
@@ -188,17 +169,6 @@ void ssd1306_draw_line(ssd1306_t *p, int32_t x1, int32_t y1, int32_t x2, int32_t
 	@param[in] height : height of square
 */
 void ssd1306_draw_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-
-/**
-	@brief clear square at given position with given size
-
-	@param[in] p : instance of display
-	@param[in] x : x position of starting point
-	@param[in] y : y position of starting point
-	@param[in] width : width of square
-	@param[in] height : height of square
-*/
-void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 /**
 	@brief draw empty square at given position with given size
@@ -265,7 +235,8 @@ void ssd1306_draw_char(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, cha
 	@param[in] font : pointer to font
 	@param[in] s : text to draw
 */
-void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, char *s);
+void
+ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const uint8_t *font, const char *s);
 
 /**
 	@brief draw string with builtin font
@@ -276,7 +247,38 @@ void ssd1306_draw_string_with_font(ssd1306_t *p, uint32_t x, uint32_t y, uint32_
 	@param[in] scale : scale font to n times of original size (default should be 1)
 	@param[in] s : text to draw
 */
-void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, char *s);
+void ssd1306_draw_string(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t scale, const char *s);
+
+/**
+	@brief display buffer, should be called on change
+
+	@param[in] p : instance of display
+
+    Silently ignores write errors
+*/
+void unacked_ssd1306_show(ssd1306_t *p);
+
+/**
+	@brief clear pixel on buffer
+
+	@param[in] p : instance of display
+	@param[in] x : x position
+	@param[in] y : y position
+*/
+void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
+
+/**
+	@brief clear square at given position with given size
+
+	@param[in] p : instance of display
+	@param[in] x : x position of starting point
+	@param[in] y : y position of starting point
+	@param[in] width : width of square
+	@param[in] height : height of square
+*/
+void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+
+void ssd1306_deinit(ssd1306_t *p);
 
 #ifdef __cplusplus
 }
