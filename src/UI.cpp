@@ -56,11 +56,7 @@ void UI::screenOn() {
 }
 
 void UI::screenOff() {
-    if (danceFloor->isRunning()) {
-        danceFloor->stopWithCallback(powerOffScreenCallback);
-    } else {
-        powerOffScreenCallback();
-    }
+    powerOffScreenCallback();
 }
 
 void UI::showSplash() {
@@ -310,11 +306,7 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
         i++;
     }
     if (i > DORMANT_ADDITIONAL_DURATION_MS) {
-        if (danceFloor->isRunning()) {
-            danceFloor->stopWithCallback(goDormantCallback);
-        } else {
-            goDormantCallback();
-        }
+        goDormantCallback();
     }
     return 0;
 }
@@ -394,7 +386,11 @@ void UI::powerOffScreenCallback() {
 
 void UI::goDormantCallback() {
     cancel_repeating_timer(&userControlTimer);
+    danceFloor->stop();
     visualize = false;
+    while (danceFloor->isRunning()) {
+        tight_loop_contents();
+    }
     SIDPlayer::resetState();
     System::goDormant();
     screenOn();
