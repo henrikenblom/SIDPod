@@ -178,10 +178,11 @@ void UI::showVolumeControl() {
     ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
     ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
     ssd1306_draw_string(&disp, 4, 24, 1, lineLevelLabel);
+    int statusLabelX = (int) (strlen(lineLevelLabel) * FONT_WIDTH) + FONT_WIDTH;
     if (SIDPlayer::lineLevelOn()) {
-        ssd1306_draw_string(&disp, 92, 24, 1, yesLabel);
+        ssd1306_draw_string(&disp, statusLabelX, 24, 1, yesLabel);
     } else {
-        ssd1306_draw_string(&disp, 92, 24, 1, noLabel);
+        ssd1306_draw_string(&disp, statusLabelX, 24, 1, noLabel);
     }
     ssd1306_show(&disp);
 }
