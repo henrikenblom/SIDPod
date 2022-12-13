@@ -56,8 +56,11 @@ void UI::screenOn() {
 }
 
 void UI::screenOff() {
-    danceFloor->stopWithCallback(powerOffScreenCallback);
-    screenSleeping = true;
+    if (danceFloor->isRunning()) {
+        danceFloor->stopWithCallback(powerOffScreenCallback);
+    } else {
+        powerOffScreenCallback();
+    }
 }
 
 void UI::showSplash() {
@@ -69,7 +72,7 @@ void UI::showSplash() {
 void UI::showUI() {
     if (active) {
         if (!screenSleeping) {
-            if (visualize && SIDPlayer::isPlaying()) {
+            if (visualize) {
                 danceFloor->start(PSIDCatalog::getCurrentEntry());
             } else if (volumeControl) {
                 showVolumeControl();
@@ -202,9 +205,7 @@ inline void UI::showRasterBars() {
 
 bool UI::pollUserControls(struct repeating_timer *t) {
     (void) t;
-    if (pollSwitch() && screenSleeping) {
-        screenOn();
-    }
+    pollSwitch();
     pollEncoder();
     return true;
 }
@@ -252,15 +253,15 @@ bool UI::pollSwitch() {
     bool currentSwitchState = !gpio_get(ENC_SW_PIN);
     if (currentSwitchState && currentSwitchState != lastSwitchState) {
         used = true;
+        if (inDoubleClickSession) {
+            endSingleClickSession();
+            endDoubleClickSession();
+            doubleClickCallback();
+        } else {
+            startDoubleClickSession();
+            startSingleClickSession();
+        }
         if (!screenSleeping) {
-            if (inDoubleClickSession) {
-                endSingleClickSession();
-                endDoubleClickSession();
-                doubleClickCallback();
-            } else {
-                startDoubleClickSession();
-                startSingleClickSession();
-            }
             if (inLongPressSession) {
                 endLongPressSession();
             } else {
@@ -278,7 +279,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) id;
     (void) user_data;
     endDoubleClickSession();
-    if (!inLongPressSession) {
+    if (!inLongPressSession && !screenSleeping) {
         if (visualize) {
             visualize = false;
             danceFloor->stop();
@@ -301,6 +302,7 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     endLongPressSession();
     endDoubleClickSession();
+    screenOff();
     int i = 0;
     while (!gpio_get(ENC_SW_PIN)) {
         busy_wait_ms(1);
@@ -312,14 +314,14 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
         } else {
             goDormantCallback();
         }
-    } else {
-        screenOff();
     }
     return 0;
 }
 
 void UI::doubleClickCallback() {
-    if (visualize || volumeControl) {
+    if (screenSleeping) {
+        screenOn();
+    } else if (visualize || volumeControl) {
         SIDPlayer::togglePlayPause();
     }
 }
@@ -382,6 +384,7 @@ void UI::endVolumeControlSession() {
 }
 
 void UI::powerOffScreenCallback() {
+    screenSleeping = true;
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);

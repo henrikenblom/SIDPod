@@ -81,9 +81,12 @@ namespace Visualization {
 
 
     void DanceFloor::drawPausedLabel() {
-        ssd1306_clear_square(pDisp, displayCenter - 26, 4, 52, 9);
-        ssd13606_draw_empty_square(pDisp, displayCenter - 26, 4 - 3, 52, 13);
-        ssd1306_draw_string(pDisp, displayCenter - 22, 5, 1, pausedLabel);
+        int labelWidth = (int) strlen(pausedLabel) * FONT_WIDTH;
+        int windowWidth = labelWidth + 4;
+        int windowHeight = FONT_HEIGHT + 1;
+        ssd1306_clear_square(pDisp, displayCenter - (windowWidth / 2), 4, windowWidth, windowHeight);
+        ssd13606_draw_empty_square(pDisp, displayCenter - (windowWidth / 2), 1, windowWidth, windowHeight + 4);
+        ssd1306_draw_string(pDisp, displayCenter - (labelWidth / 2) + 1, 5, 1, pausedLabel);
     }
 
     void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
@@ -159,6 +162,10 @@ namespace Visualization {
         running = true;
         freeze = false;
         showScroller = false;
+        for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {
+            if (SIDPlayer::isPlaying()) break;
+            busy_wait_ms(1);
+        }
         visualize();
     }
 
