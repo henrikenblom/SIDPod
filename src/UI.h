@@ -19,9 +19,7 @@ public:
 
     static void screenOff();
 
-    static void powerOffScreenCallback();
-
-    static void goDormantCallback();
+    static void goToSleep();
 
 private:
     static void showSongSelector();

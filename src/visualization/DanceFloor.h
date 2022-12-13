@@ -16,10 +16,6 @@ namespace Visualization {
 
         void stop();
 
-        void stopWithCallback(void (*callback)());
-
-        bool isRunning();
-
         struct StarSprite {
             uint8_t x;
             uint8_t y;

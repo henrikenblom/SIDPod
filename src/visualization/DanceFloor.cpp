@@ -149,10 +149,6 @@ namespace Visualization {
                 freeze = true;
             }
         }
-        if (stopCallback != nullptr) {
-            (*stopCallback)();
-            stopCallback = nullptr;
-        }
     }
 
     void DanceFloor::start(CatalogEntry *_selectedEntry) {
@@ -173,12 +169,4 @@ namespace Visualization {
         running = false;
     }
 
-    void DanceFloor::stopWithCallback(void (*callback)()) {
-        stopCallback = callback;
-        stop();
-    }
-
-    bool DanceFloor::isRunning() {
-        return running;
-    }
 }

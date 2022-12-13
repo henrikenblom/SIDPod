@@ -32,7 +32,7 @@
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
 #define DISPLAY_I2C_ADDRESS                 0x3C
-#define DISPLAY_STATE_CHANGE_DELAY_MS       400
+#define DISPLAY_STATE_CHANGE_DELAY_MS       500
 #define FONT_WIDTH                          6
 #define FONT_HEIGHT                         8
 #define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / FONT_HEIGHT)

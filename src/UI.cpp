@@ -42,7 +42,6 @@ void UI::initUI() {
 }
 
 void UI::screenOn() {
-    busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
     i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
     gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
     gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
@@ -56,7 +55,11 @@ void UI::screenOn() {
 }
 
 void UI::screenOff() {
-    powerOffScreenCallback();
+    screenSleeping = true;
+    ssd1306_clear(&disp);
+    ssd1306_show(&disp);
+    ssd1306_poweroff(&disp);
+    i2c_deinit(DISPLAY_I2C_BLOCK);
 }
 
 void UI::showSplash() {
@@ -306,7 +309,7 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
         i++;
     }
     if (i > DORMANT_ADDITIONAL_DURATION_MS) {
-        goDormantCallback();
+        goToSleep();
     }
     return 0;
 }
@@ -376,21 +379,10 @@ void UI::endVolumeControlSession() {
     volumeControl = false;
 }
 
-void UI::powerOffScreenCallback() {
-    screenSleeping = true;
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
-    ssd1306_poweroff(&disp);
-    i2c_deinit(DISPLAY_I2C_BLOCK);
-}
-
-void UI::goDormantCallback() {
+void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
     danceFloor->stop();
     visualize = false;
-    while (danceFloor->isRunning()) {
-        tight_loop_contents();
-    }
     SIDPlayer::resetState();
     System::goDormant();
     screenOn();
