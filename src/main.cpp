@@ -13,7 +13,6 @@ int main() {
     System::configureClocks();
     UI::initUI();
     UI::screenOn();
-    UI::showSplash();
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {

@@ -13,7 +13,7 @@
 
 ssd1306_t disp;
 bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
-int encNewValue, encDelta, encOldValue = 0;
+int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
 char volumeLabel[7] = "Volume";
@@ -22,8 +22,8 @@ char yesLabel[4] = "Yes";
 char noLabel[3] = "No";
 float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
-UI::State currentState = UI::song_selector;
-UI::State lastState = UI::song_selector;
+UI::State currentState = UI::splash;
+UI::State lastState = currentState;
 
 void UI::initUI() {
     gpio_init(ENC_SW_PIN);
@@ -57,6 +57,7 @@ void UI::screenOff() {
 }
 
 void UI::showSplash() {
+    currentState = UI::splash;
     ssd1306_clear(&disp);
     ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
     ssd1306_show(&disp);
@@ -74,7 +75,15 @@ void UI::updateUI() {
             showRasterBars();
             break;
         case UI::splash:
-            showSplash();
+            if (showSplashCycles == 0) {
+                showSplash();
+            }
+            if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
+                showSplashCycles = 0;
+                currentState = UI::song_selector;
+            } else {
+                sleep_ms(1);
+            }
             break;
         default:
             showSongSelector();
@@ -189,7 +198,6 @@ void UI::stop() {
 }
 
 void UI::start() {
-    currentState = UI::song_selector;
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
@@ -378,6 +386,7 @@ void UI::goToSleep() {
     SIDPlayer::resetState();
     System::goDormant();
     lastSwitchState = false;
+    lastState = UI::splash;
     screenOn();
     start();
 }

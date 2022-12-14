@@ -98,9 +98,6 @@ void System::sleepUntilDoubleClick() {
 
 void System::enableUsb() {
     tud_init(BOARD_TUD_RHPORT);
-    for (int i = 0; i < SPLASH_DISPLAY_DURATION * 1000; i++) {
-        tud_task();
-    }
     add_repeating_timer_ms(1, repeatingTudTask, nullptr, &tudTaskTimer);
 }
 
