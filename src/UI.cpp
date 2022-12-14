@@ -374,14 +374,10 @@ void UI::endVolumeControlSession() {
 
 void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
-    System::disableUsb();
     danceFloor->stop();
-    currentState = UI::splash;
     SIDPlayer::resetState();
     System::goDormant();
-    screenOn();
-    showSplash();
-    System::enableUsb();
     lastSwitchState = false;
+    screenOn();
     start();
 }

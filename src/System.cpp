@@ -113,7 +113,3 @@ bool System::repeatingTudTask(struct repeating_timer *t) {
 bool System::usbConnected() {
     return connected;
 }
-
-void System::disableUsb() {
-    cancel_repeating_timer(&tudTaskTimer);
-}

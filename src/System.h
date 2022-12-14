@@ -11,9 +11,9 @@ public:
 
     static void enableUsb();
 
-    static bool usbConnected();
+    static void runExclusiveUsbDBurst();
 
-    static void disableUsb();
+    static bool usbConnected();
 
 private:
     static void sleepUntilDoubleClick();
