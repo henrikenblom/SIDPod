@@ -12,25 +12,18 @@
 #include "System.h"
 
 ssd1306_t disp;
-bool active = false;
-bool lastSwitchState = false;
-bool inDoubleClickSession = false;
-bool inLongPressSession = false;
-bool visualize = false;
-bool volumeControl = false;
-bool screenSleeping = false;
+bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
 int encNewValue, encDelta, encOldValue = 0;
 struct repeating_timer userControlTimer;
-alarm_id_t singleClickTimer;
-alarm_id_t longPressTimer;
-alarm_id_t showVolumeControlTimer;
+alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
 char volumeLabel[7] = "Volume";
 char lineLevelLabel[12] = "Line level:";
 char yesLabel[4] = "Yes";
 char noLabel[3] = "No";
-float longTitleScrollOffset = 0;
-float playingSymbolAnimationCounter = 0;
+float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
+UI::State currentState = UI::song_selector;
+UI::State lastState = UI::song_selector;
 
 void UI::initUI() {
     gpio_init(ENC_SW_PIN);
@@ -51,11 +44,12 @@ void UI::screenOn() {
     ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
     ssd1306_poweron(&disp);
     busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
-    screenSleeping = false;
+    currentState = lastState;
 }
 
 void UI::screenOff() {
-    screenSleeping = true;
+    lastState = currentState;
+    currentState = UI::sleeping;
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
@@ -68,30 +62,32 @@ void UI::showSplash() {
     ssd1306_show(&disp);
 }
 
-void UI::showUI() {
-    if (active) {
-        if (!screenSleeping) {
-            if (visualize) {
-                danceFloor->start(PSIDCatalog::getCurrentEntry());
-            } else if (volumeControl) {
-                showVolumeControl();
-            } else {
-                if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
-                    && !SIDPlayer::loadingWasSuccessful()) {
-                    PSIDCatalog::markCurrentEntryAsUnplayable();
-                    SIDPlayer::resetState();
-                    visualize = false;
-                }
-                showSongSelector();
-            }
-        }
-    } else {
-        showRasterBars();
+void UI::updateUI() {
+    switch (currentState) {
+        case UI::visualization:
+            danceFloor->start(PSIDCatalog::getCurrentEntry());
+            break;
+        case UI::volume_control:
+            showVolumeControl();
+            break;
+        case UI::raster_bars:
+            showRasterBars();
+            break;
+        case UI::splash:
+            showSplash();
+            break;
+        default:
+            showSongSelector();
     }
 }
 
 void UI::showSongSelector() {
     if (PSIDCatalog::getSize()) {
+        if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+            && !SIDPlayer::loadingWasSuccessful()) {
+            PSIDCatalog::markCurrentEntryAsUnplayable();
+            SIDPlayer::resetState();
+        }
         ssd1306_clear(&disp);
         uint8_t y = 0;
         for (auto entry: PSIDCatalog::getWindow()) {
@@ -187,12 +183,12 @@ void UI::showVolumeControl() {
 }
 
 void UI::stop() {
-    active = false;
+    currentState = UI::raster_bars;
     danceFloor->stop();
 }
 
 void UI::start() {
-    active = true;
+    currentState = UI::song_selector;
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
@@ -214,36 +210,31 @@ void UI::pollEncoder() {
     encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
-
     if (encDelta != 0) {
-        if (!screenSleeping) {
-            if (visualize) {
-                startVolumeControlSession();
-            }
-            if (volumeControl) {
-                resetVolumeControlSessionTimer();
-            }
-            if (encDelta > 0) {
-                for (int i = 0; i < encDelta; i++) {
-                    if (volumeControl) {
-                        SIDPlayer::volumeUp();
-                    } else {
-                        PSIDCatalog::selectNext();
-                        longTitleScrollOffset = 0;
-                    }
-                }
-            } else if (encDelta < 0) {
-                for (int i = 0; i < encDelta * -1; i++) {
-                    if (volumeControl) {
-                        SIDPlayer::volumeDown();
-                    } else {
-                        PSIDCatalog::selectPrevious();
-                        longTitleScrollOffset = 0;
-                    }
+        danceFloor->stop();
+        if (currentState == UI::visualization) {
+            startVolumeControlSession();
+        } else if (currentState == UI::volume_control) {
+            resetVolumeControlSessionTimer();
+        }
+        if (encDelta > 0) {
+            for (int i = 0; i < encDelta; i++) {
+                if (currentState == UI::volume_control) {
+                    SIDPlayer::volumeUp();
+                } else {
+                    PSIDCatalog::selectNext();
+                    longTitleScrollOffset = 0;
                 }
             }
-            visualize = false;
-            danceFloor->stop();
+        } else if (encDelta < 0) {
+            for (int i = 0; i < encDelta * -1; i++) {
+                if (currentState == UI::volume_control) {
+                    SIDPlayer::volumeDown();
+                } else {
+                    PSIDCatalog::selectPrevious();
+                    longTitleScrollOffset = 0;
+                }
+            }
         }
     }
 }
@@ -261,7 +252,7 @@ bool UI::pollSwitch() {
             startDoubleClickSession();
             startSingleClickSession();
         }
-        if (!screenSleeping) {
+        if (currentState != UI::sleeping) {
             if (inLongPressSession) {
                 endLongPressSession();
             } else {
@@ -279,19 +270,22 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) id;
     (void) user_data;
     endDoubleClickSession();
-    if (!inLongPressSession && !screenSleeping) {
-        if (visualize) {
-            visualize = false;
-            danceFloor->stop();
-        } else if (volumeControl) {
-            SIDPlayer::toggleLineLevel();
-            resetVolumeControlSessionTimer();
-        } else if (PSIDCatalog::getSize() && !PSIDCatalog::getCurrentEntry()->unplayable) {
-            if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                       PSIDCatalog::getCurrentEntry()->fileName) != 0) {
-                SIDPlayer::togglePlayPause();
-            }
-            visualize = true;
+    if (!inLongPressSession && currentState != UI::sleeping) {
+        switch (currentState) {
+            case UI::visualization:
+                currentState = UI::song_selector;
+                danceFloor->stop();
+                break;
+            case UI::volume_control:
+                SIDPlayer::toggleLineLevel();
+                resetVolumeControlSessionTimer();
+                break;
+            default:
+                if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                           PSIDCatalog::getCurrentEntry()->fileName) != 0) {
+                    SIDPlayer::togglePlayPause();
+                }
+                currentState = UI::visualization;
         }
     }
     return 0;
@@ -315,9 +309,9 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
 }
 
 void UI::doubleClickCallback() {
-    if (screenSleeping) {
+    if (currentState == UI::sleeping) {
         screenOn();
-    } else if (visualize || volumeControl) {
+    } else if (currentState == UI::visualization || UI::volume_control) {
         SIDPlayer::togglePlayPause();
     }
 }
@@ -352,13 +346,12 @@ int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     (void) id;
     endVolumeControlSession();
-    visualize = true;
+    currentState = UI::visualization;
     return 0;
 }
 
 void UI::startVolumeControlSession() {
-    visualize = false;
-    volumeControl = true;
+    currentState = UI::volume_control;
     danceFloor->stop();
 }
 
@@ -376,14 +369,13 @@ void UI::endVolumeControlSession() {
     if (showVolumeControlTimer) {
         cancel_alarm(showVolumeControlTimer);
     }
-    volumeControl = false;
 }
 
 void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
     System::disableUsb();
     danceFloor->stop();
-    visualize = false;
+    currentState = UI::splash;
     SIDPlayer::resetState();
     System::goDormant();
     screenOn();

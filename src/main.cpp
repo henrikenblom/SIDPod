@@ -22,7 +22,7 @@ int main() {
         SIDPlayer::initAudio();
     }
     while (true) {
-        UI::showUI();
+        UI::updateUI();
     }
 }
 #pragma clang diagnostic pop

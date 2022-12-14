@@ -9,7 +9,7 @@ public:
 
     static void showSplash();
 
-    static void showUI();
+    static void updateUI();
 
     static void start();
 
@@ -21,6 +21,9 @@ public:
 
     static void goToSleep();
 
+    enum State {
+        song_selector, splash, raster_bars, visualization, volume_control, sleeping
+    };
 private:
     static void showSongSelector();
 
