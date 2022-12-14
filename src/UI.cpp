@@ -91,7 +91,7 @@ void UI::showSongSelector() {
         ssd1306_clear(&disp);
         uint8_t y = 0;
         for (auto entry: PSIDCatalog::getWindow()) {
-            if (entry->selected && strlen(entry->title) * 8 > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+            if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
                 animateLongTitle(entry->title, y);
             } else {
                 ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
@@ -156,14 +156,15 @@ void UI::crossOutLine(int32_t y) {
 
 void UI::showFlashEmptyScreen() {
     ssd1306_clear(&disp);
-    char emptyFlashMsgLine1[17] = "No playable SIDs";
-    char emptyFlashMsgLine2[16] = "found. Transfer";
-    char emptyFlashMsgLine3[17] = "your funky PSIDs";
-    char emptyFlashMsgLine4[11] = "using USB.";
-    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 0, 1, emptyFlashMsgLine1);
-    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 8, 1, emptyFlashMsgLine2);
-    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 16, 1, emptyFlashMsgLine3);
-    ssd1306_draw_string(&disp, (DISPLAY_WIDTH / 2) - 64, 24, 1, emptyFlashMsgLine4);
+    char emptyFlashMsgLine1[19] = "No playable PSIDs.";
+    char emptyFlashMsgLine2[20] = "Use USB to transfer";
+    char emptyFlashMsgLine3[18] = "PSIDs to the root";
+    char emptyFlashMsgLine4[15] = "of the SIDPod.";
+    int x = (DISPLAY_WIDTH / 2) - FONT_WIDTH * 10;
+    ssd1306_draw_string(&disp, x, 0, 1, emptyFlashMsgLine1);
+    ssd1306_draw_string(&disp, x, 8, 1, emptyFlashMsgLine2);
+    ssd1306_draw_string(&disp, x, 16, 1, emptyFlashMsgLine3);
+    ssd1306_draw_string(&disp, x, 24, 1, emptyFlashMsgLine4);
     ssd1306_show(&disp);
 }
 
