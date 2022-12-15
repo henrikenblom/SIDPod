@@ -16,10 +16,11 @@ bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
 int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
-char volumeLabel[7] = "Volume";
-char lineLevelLabel[12] = "Line level:";
-char yesLabel[4] = "Yes";
-char noLabel[3] = "No";
+auto volumeLabel = "Volume";
+auto lineLevelLabel = "Line level:";
+auto yesLabel = "Yes";
+auto noLabel = "No";
+auto emptyFlashMsg = {"No playable PSIDs.", "Use USB to transfer", "PSIDs to the root", "of the SIDPod."};
 float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 UI::State currentState = UI::splash;
@@ -165,15 +166,12 @@ void UI::crossOutLine(int32_t y) {
 
 void UI::showFlashEmptyScreen() {
     ssd1306_clear(&disp);
-    char emptyFlashMsgLine1[19] = "No playable PSIDs.";
-    char emptyFlashMsgLine2[20] = "Use USB to transfer";
-    char emptyFlashMsgLine3[18] = "PSIDs to the root";
-    char emptyFlashMsgLine4[15] = "of the SIDPod.";
     int x = (DISPLAY_WIDTH / 2) - FONT_WIDTH * 10;
-    ssd1306_draw_string(&disp, x, 0, 1, emptyFlashMsgLine1);
-    ssd1306_draw_string(&disp, x, 8, 1, emptyFlashMsgLine2);
-    ssd1306_draw_string(&disp, x, 16, 1, emptyFlashMsgLine3);
-    ssd1306_draw_string(&disp, x, 24, 1, emptyFlashMsgLine4);
+    int y = 0;
+    for (auto msgLine: emptyFlashMsg) {
+        ssd1306_draw_string(&disp, x, y, 1, msgLine);
+        y += FONT_HEIGHT;
+    }
     ssd1306_show(&disp);
 }
 

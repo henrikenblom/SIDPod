@@ -6,7 +6,6 @@ include(pico_extras_import.cmake)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
 set(PICO_BOARD solderparty_rp2040_stamp)
-#set(PICO_BOARD pico)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
