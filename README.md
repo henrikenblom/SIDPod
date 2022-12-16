@@ -11,8 +11,10 @@ _The SIDPod is a PSID player for RP2040 microcontroller based boards, such as th
 <!-- TOC -->
   * [Building](#building)
     * [Software](#software)
+      * [Building from source](#building-from-source)
       * [Prebuilt binaries](#prebuilt-binaries)
     * [Hardware](#hardware)
+      * [Construction](#construction)
       * [Power](#power)
       * [Bill of materials](#bill-of-materials)
   * [Using](#using)
@@ -27,6 +29,8 @@ _The SIDPod is a PSID player for RP2040 microcontroller based boards, such as th
 ## Building
 
 ### Software
+
+#### Building from source
 
 SIDPod requires both the [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk/) and the
 [pico-extras](https://github.com/raspberrypi/pico-extras). Make sure to grab these and either put them next to the
@@ -69,6 +73,8 @@ To get a jump start you can also grab the [prebuilt binaries](https://github.com
 There are two versions, one for the Solder Party RP2040 Stamp and one for the Raspberry Pi Pico.
 
 ### Hardware
+
+#### Construction
 
 Since the main goal is to make a portable player, the actual build and design is up to you, the maker. My current
 prototype is built inside a 3-AA battery box I had lying around, using a Solder Party RP2040 Stamp and a 3.7V 150mAh
@@ -205,5 +211,5 @@ in before entering pocket mode.
 
 This mode is as close as you can get to turning the SIDPod off. As with pocket mode, all regular controls are disabled.
 Additionally, playback is stopped, as well as USB device clocks. In fact, in this mode, even both processor cores are
-stopped, meaning that the power consumption is next to nothing. To enter deep sleep, press the button for more than
-three and a half second, and to get out, just double-click.
+stopped, meaning that the power consumption is next to nothing. To enter deep sleep, press the button for more than two
+and a half second. To get out, just double-click.
