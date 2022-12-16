@@ -7,11 +7,13 @@ _The SIDPod is a PSID player for RP2040 microcontroller based boards, such as th
 [Solder Party RP2040 Stamp](https://www.solder.party/docs/rp2040-stamp/). Playback is based on the SID emulator found in
 [Rockbox](https://www.rockbox.org/), which in turn is based on TinySID._
 
-## Contents
+
 <!-- TOC -->
   * [Building](#building)
     * [Software](#software)
+      * [Prebuilt binaries](#prebuilt-binaries)
     * [Hardware](#hardware)
+      * [Power](#power)
       * [Bill of materials](#bill-of-materials)
   * [Using](#using)
     * [Finding music](#finding-music)
@@ -59,11 +61,12 @@ Also note that if you're running macOS, copying using Finder might fail with thi
 error: _The operation can’t be completed because an unexpected error occurred (error code 100093)._
 If this is the case, fire up the 'ol terminal and do:
 
-`cp cmake-build-debug/SIDPod.uf2 /Volumes/RPI-RP2` for Raspberry Pi Pico
+`cp cmake-build-debug/SIDPod.uf2 /Volumes/RPI-RP2`
 
-...or...
+#### Prebuilt binaries
 
-`cp cmake-build-debug/SIDPod.uf2 /Volumes/RPI-RP2` for Solder Party RP2040 Stamp
+To get a jump start you can also grab the [prebuilt binaries](https://github.com/henrikenblom/SIDPod/releases/latest).
+There are two versions, one for the Solder Party RP2040 Stamp and one for the Raspberry Pi Pico.
 
 ### Hardware
 
@@ -84,6 +87,8 @@ _The development breadboard setup._
 ![](assets/SIDPod_prototype.jpg)  
 _The working prototype. Please excuse the soldering. I'm a lover, not a solderer._
 
+#### Power
+
 The main advantage of the Solder Party RP2040 Stamp, besides its size, is the onboard LiPo charger. This removes some
 complexity and saves space when moving beyond the breadboard design. Many RP2040 projects can easily run off the power
 provided from the host computer over the built-in USB port. The SIDPod however, will enter a special USB device state
@@ -98,6 +103,7 @@ different options:
 #### Bill of materials
 
 _Option 1 - Using a Solder Party RP2040 Stamp (the prototype setup):_
+
 - 1 x [Solder Party RP2040 Stamp](https://www.electrokit.com/en/product/rp2040-stamp/)
 - 1 x [Adafruit I2S 3W Class D Amp - MAX98357A](https://www.electrokit.com/en/product/forstarkare-klass-d-3w-mono-i2s/)
 - 1 x [LCD OLED 0.91″ 128x32px I2C](https://www.electrokit.com/en/product/lcd-oled-0-91-128x32px-i2c/)
@@ -107,6 +113,7 @@ _Option 1 - Using a Solder Party RP2040 Stamp (the prototype setup):_
 - 1 x [Battery LiPo 3.7V 150mAh](https://www.electrokit.com/en/product/batteri-lipo-3-7v-150mah/)
 
 _Option 2 - Using a Raspberry Pi Pico (the breadboard setup):_
+
 - 1 x [Adafruit I2S 3W Class D Amp - MAX98357A](https://www.electrokit.com/en/product/forstarkare-klass-d-3w-mono-i2s/)
 - 1 x [LCD OLED 0.91″ 128x32px I2C](https://www.electrokit.com/en/product/lcd-oled-0-91-128x32px-i2c/)
 - 1 x [3.5mm stereo jack](https://www.electrokit.com/en/product/3-5mm-jack-breakout-2/)
@@ -114,9 +121,11 @@ _Option 2 - Using a Raspberry Pi Pico (the breadboard setup):_
 - 2 x [100Ω resistor](https://www.electrokit.com/en/product/resistor-1w-5-100ohm-100r/)
 
 _Option 2a - Add a Raspberry Pi Pico with Picoprobe, for debugging, binary upload and power through VSYS:_
+
 - 2 x [Raspberry Pi Pico H](https://www.electrokit.com/en/product/raspberry-pi-pico-h/)
 
 _Option 2b - Power the Raspberry Pi Pico through a USB breakout board:_
+
 - 1 x [Raspberry Pi Pico H](https://www.electrokit.com/en/product/raspberry-pi-pico-h/)
 - 1 x [Breakout board USB-C](https://www.electrokit.com/en/product/anslutningskort-usb-c/)
 
@@ -129,36 +138,39 @@ design. Therefore, controls are both contextual and pattern driven.
 ### Finding music
 
 The [SID or Sound Interface Device](https://en.wikipedia.org/wiki/MOS_Technology_6581), which this player does a
-rudimentary emulation of, was a component in the world's most popular home computer, the Commodore 64. Due to its
-legendary status and, to this day, very active community, there's no shortage of SID files to fill your SIDPod with. The
-most complete collection is the [High Voltage SID Collection](https://www.hvsc.c64.org/). It has everything, from
-classic hits by the legendary Jeroen Tel to contemporary pieces by Kamil Wolnikowski. Download the full archive and use
-one of the SID players referenced on that page to find the music you like. The collection contains both PSIDs and RSIDs.
-However, RSID playback requires either a real C64 or a more sophisticated emulator than TinySID. More on the effects of
-this in the next section.
+rudimentary emulation of, was a component in the world's most popular home computer, the
+[Commodore 64](https://en.wikipedia.org/wiki/Commodore_64). Due to its legendary status and, to this day, very active
+community, there's no shortage of SID files to fill your SIDPod with. The most complete collection is the
+[High Voltage SID Collection](https://www.hvsc.c64.org/). It has everything, from cult classics by the legendary Jeroen
+Tel to contemporary pieces by Kamil Wolnikowski, aka Jammer. Download the full archive and use one of the SID players
+referenced on that page to find the music you like. The collection contains both PSIDs and RSIDs. However, RSID playback
+requires either a real C64 or a more sophisticated emulator than TinySID. More on the effects of this in the next
+section.
 
 ### Adding music
 
 The SIDPod doubles as a USB mass storage device, which means that if you plug it in to your computer it will show up as
 a regular, FAT-formatted drive. This means that adding and removing PSIDs is as easy as copying or deleting files. There
 are a few caveats though:
+
 - Only PSIDs are supported, RSIDs are filtered out. Unfortunately they share the same file extension, which means it's
-impossible to know beforehand if a SID file is playable or not. So, if you add a tune to the SIDPod, and it doesn't show
-up, this is most likely the cause.
+  impossible to know beforehand if a SID file is playable or not. So, if you add a tune to the SIDPod, and it doesn't
+  show up, this is most likely the cause.
 - PSIDs must be put in the root directory.
-- Use it with moderation. [FatFs](http://elm-chan.org/fsw/ff/00index_e.html) doesn't have any wear levelling algorithms,
-and NAND flash storage wears out faster than regular flash drives. Note though that this only goes for write operations.
-Reading is totally harmless.
+- Use it with moderation. [FatFs](http://elm-chan.org/fsw/ff/00index_e.html) doesn't have any
+  [wear levelling algorithm](https://en.wikipedia.org/wiki/Wear_leveling), and NAND flash storage wears out faster than
+  regular flash drives. Note though that this only goes for write operations. Reading is totally harmless.
 - It's slower than you're probably used to. This is due to several factors. One being that flash memory blocks needs to
-be erased before new data can be written to it.
+  be erased before new data can be written to them.
 
 While the SIDPod is connected, the screen shows flickering bars. Don't be alarmed. This is a feature, not a bug. In
 fact, it's a reference to the C64 - those who know, know.
 
 ### Playback
 
-Once you've added some funky tunes and safely disconnected the SIDPod it presents the titles. In the order they were
+Once you've added some funky tunes and **safely disconnected** the SIDPod it presents the titles. In the order they were
 added. The controls in this mode are:
+
 - Scroll through the list by turning the encoder.
 - Single-clicking plays the selected song and enters a very retro-fancy visualization mode.
 - Double-clicking plays or pauses the selected song but keeps the playlist mode.
@@ -174,9 +186,10 @@ opcodes that have caused the song loading routine to enter an infinite loop and 
 
 These controls are only available from the visualization mode and are activated by rotating the encoder. The controls in
 this mode are:
+
 - Lower/raise the volume by turning the encoder.
 - Single-clicking toggles line level on/off. Use this if you notice distortion when the SIDPod is connected to an
-amplifier.
+  amplifier.
 
 After two seconds of inactivity the SIDPod returns to the visualization mode.
 
