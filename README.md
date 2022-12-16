@@ -7,6 +7,21 @@ _The SIDPod is a PSID player for RP2040 microcontroller based boards, such as th
 [Solder Party RP2040 Stamp](https://www.solder.party/docs/rp2040-stamp/). Playback is based on the SID emulator found in
 [Rockbox](https://www.rockbox.org/), which in turn is based on TinySID._
 
+## Contents
+<!-- TOC -->
+  * [Building](#building)
+    * [Software](#software)
+    * [Hardware](#hardware)
+      * [Bill of materials](#bill-of-materials)
+  * [Using](#using)
+    * [Finding music](#finding-music)
+    * [Adding music](#adding-music)
+    * [Playback](#playback)
+    * [Volume and level control](#volume-and-level-control)
+    * [Pocket mode](#pocket-mode)
+    * [Deep sleep](#deep-sleep)
+<!-- TOC -->
+
 ## Building
 
 ### Software
