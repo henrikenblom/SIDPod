@@ -91,7 +91,7 @@ process.
 _The development breadboard setup._
 
 ![](assets/SIDPod_prototype.jpg)  
-_The working prototype. Please excuse the soldering. I'm a lover, not a solderer._
+_The working prototype. Please excuse the soldering. I'm a lover, not a solderer. 😜_
 
 #### Power
 
