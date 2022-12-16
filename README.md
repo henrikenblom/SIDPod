@@ -1,12 +1,11 @@
 ![](assets/SIDPod_logo.png)
 
-___
-
 _The SIDPod is a PSID player for RP2040 microcontroller based boards, such as the
 [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/) or the
 [Solder Party RP2040 Stamp](https://www.solder.party/docs/rp2040-stamp/). Playback is based on the SID emulator found in
 [Rockbox](https://www.rockbox.org/), which in turn is based on TinySID._
 
+___
 
 <!-- TOC -->
   * [Building](#building)
