@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "ff.h"
+#include "../digi_interface.h"
 
 //----------------------------------------------
 
@@ -48,7 +49,19 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
 
 void sid_synth_render(uint16_t *buffer, size_t len);
 
-extern unsigned char memory[];
+void setMuted(uint8_t voice, bool muted);
+
+unsigned char getAD(uint8_t voice);
+
+unsigned char getWave(uint8_t voice);
+
+unsigned char getSR(uint8_t voice);
+
+short getPulse(uint8_t voice);
+
+short getFreq(uint8_t voice);
+
+int32_t sysCycles();
 
 //----------------------------------------------
 

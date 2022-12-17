@@ -14,7 +14,7 @@ extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
 extern "C" void cpuJSR(unsigned short, unsigned char);
 extern "C" void sidPoke(int reg, unsigned char val);
 extern "C" void c64Init(int nSampleRate);
-extern "C" unsigned char memory[];
+extern "C" uint8_t memReadRAM(uint16_t addr);
 extern uint16_t intermediateBuffer[];
 
 class SIDPlayer {
@@ -43,7 +43,7 @@ public:
 
     static bool lineLevelOn();
 
-    static sid_info * getSidInfo();
+    static sid_info *getSidInfo();
 
     static bool loadingWasSuccessful();
 

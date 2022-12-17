@@ -6,6 +6,7 @@
 #include "SIDPlayer.h"
 #include "../platform_config.h"
 #include "sid.h"
+#include "memory.h"
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
@@ -139,7 +140,7 @@ void SIDPlayer::generateSamples() {
         if (samples_to_render == 0) {
             cpuJSR(sidInfo.play_addr, 0);
 
-            int n_refresh_cia = (int) (20000 * (memory[0xdc04] | (memory[0xdc05] << 8)) / 0x4c00);
+            int n_refresh_cia = (int) (20000 * (memReadRAM(0xdc04) | (memReadRAM(0xdc05) << 8)) / 0x4c00);
             if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
                 n_refresh_cia = 20000;
 

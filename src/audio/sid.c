@@ -60,6 +60,7 @@
 #include "sid.h"
 #include <string.h>
 #include "../platform_config.h"
+#include "memory.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -105,6 +106,7 @@ struct s6581 {
         unsigned char wave;
         unsigned char ad;
         unsigned char sr;
+        bool muted;
     } v[3];
     unsigned char ffreqlo;
     unsigned char ffreqhi;
@@ -163,11 +165,11 @@ static long watchdog_counter = 0;
 /* ------------------------------------------------------ C64 Emu Stuff */
 static unsigned char bval IDATA_ATTR;
 static unsigned short wval IDATA_ATTR;
+static bool is_ntsc = false;
 /* -------------------------------------------------- Register & memory */
 static unsigned char a, x, y, s, p IDATA_ATTR;
 static unsigned short pc IDATA_ATTR;
-
-unsigned char memory[65536];
+int32_t cycles = 0;
 
 /* ----------------------------------------- Variables for sample stuff */
 static int sample_active IDATA_ATTR;
@@ -180,6 +182,8 @@ static int sample_nibble IDATA_ATTR;
 
 static int internal_period, internal_order, internal_start, internal_end,
         internal_add, internal_repeat_times, internal_repeat_start IDATA_ATTR;
+
+DigiDetectorHandle pDigiDetector;
 
 int8_t map_shift_bits = 2;
 
@@ -260,6 +264,13 @@ static inline unsigned char get_bit(unsigned long val, unsigned char b) {
     return (unsigned char) ((val >> b) & 1);
 }
 
+static inline uint32_t sysGetClockRate() {
+    if (is_ntsc) {
+        return 1022727;    // NTSC system clock (14.31818MHz/14)
+    } else {
+        return 985249;    // PAL system clock (17.734475MHz/18)
+    }
+}
 
 static inline int GenerateDigi(int sIn) {
     static int sample = 0;
@@ -269,7 +280,7 @@ static inline int GenerateDigi(int sIn) {
     if ((sample_position < sample_end) && (sample_position >= sample_start)) {
         sIn += sample;
 
-        fracPos += 985248 / sample_period;
+        fracPos += sysGetClockRate() / sample_period;
 
         if (fracPos > mixing_frequency) {
             fracPos %= mixing_frequency;
@@ -294,7 +305,7 @@ static inline int GenerateDigi(int sIn) {
                 } else sample_active = 0;
             }
 
-            sample = memory[sample_position & 0xffff];
+            sample = memReadRAM(sample_position & 0xffff);
             if (sample_nibble == 1)
                 sample = (sample & 0xf0) >> 4;
             else sample = sample & 0x0f;
@@ -325,6 +336,37 @@ void synth_init(unsigned long mixfrq) {
     osc[0].noiseval = 0xffffff;
     osc[1].noiseval = 0xffffff;
     osc[2].noiseval = 0xffffff;
+    sid.v[0].muted = false;
+    sid.v[1].muted = false;
+    sid.v[2].muted = false;
+}
+
+void setMuted(uint8_t voice, bool muted) {
+    sid.v[voice].muted = muted;
+}
+
+unsigned char getAD(uint8_t voice) {
+    return sid.v[voice].ad;
+}
+
+unsigned char getWave(uint8_t voice) {
+    return sid.v[voice].wave;
+}
+
+unsigned char getSR(uint8_t voice) {
+    return sid.v[voice].sr;
+}
+
+short getPulse(uint8_t voice) {
+    return sid.v[voice].pulse;
+}
+
+short getFreq(uint8_t voice) {
+    return sid.v[voice].pulse;
+}
+
+int32_t sysCycles() {
+    return cycles;
 }
 
 static inline uint16_t map_sample(int32_t x) {
@@ -370,116 +412,118 @@ void sid_synth_render(uint16_t *buffer, size_t len) {
 
     /* now render the buffer */
     for (bp = 0; bp < len; bp++) {
-
-        int outo = 0;
-        int outf = 0;
+        int32_t outo = 0;
+        int32_t outf = 0;
         /* step 2 : generate the two output signals (for filtered and non-
                     filtered) from the osc/eg sections */
         for (v = 0; v < 3; v++) {
-            /* update wave counter */
-            osc[v].counter = (osc[v].counter + osc[v].freq) & 0xFFFFFFF;
-            /* reset counter / noise generator if reset get_bit set */
-            if (osc[v].wave & 0x08) {
-                osc[v].counter = 0;
-                osc[v].noisepos = 0;
-                osc[v].noiseval = 0xffffff;
-            }
-            unsigned char refosc = v ? v - 1 : 2;  /* reference oscillator for sync/ring */
-            /* sync oscillator to refosc if sync bit set */
-            if (osc[v].wave & 0x02)
-                if (osc[refosc].counter < osc[refosc].freq)
-                    osc[v].counter = osc[refosc].counter * osc[v].freq / osc[refosc].freq;
-            /* generate waveforms with really simple algorithms */
-            unsigned char triout = (unsigned char) (osc[v].counter >> 19);
-            if (osc[v].counter >> 27)
-                triout ^= 0xff;
-            unsigned char sawout = (unsigned char) (osc[v].counter >> 20);
-            unsigned char plsout = (unsigned char) ((osc[v].counter > osc[v].pulse) - 1);
-
-            /* generate noise waveform exactly as the SID does. */
-            if (osc[v].noisepos != (osc[v].counter >> 23)) {
-                osc[v].noisepos = osc[v].counter >> 23;
-                osc[v].noiseval = (osc[v].noiseval << 1) |
-                                  (get_bit(osc[v].noiseval, 22) ^ get_bit(osc[v].noiseval, 17));
-                osc[v].noiseout = (get_bit(osc[v].noiseval, 22) << 7) |
-                                  (get_bit(osc[v].noiseval, 20) << 6) |
-                                  (get_bit(osc[v].noiseval, 16) << 5) |
-                                  (get_bit(osc[v].noiseval, 13) << 4) |
-                                  (get_bit(osc[v].noiseval, 11) << 3) |
-                                  (get_bit(osc[v].noiseval, 7) << 2) |
-                                  (get_bit(osc[v].noiseval, 4) << 1) |
-                                  (get_bit(osc[v].noiseval, 2) << 0);
-            }
-            unsigned char nseout = osc[v].noiseout;
-
-            /* modulate triangle wave if ringmod bit set */
-            if (osc[v].wave & 0x04)
-                if (osc[refosc].counter < 0x8000000)
+            if (!sid.v[v].muted) {
+                /* update wave counter */
+                osc[v].counter = (osc[v].counter + osc[v].freq) & 0xFFFFFFF;
+                /* reset counter / noise generator if reset get_bit set */
+                if (osc[v].wave & 0x08) {
+                    osc[v].counter = 0;
+                    osc[v].noisepos = 0;
+                    osc[v].noiseval = 0xffffff;
+                }
+                unsigned char refosc = v ? v - 1 : 2;  /* reference oscillator for sync/ring */
+                /* sync oscillator to refosc if sync bit set */
+                if (osc[v].wave & 0x02)
+                    if (osc[refosc].counter < osc[refosc].freq)
+                        osc[v].counter = osc[refosc].counter * osc[v].freq / osc[refosc].freq;
+                /* generate waveforms with really simple algorithms */
+                unsigned char triout = (unsigned char) (osc[v].counter >> 19);
+                if (osc[v].counter >> 27)
                     triout ^= 0xff;
+                unsigned char sawout = (unsigned char) (osc[v].counter >> 20);
+                unsigned char plsout = (unsigned char) ((osc[v].counter > osc[v].pulse) - 1);
 
-            /* now mix the oscillators with an AND operation as stated in
-               the SID's reference manual - even if this is completely wrong.
-               well, at least, the $30 and $70 waveform sounds correct and there's
-               no real solution to do $50 and $60, so who cares. */
-
-            unsigned char outv = 0xFF;
-            if (osc[v].wave & 0x10) outv &= triout;
-            if (osc[v].wave & 0x20) outv &= sawout;
-            if (osc[v].wave & 0x40) outv &= plsout;
-            if (osc[v].wave & 0x80) outv &= nseout;
-
-            /* so now process the volume according to the phase and adsr values */
-            switch (osc[v].envphase) {
-                case 0 : {                          /* Phase 0 : Attack */
-                    osc[v].envval += osc[v].attack;
-                    if (osc[v].envval >= 0xFFFFFF) {
-                        osc[v].envval = 0xFFFFFF;
-                        osc[v].envphase = 1;
-                    }
-                    break;
+                /* generate noise waveform exactly as the SID does. */
+                if (osc[v].noisepos != (osc[v].counter >> 23)) {
+                    osc[v].noisepos = osc[v].counter >> 23;
+                    osc[v].noiseval = (osc[v].noiseval << 1) |
+                                      (get_bit(osc[v].noiseval, 22) ^ get_bit(osc[v].noiseval, 17));
+                    osc[v].noiseout = (get_bit(osc[v].noiseval, 22) << 7) |
+                                      (get_bit(osc[v].noiseval, 20) << 6) |
+                                      (get_bit(osc[v].noiseval, 16) << 5) |
+                                      (get_bit(osc[v].noiseval, 13) << 4) |
+                                      (get_bit(osc[v].noiseval, 11) << 3) |
+                                      (get_bit(osc[v].noiseval, 7) << 2) |
+                                      (get_bit(osc[v].noiseval, 4) << 1) |
+                                      (get_bit(osc[v].noiseval, 2) << 0);
                 }
-                case 1 : {                          /* Phase 1 : Decay */
-                    osc[v].envval -= osc[v].decay;
-                    if ((signed int) osc[v].envval <= (signed int) (osc[v].sustain << 16)) {
-                        osc[v].envval = osc[v].sustain << 16;
-                        osc[v].envphase = 2;
-                    }
-                    break;
-                }
-                case 2 : {                          /* Phase 2 : Sustain */
-                    if ((signed int) osc[v].envval != (signed int) (osc[v].sustain << 16)) {
-                        osc[v].envphase = 1;
-                    }
-                    /* :) yes, thats exactly how the SID works. and maybe
-                       a music routine out there supports this, so better
-                       let it in, thanks :) */
-                    break;
-                }
-                case 3 : {                          /* Phase 3 : Release */
-                    osc[v].envval -= osc[v].release;
-                    if (osc[v].envval < 0x40000) osc[v].envval = 0x40000;
+                unsigned char nseout = osc[v].noiseout;
 
-                    /* the volume offset is because the SID does not
-                       completely silence the voices when it should. most
-                       emulators do so though and thats the main reason
-                       why the sound of emulators is too, err... emulated :)  */
-                    break;
+                /* modulate triangle wave if ringmod bit set */
+                if (osc[v].wave & 0x04)
+                    if (osc[refosc].counter < 0x8000000)
+                        triout ^= 0xff;
+
+                /* now mix the oscillators with an AND operation as stated in
+                   the SID's reference manual - even if this is completely wrong.
+                   well, at least, the $30 and $70 waveform sounds correct and there's
+                   no real solution to do $50 and $60, so who cares. */
+
+                unsigned char outv = 0xFF;
+                if (osc[v].wave & 0x10) outv &= triout;
+                if (osc[v].wave & 0x20) outv &= sawout;
+                if (osc[v].wave & 0x40) outv &= plsout;
+                if (osc[v].wave & 0x80) outv &= nseout;
+
+                /* so now process the volume according to the phase and adsr values */
+                switch (osc[v].envphase) {
+                    case 0 : {                          /* Phase 0 : Attack */
+                        osc[v].envval += osc[v].attack;
+                        if (osc[v].envval >= 0xFFFFFF) {
+                            osc[v].envval = 0xFFFFFF;
+                            osc[v].envphase = 1;
+                        }
+                        break;
+                    }
+                    case 1 : {                          /* Phase 1 : Decay */
+                        osc[v].envval -= osc[v].decay;
+                        if ((signed int) osc[v].envval <= (signed int) (osc[v].sustain << 16)) {
+                            osc[v].envval = osc[v].sustain << 16;
+                            osc[v].envphase = 2;
+                        }
+                        break;
+                    }
+                    case 2 : {                          /* Phase 2 : Sustain */
+                        if ((signed int) osc[v].envval != (signed int) (osc[v].sustain << 16)) {
+                            osc[v].envphase = 1;
+                        }
+                        /* :) yes, thats exactly how the SID works. and maybe
+                           a music routine out there supports this, so better
+                           let it in, thanks :) */
+                        break;
+                    }
+                    case 3 : {                          /* Phase 3 : Release */
+                        osc[v].envval -= osc[v].release;
+                        if (osc[v].envval < 0x40000) osc[v].envval = 0x40000;
+
+                        /* the volume offset is because the SID does not
+                           completely silence the voices when it should. most
+                           emulators do so though and thats the main reason
+                           why the sound of emulators is too, err... emulated :)  */
+                        break;
+                    }
+                }
+
+
+                /* now route the voice output to either the non-filtered or the
+                   filtered channel and dont forget to blank out osc3 if desired */
+
+                if (v < 2 || filter.v3ena) {
+                    if (osc[v].filter)
+                        outf += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
+                    else
+                        outo += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
                 }
             }
-
-
-            /* now route the voice output to either the non-filtered or the
-               filtered channel and dont forget to blank out osc3 if desired */
-
-            if (v < 2 || filter.v3ena) {
-                if (osc[v].filter)
-                    outf += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
-                else
-                    outo += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
-            }
-
         }
 
+        int32_t digi_out = 0;
+        route_digi_signal(pDigiDetector, &digi_out, &outf, &outo);
 
         /* step 3
          * so, now theres finally time to apply the multi-mode resonant filter
@@ -503,83 +547,40 @@ void sid_synth_render(uint16_t *buffer, size_t len) {
         if (filter.b_ena) outf += quickfloat_ConvertToInt(filter.b);
         if (filter.h_ena) outf += quickfloat_ConvertToInt(filter.h);
 
-        int final_sample = (filter.vol * (outo + outf));
-        int32_t digi = GenerateDigi(final_sample);
+        int final_sample;
+        if (mahoney_samples_detected(pDigiDetector)) {
+            final_sample = digi_out;
+        } else {
+            final_sample = (filter.vol * (outo + outf));
+        }
 
-        *(buffer + bp) = map_sample(digi);
+        *(buffer + bp) = map_sample(final_sample);
+        cycles++;
     }
 }
 
-
-/*
-* C64 Mem Routines
-*/
-static inline unsigned char getmem(unsigned short addr) {
-    return memory[addr];
+uint8_t routeSignal(int32_t voice_out, int32_t *outf, int32_t *outo, uint8_t voice_idx) {
+    // regular routing
+    if (osc[voice_idx].filter) {
+        // route to filter
+        (*outf) += voice_out;
+        return 1;
+    } else {
+        // route directly to output
+        (*outo) += voice_out;
+        return 0;
+    }
 }
 
 static inline void setmem(unsigned short addr, unsigned char value) {
-    if ((addr & 0xfc00) == 0xd400) {
-        sidPoke(addr & 0x1f, value);
-        /* New SID-Register */
-        if (addr > 0xd418) {
-            switch (addr) {
-                case 0xd41f:    /* Start-Hi */
-                    internal_start = (internal_start & 0x00ff) | (value << 8);
-                    break;
-                case 0xd41e:    /* Start-Lo */
-                    internal_start = (internal_start & 0xff00) | (value);
-                    break;
-                case 0xd47f:    /* Repeat-Hi */
-                    internal_repeat_start = (internal_repeat_start & 0x00ff) | (value << 8);
-                    break;
-                case 0xd47e:    /* Repeat-Lo */
-                    internal_repeat_start = (internal_repeat_start & 0xff00) | (value);
-                    break;
-                case 0xd43e:    /* End-Hi */
-                    internal_end = (internal_end & 0x00ff) | (value << 8);
-                    break;
-                case 0xd43d:    /* End-Lo */
-                    internal_end = (internal_end & 0xff00) | (value);
-                    break;
-                case 0xd43f:    /* Loop-Size */
-                    internal_repeat_times = value;
-                    break;
-                case 0xd45e:    /* Period-Hi */
-                    internal_period = (internal_period & 0x00ff) | (value << 8);
-                    break;
-                case 0xd45d:    /* Period-Lo */
-                    internal_period = (internal_period & 0xff00) | (value);
-                    break;
-                case 0xd47d:    /* Sample Order */
-                    internal_order = value;
-                    break;
-                case 0xd45f:    /* Sample Add */
-                    internal_add = value;
-                    break;
-                case 0xd41d:    /* Start sampling */
-                    sample_repeats = internal_repeat_times;
-                    sample_position = internal_start;
-                    sample_start = internal_start;
-                    sample_end = internal_end;
-                    sample_repeat_start = internal_repeat_start;
-                    sample_period = internal_period;
-                    sample_order = internal_order;
-                    switch (value) {
-                        case 0xfd:
-                            sample_active = 0;
-                            break;
-                        case 0xfe:
-                        case 0xff:
-                            sample_active = 1;
-                            break;
-                        default:
-                            return;
-                    }
-                    break;
-            }
-        }
-    } else memory[addr] = value;
+    detect_sample(pDigiDetector, addr, value);
+    const uint16_t reg = addr & 0x1f;
+
+    sidPoke(reg, value);
+    memWriteIO(addr, value);
+
+    addr = 0xd400 | reg;
+    memWriteIO(addr, value);
 }
 
 /*
@@ -659,45 +660,45 @@ static inline unsigned char getaddr(int mode) {
         case imp:
             return 0;
         case imm:
-            return getmem(pc++);
+            return memReadRAM(pc++);
         case _abs:
-            ad = getmem(pc++);
-            ad |= 256 * getmem(pc++);
-            return getmem(ad);
+            ad = memReadRAM(pc++);
+            ad |= 256 * memReadRAM(pc++);
+            return memReadRAM(ad);
         case absx:
-            ad = getmem(pc++);
-            ad |= 256 * getmem(pc++);
+            ad = memReadRAM(pc++);
+            ad |= 256 * memReadRAM(pc++);
             ad2 = ad + x;
-            return getmem(ad2);
+            return memReadRAM(ad2);
         case absy:
-            ad = getmem(pc++);
-            ad |= 256 * getmem(pc++);
+            ad = memReadRAM(pc++);
+            ad |= 256 * memReadRAM(pc++);
             ad2 = ad + y;
-            return getmem(ad2);
+            return memReadRAM(ad2);
         case zp:
-            ad = getmem(pc++);
-            return getmem(ad);
+            ad = memReadRAM(pc++);
+            return memReadRAM(ad);
         case zpx:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += x;
-            return getmem(ad & 0xff);
+            return memReadRAM(ad & 0xff);
         case zpy:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += y;
-            return getmem(ad & 0xff);
+            return memReadRAM(ad & 0xff);
         case indx:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += x;
-            ad2 = getmem(ad & 0xff);
+            ad2 = memReadRAM(ad & 0xff);
             ad++;
-            ad2 |= getmem(ad & 0xff) << 8;
-            return getmem(ad2);
+            ad2 |= memReadRAM(ad & 0xff) << 8;
+            return memReadRAM(ad2);
         case indy:
-            ad = getmem(pc++);
-            ad2 = getmem(ad);
-            ad2 |= getmem((ad + 1) & 0xff) << 8;
+            ad = memReadRAM(pc++);
+            ad2 = memReadRAM(ad);
+            ad2 |= memReadRAM((ad + 1) & 0xff) << 8;
             ad = ad2 + y;
-            return getmem(ad);
+            return memReadRAM(ad);
         case acc:
             return a;
     }
@@ -708,22 +709,22 @@ static inline void setaddr(int mode, unsigned char val) {
     unsigned short ad, ad2;
     switch (mode) {
         case _abs:
-            ad = getmem(pc - 2);
-            ad |= 256 * getmem(pc - 1);
+            ad = memReadRAM(pc - 2);
+            ad |= 256 * memReadRAM(pc - 1);
             setmem(ad, val);
             return;
         case absx:
-            ad = getmem(pc - 2);
-            ad |= 256 * getmem(pc - 1);
+            ad = memReadRAM(pc - 2);
+            ad |= 256 * memReadRAM(pc - 1);
             ad2 = ad + x;
             setmem(ad2, val);
             return;
         case zp:
-            ad = getmem(pc - 1);
+            ad = memReadRAM(pc - 1);
             setmem(ad, val);
             return;
         case zpx:
-            ad = getmem(pc - 1);
+            ad = memReadRAM(pc - 1);
             ad += x;
             setmem(ad & 0xff, val);
             return;
@@ -738,48 +739,48 @@ static inline void putaddr(int mode, unsigned char val) {
     unsigned short ad, ad2;
     switch (mode) {
         case _abs:
-            ad = getmem(pc++);
-            ad |= getmem(pc++) << 8;
+            ad = memReadRAM(pc++);
+            ad |= memReadRAM(pc++) << 8;
             setmem(ad, val);
             return;
         case absx:
-            ad = getmem(pc++);
-            ad |= getmem(pc++) << 8;
+            ad = memReadRAM(pc++);
+            ad |= memReadRAM(pc++) << 8;
             ad2 = ad + x;
             setmem(ad2, val);
             return;
         case absy:
-            ad = getmem(pc++);
-            ad |= getmem(pc++) << 8;
+            ad = memReadRAM(pc++);
+            ad |= memReadRAM(pc++) << 8;
             ad2 = ad + y;
             setmem(ad2, val);
             return;
         case zp:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             setmem(ad, val);
             return;
         case zpx:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += x;
             setmem(ad & 0xff, val);
             return;
         case zpy:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += y;
             setmem(ad & 0xff, val);
             return;
         case indx:
-            ad = getmem(pc++);
+            ad = memReadRAM(pc++);
             ad += x;
-            ad2 = getmem(ad & 0xff);
+            ad2 = memReadRAM(ad & 0xff);
             ad++;
-            ad2 |= getmem(ad & 0xff) << 8;
+            ad2 |= memReadRAM(ad & 0xff) << 8;
             setmem(ad2, val);
             return;
         case indy:
-            ad = getmem(pc++);
-            ad2 = getmem(ad);
-            ad2 |= getmem((ad + 1) & 0xff) << 8;
+            ad = memReadRAM(pc++);
+            ad2 = memReadRAM(ad);
+            ad2 |= memReadRAM((ad + 1) & 0xff) << 8;
             ad = ad2 + y;
             setmem(ad, val);
             return;
@@ -803,7 +804,7 @@ static inline void push(unsigned char val) {
 
 static inline unsigned char pop(void) {
     if (s < 0xff) s++;
-    return getmem(0x100 + s);
+    return memReadRAM(0x100 + s);
 }
 
 static inline void branch(int flag) {
@@ -818,10 +819,11 @@ void cpuReset(void) {
     p = 0;
     s = 255;
     pc = getaddr(0xfffc);
+    cycles = 0;
 }
 
 static inline void cpuParse(void) {
-    unsigned char opc = getmem(pc++);
+    unsigned char opc = memReadRAM(pc++);
     int cmd = opcodes[opc];
     int addr = modes[opc];
     int c;
@@ -955,23 +957,23 @@ static inline void cpuParse(void) {
             setflags(FLAG_N, y & 0x80);
             break;
         case jmp:
-            wval = getmem(pc++);
-            wval |= 256 * getmem(pc++);
+            wval = memReadRAM(pc++);
+            wval |= 256 * memReadRAM(pc++);
             switch (addr) {
                 case _abs:
                     pc = wval;
                     break;
                 case ind:
-                    pc = getmem(wval);
-                    pc |= 256 * getmem(wval + 1);
+                    pc = memReadRAM(wval);
+                    pc |= 256 * memReadRAM(wval + 1);
                     break;
             }
             break;
         case jsr:
             push((pc + 1) >> 8);
             push((pc + 1));
-            wval = getmem(pc++);
-            wval |= 256 * getmem(pc++);
+            wval = memReadRAM(pc++);
+            wval |= 256 * memReadRAM(pc++);
             pc = wval;
             break;
         case lda:
@@ -1139,8 +1141,9 @@ bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 
 void c64Init(int nSampleRate) {
     synth_init(nSampleRate);
-    memset(memory, 0, sizeof(memory));
     cpuReset();
+    memResetIO();
+    pDigiDetector = get_digi_detector();
 }
 
 bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
@@ -1153,6 +1156,9 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     if (bytesRead < PSID_HEADER_SIZE) return false;
     unsigned char *pHeader = (unsigned char *) header;
     unsigned char data_file_offset = pHeader[7];
+
+    bool is_rsid = (pHeader[0x00] != 0x50) ? true : false;
+    uint8_t version = pHeader[0x05];
 
     info->load_addr = pHeader[8] << 8;
     info->load_addr |= pHeader[9];
@@ -1175,19 +1181,27 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     strcpy(info->author, (const char *) &pHeader[0x36]);
     strcpy(info->released, (const char *) &pHeader[0x56]);
 
+    uint16_t flags = (version > 1) ?
+                     (((uint16_t) pHeader[0x77]) | (((uint16_t) pHeader[0x77]) << 8)) : 0x0;
+    is_ntsc = (version >= 2) && (flags & 0x8); // NTSC bit
+    bool is_compatible = ((version & 0x2) && ((flags & 0x2) == 0));
+    memResetRAM(is_ntsc, !is_rsid);
+    memResetKernelROM(0);
+    reset_digi_detector(pDigiDetector, sysGetClockRate(), is_rsid, is_compatible);
+
     f_lseek(&pFile, data_file_offset + 2);
     uint16_t offset = info->load_addr;
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
-        memcpy(&memory[offset], &buffer, bytesRead);
+        memCopyToRAM(buffer, offset, bytesRead);
         offset += SID_LOAD_BUFFER_SIZE;
     }
     f_close(&pFile);
 
     if (info->play_addr == 0) {
         if (!cpuJSRWithWatchdog(info->init_addr, 0)) return false;
-        info->play_addr = (memory[0xffff] << 8) | memory[0xfffe];
+        info->play_addr = (memReadRAM(0xffff) << 8) | memReadRAM(0xfffe);
     }
     return true;
 }

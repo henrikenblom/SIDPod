@@ -5,7 +5,8 @@
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
-uint32_t PSID_ID = 0x50534944;
+const uint32_t PSID_ID = 0x50534944;
+const uint32_t RSID_ID = 0x52534944;
 std::vector<CatalogEntry> catalog;
 std::vector<CatalogEntry *> window;
 uint8_t windowPosition = 0;
@@ -76,7 +77,7 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
     f_read(&pFile, &header, PSID_MINIMAL_HEADER_SIZE, &bytesRead);
     if (bytesRead == PSID_MINIMAL_HEADER_SIZE) {
         uint32_t magic = header[3] | (header[2] << 0x08) | (header[1] << 0x10) | (header[0] << 0x18);
-        if (magic == PSID_ID) {
+        if (magic == PSID_ID || magic == RSID_ID) {
             auto *pHeader = (unsigned char *) header;
             CatalogEntry entry{};
             entry.unplayable = false;

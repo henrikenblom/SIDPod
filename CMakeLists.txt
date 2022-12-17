@@ -34,7 +34,11 @@ add_executable(${PROJECT_NAME}
         src/UI.cpp
         src/visualization/DanceFloor.cpp
         src/System.cpp
-        )
+        src/audio/digi.cpp
+        src/audio/memory.c
+        src/audio/digi_interface.cpp
+        src/audio/digi_interface.h
+        src/audio/digi_interface.h)
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
 
