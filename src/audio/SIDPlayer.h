@@ -14,7 +14,7 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(CatalogEntry *psidFile);
+    static bool loadPSID(CatalogEntry *sidFile);
 
     static CatalogEntry *getCurrentlyLoaded();
 

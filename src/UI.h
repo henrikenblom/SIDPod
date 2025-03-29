@@ -35,6 +35,8 @@ private:
 
     static void animateLongTitle(char title[32], int32_t y);
 
+    static void drawRSIDSymbol(int32_t y);
+
     static void showFlashEmptyScreen();
 
     static void showVolumeControl();

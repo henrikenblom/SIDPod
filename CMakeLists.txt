@@ -83,7 +83,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         pico_unique_id
         tinyusb_common
         tinyusb_device
-        )
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
@@ -96,7 +96,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${TINYUSB_PATH}/src/
         ${TINYUSB_PATH}/src/common/
         ${TINYUSB_PATH}/hw/
-        )
+)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
         CFG_TUD_MSC=1
@@ -104,7 +104,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         PICO_AUDIO_I2S_MONO_INPUT=1
         PICO_AUDIO_I2S_DATA_PIN=26
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
-        )
+)
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
 pico_enable_stdio_usb(${PROJECT_NAME} 0)

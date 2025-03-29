@@ -9,6 +9,7 @@ struct CatalogEntry {
     TCHAR fileName[FF_SFN_BUF + 1];
     char title[32];
     bool selected;
+    bool rsid;
 };
 
 class PSIDCatalog {

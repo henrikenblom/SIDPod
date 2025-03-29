@@ -4,6 +4,8 @@
 #include "../audio/SIDPlayer.h"
 #include "../audio/C64.h"
 
+char experience[20];
+
 namespace Visualization {
     DanceFloor::DanceFloor(ssd1306_t *_pDisp) {
         pDisp = _pDisp;
@@ -55,8 +57,9 @@ namespace Visualization {
         int x;
         double f = 0.012;
         int y1 = 39 - sprite.distance - sprite.velocity - 10;
-        int y2 = sprite.distance < 7 ? (int) (y1 + sprite.velocity * 0.4)
-                                     : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
+        int y2 = sprite.distance < 7
+                     ? (int) (y1 + sprite.velocity * 0.4)
+                     : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
         int perspectiveComp;
         if (sprite.frequency_bin <= displayCenter) {
             perspectiveComp = static_cast<int>((displayCenter - sprite.frequency_bin) * (sprite.distance * f));
@@ -94,15 +97,18 @@ namespace Visualization {
         drawFibonacciLandscape();
         drawStarrySky();
         drawScroller();
-        for (uint8_t x = 1; x < 127; x++) {
-            int i = (int) (1.6 * (float) x);
-            int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
-                            fft_out[i + 1].r * fft_out[i + 1].r + fft_out[i + 1].i * fft_out[i + 1].i) *
-                           compFactor);
+        for (uint8_t x = 0; x < 127; x++) {
+            const int i = 2 * x;
+            int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
+                                      fft_out[i + 1].r + fft_out[i + 1].i) *
+                                     compFactor);
             if (y > 0) {
                 if (y > 28) y /= 8;
-                SoundSprite sprite = {.velocity = static_cast<int8_t>(std::min(16,
-                                                                               y)), .distance = 20, .frequency_bin = x};
+                SoundSprite sprite = {
+                    .velocity = static_cast<int8_t>(std::min(16,
+                                                             y)),
+                    .distance = 20, .frequency_bin = x
+                };
                 soundSprites[sprite_index++] = sprite;
                 if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
             }
@@ -111,33 +117,34 @@ namespace Visualization {
         ssd1306_show(pDisp);
     }
 
+
+    void DanceFloor::randomizeExperience(char *experience) {
+        const char *experiences[] = {"listening to", "enjoying", "experiencing", "feeling"};
+        int randomIndex = rand() % 4; // NOLINT(*-msc50-cpp)
+        strcpy(experience, experiences[randomIndex]);
+    }
+
     void DanceFloor::visualize() {
         while (running) {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 sid_info *entry = SIDPlayer::getSidInfo();
+                randomizeExperience(experience);
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are experiencing it on a SIDPod.",
-                         entry->title, entry->author, entry->released);
+                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2 \"Residious\".",
+                         entry->title, entry->author, entry->released, experience,
+                         entry->rsid == true ? "this RSID" : "it");
                 showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
             if (SIDPlayer::isPlaying()) {
                 freeze = false;
-                for (int offset = 0; offset < SAMPLES_PER_BUFFER; offset += FFT_SAMPLES * 2) {
-                    uint64_t sum = 0;
-                    for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                        sum += intermediateBuffer[i] >> 2;
-                    }
-                    float avg = (float) sum / FFT_SAMPLES;
-                    int j = 0;
-                    for (int i = offset; i < offset + (FFT_SAMPLES * 2); i += 2) {
-                        fftIn[j++] = (float) (intermediateBuffer[i] >> 2) - avg;
-                    }
-
-                    kiss_fftr(fft_cfg, fftIn, fftOut);
-
-                    drawScene(fftOut);
+                int j = 0;
+                for (int i = 0; i < FFT_SAMPLES; i += 1) {
+                    fftIn[j++] = intermediateBuffer[i];
                 }
+                kiss_fftr(fft_cfg, fftIn, fftOut);
+
+                drawScene(fftOut);
             } else if (!SIDPlayer::loadingWasSuccessful()) {
                 stop();
             } else if (!freeze) {
@@ -168,5 +175,4 @@ namespace Visualization {
     void DanceFloor::stop() {
         running = false;
     }
-
 }

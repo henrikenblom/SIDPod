@@ -14,7 +14,7 @@
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
-uint8_t volume = VOLUME_STEPS;
+uint8_t volume = VOLUME_STEPS / 2;
 static sid_info sidInfo{};
 short intermediateBuffer[SAMPLES_PER_BUFFER];
 volatile bool playPauseQueued = false;
@@ -130,35 +130,14 @@ bool SIDPlayer::reapCommand(repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(CatalogEntry *psidFile) {
-    return C64::sid_load_from_file(psidFile->fileName, &sidInfo);
+bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
+    return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 void SIDPlayer::generateSamples() {
-    int samples_rendered = 0;
-    int samples_to_render = 0;
-
-    while (samples_rendered < SAMPLES_PER_BUFFER) {
-        if (samples_to_render == 0) {
-            C64::cpuJSR(sidInfo.play_addr, 0);
-
-            int n_refresh_cia = 20000 * (memory[0xdc04] | memory[0xdc05] << 8) / 0x4c00;
-            if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
-                n_refresh_cia = 20000;
-
-            samples_to_render = SAMPLE_RATE * n_refresh_cia / 985248;
-        }
-        if (samples_rendered + samples_to_render > SAMPLES_PER_BUFFER) {
-            C64::sid_synth_render(intermediateBuffer + samples_rendered, SAMPLES_PER_BUFFER - samples_rendered);
-            samples_to_render -= SAMPLES_PER_BUFFER - samples_rendered;
-            samples_rendered = SAMPLES_PER_BUFFER;
-        } else {
-            C64::sid_synth_render(intermediateBuffer + samples_rendered, samples_to_render);
-            samples_rendered += samples_to_render;
-            samples_to_render = 0;
-        }
-    }
+    C64::cpuJSR(sidInfo.play_addr, 0);
+    C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall

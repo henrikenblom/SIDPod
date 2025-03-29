@@ -1,8 +1,5 @@
 /*
  * c64.h
- *
- *  Created on: 14 lip 2016
- *      Author: Korzo
  */
 
 #ifndef SID_SID_H_
@@ -23,6 +20,7 @@ struct sid_info {
     uint8_t subsongs;
     uint8_t start_song;
     uint8_t speed;
+    bool rsid;
     char title[32];
     char author[32];
     char released[32];

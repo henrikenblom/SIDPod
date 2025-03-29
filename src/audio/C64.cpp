@@ -639,6 +639,8 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     auto *pHeader = static_cast<unsigned char *>(header);
     unsigned char data_file_offset = pHeader[7];
 
+    info->rsid = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18) == RSID_ID;
+
     info->load_addr = pHeader[8] << 8;
     info->load_addr |= pHeader[9];
 

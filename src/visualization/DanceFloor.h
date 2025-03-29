@@ -20,11 +20,13 @@ namespace Visualization {
             uint8_t x;
             uint8_t y;
         };
+
         struct SoundSprite {
             int8_t velocity;
             int8_t distance;
             uint8_t frequency_bin;
         };
+
     private:
         void drawHorizontalLine(uint8_t y);
 
@@ -41,6 +43,8 @@ namespace Visualization {
         void updateSoundSprites();
 
         void drawScene(kiss_fft_cpx *fft_out);
+
+        static void randomizeExperience(char *experience);
 
         void visualize();
 
@@ -62,18 +66,20 @@ namespace Visualization {
         void (*stopCallback)() = nullptr;
 
         DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
-        DanceFloor::StarSprite starSprites[12] = {{6,   4},
-                                                  {14,  0},
-                                                  {28,  8},
-                                                  {34,  5},
-                                                  {42,  9},
-                                                  {60,  4},
-                                                  {72,  3},
-                                                  {80,  6},
-                                                  {96,  1},
-                                                  {108, 5},
-                                                  {116, 8},
-                                                  {124, 0}};
+        DanceFloor::StarSprite starSprites[12] = {
+            {6, 4},
+            {14, 0},
+            {28, 8},
+            {34, 5},
+            {42, 9},
+            {60, 4},
+            {72, 3},
+            {80, 6},
+            {96, 1},
+            {108, 5},
+            {116, 8},
+            {124, 0}
+        };
         uint16_t fibonacci[HORIZONTAL_LANDSCAPE_LINES]{};
         kiss_fft_scalar fftIn[FFT_SAMPLES]{};
         kiss_fft_cpx fftOut[FFT_SAMPLES]{};

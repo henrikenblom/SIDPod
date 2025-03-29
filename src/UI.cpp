@@ -113,6 +113,8 @@ void UI::showSongSelector() {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
                 drawPlaySymbol(y);
+            } else if (entry->rsid) {
+                drawRSIDSymbol(y);
             }
             if (entry->unplayable) crossOutLine(y);
             y += 8;
@@ -133,6 +135,14 @@ void UI::animateLongTitle(char *title, int32_t y) {
     if ((int) (longTitleScrollOffset += advancement) > scrollRange)
         longTitleScrollOffset = 0;
     ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
+}
+
+void UI::drawRSIDSymbol(int32_t y) {
+    ssd1306_draw_line(&disp, 0, y + 1, 0, y + 5);
+    ssd1306_draw_line(&disp, 0, y + 1, 1, y + 1);
+    ssd1306_draw_line(&disp, 2, y + 1, 2, y + 3);
+    ssd1306_draw_line(&disp, 0, y + 3, 1, y + 3);
+    ssd1306_draw_line(&disp, 0, y + 3, 2, y + 5 );
 }
 
 void UI::drawPlaySymbol(int32_t y) {
