@@ -41,19 +41,33 @@ namespace Visualization {
         }
     }
 
+    void DanceFloor::drawLeftGround() const {
+        for (int y = 13, x = 5; y <= 23; y += 2, x += 3) {
+            ssd1306_draw_line(pDisp, 0, y, x, 10);
+        }
+    }
+
+    void DanceFloor::drawRightGround() const {
+        for (int y = 12, x = 5; y <= 24; y += 2, x += 3) {
+            ssd1306_draw_line(pDisp, DISPLAY_WIDTH - x, 10, DISPLAY_WIDTH, y);
+        }
+    }
+
     void DanceFloor::drawFibonacciLandscape() {
         drawHorizontalLine(10);
-        for (unsigned short i: fibonacci) {
-            drawHorizontalLine(10 + (i / (20 - rvOffset)));
+        for (const unsigned short i: fibonacci) {
+            drawHorizontalLine(10 + i / (20 - rvOffset));
         }
-        ssd1306_draw_line(pDisp, 0, 25, 23, 10); // Leftmost
+        drawLeftGround();
+        ssd1306_draw_line(pDisp, 0, 25, 23, 10);
         ssd1306_draw_line(pDisp, 42, 31, 48, 10);
         ssd1306_draw_line(pDisp, 79, 10, 86, 31);
-        ssd1306_draw_line(pDisp, 104, 10, 127, 25); // Rightmost
+        ssd1306_draw_line(pDisp, 104, 10, 127, 25);
+        drawRightGround();
         if (rvOffset++ > 4) rvOffset = 0;
     }
 
-    void DanceFloor::drawSoundSprite(DanceFloor::SoundSprite sprite) const {
+    void DanceFloor::drawSoundSprite(SoundSprite sprite) const {
         int x;
         double f = 0.012;
         int y1 = 39 - sprite.distance - sprite.velocity - 10;
@@ -98,7 +112,7 @@ namespace Visualization {
         drawStarrySky();
         drawScroller();
         for (uint8_t x = 0; x < 127; x++) {
-            const int i = 2 * x;
+            const int i = static_cast<int>(1.6 * x);
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i) *
                                      compFactor);

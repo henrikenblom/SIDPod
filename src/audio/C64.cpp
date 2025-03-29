@@ -630,12 +630,12 @@ void C64::c64Init(int nSampleRate) {
 
 bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     FIL pFile;
-    BYTE header[PSID_HEADER_SIZE];
+    BYTE header[SID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
     UINT bytesRead;
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
-    if (f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
-    if (bytesRead < PSID_HEADER_SIZE) return false;
+    if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
+    if (bytesRead < SID_HEADER_SIZE) return false;
     auto *pHeader = static_cast<unsigned char *>(header);
     unsigned char data_file_offset = pHeader[7];
 

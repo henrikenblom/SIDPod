@@ -102,7 +102,7 @@ void UI::showSongSelector() {
         }
         ssd1306_clear(&disp);
         uint8_t y = 0;
-        for (auto entry: PSIDCatalog::getWindow()) {
+        for (const auto entry: PSIDCatalog::getWindow()) {
             if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
                 animateLongTitle(entry->title, y);
             } else {
@@ -113,8 +113,6 @@ void UI::showSongSelector() {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
                 drawPlaySymbol(y);
-            } else if (entry->rsid) {
-                drawRSIDSymbol(y);
             }
             if (entry->unplayable) crossOutLine(y);
             y += 8;
@@ -126,23 +124,15 @@ void UI::showSongSelector() {
 }
 
 void UI::animateLongTitle(char *title, int32_t y) {
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - (int32_t) longTitleScrollOffset, y, 1, title);
+    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - static_cast<int32_t>(longTitleScrollOffset), y, 1, title);
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
     float advancement =
             longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
                 ? 0.4
                 : 0.02;
-    if ((int) (longTitleScrollOffset += advancement) > scrollRange)
+    if (static_cast<int>(longTitleScrollOffset += advancement) > scrollRange)
         longTitleScrollOffset = 0;
     ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
-}
-
-void UI::drawRSIDSymbol(int32_t y) {
-    ssd1306_draw_line(&disp, 0, y + 1, 0, y + 5);
-    ssd1306_draw_line(&disp, 0, y + 1, 1, y + 1);
-    ssd1306_draw_line(&disp, 2, y + 1, 2, y + 3);
-    ssd1306_draw_line(&disp, 0, y + 3, 1, y + 3);
-    ssd1306_draw_line(&disp, 0, y + 3, 2, y + 5 );
 }
 
 void UI::drawPlaySymbol(int32_t y) {

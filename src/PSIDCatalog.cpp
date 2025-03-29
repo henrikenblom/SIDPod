@@ -69,11 +69,11 @@ void PSIDCatalog::resetAccessors() {
 
 void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
-    BYTE header[PSID_MINIMAL_HEADER_SIZE];
+    BYTE header[SID_MINIMAL_HEADER_SIZE];
     UINT bytesRead;
     f_open(&pFile, fileInfo->altname, FA_READ);
-    f_read(&pFile, &header, PSID_MINIMAL_HEADER_SIZE, &bytesRead);
-    if (bytesRead == PSID_MINIMAL_HEADER_SIZE) {
+    f_read(&pFile, &header, SID_MINIMAL_HEADER_SIZE, &bytesRead);
+    if (bytesRead == SID_MINIMAL_HEADER_SIZE) {
         uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
         bool isRsid = magic == RSID_ID;
         if (magic == PSID_ID || isRsid) {

@@ -34,6 +34,10 @@ namespace Visualization {
 
         void drawStarrySky();
 
+        void drawLeftGround() const;
+
+        void drawRightGround() const;
+
         void drawFibonacciLandscape();
 
         void drawSoundSprite(SoundSprite sprite) const;
