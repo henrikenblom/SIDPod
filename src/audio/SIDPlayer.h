@@ -49,7 +49,8 @@ private:
 
     [[noreturn]] static void core1Main();
 
-    static bool reapCommand(repeating_timer *t);
+    // ReSharper disable once CppRedundantElaboratedTypeSpecifier
+    static bool reapCommand(struct repeating_timer *t);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

@@ -104,6 +104,7 @@ SID reSID;
 void C64::synth_init() {
     reSID.reset();
     reSID.enable_filter(true);
+    reSID.enable_external_filter(true);
     reSID.set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
@@ -677,6 +678,7 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
 }
 
 void C64::setLineLevel(bool on) {
+    //reSID.enable_filter(on);
 }
 
 bool C64::getLineLevelOn() {

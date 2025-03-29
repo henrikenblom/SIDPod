@@ -163,10 +163,11 @@ void SIDPlayer::generateSamples() {
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
-    float volumeFactor = (float) volume / VOLUME_STEPS; // Make logarithmic
-    auto *samples = (int16_t *) buffer->buffer->bytes;
+    float volumeFactor = static_cast<float>(volume) / VOLUME_STEPS;
+    volumeFactor = volumeFactor * volumeFactor;
+    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     for (uint i = 0; i < buffer->max_sample_count; i++) {
-        samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
+        samples[i] = static_cast<int16_t>((float) intermediateBuffer[i] * volumeFactor);
     }
     buffer->sample_count = buffer->max_sample_count;
 }
