@@ -25,7 +25,7 @@ add_executable(${PROJECT_NAME}
         src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
-        src/audio/sid.c
+        src/audio/c64.cpp
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
@@ -34,7 +34,34 @@ add_executable(${PROJECT_NAME}
         src/UI.cpp
         src/visualization/DanceFloor.cpp
         src/System.cpp
-        )
+        src/audio/reSID/envelope.cc
+        src/audio/reSID/wave8580_P_T.cc
+        src/audio/reSID/pot.cc
+        src/audio/reSID/voice.cc
+        src/audio/reSID/sid.cc
+        src/audio/reSID/filter.cc
+        src/audio/reSID/wave6581_P_T.cc
+        src/audio/reSID/wave6581_PS_.cc
+        src/audio/reSID/wave8580_PST.cc
+        src/audio/reSID/wave8580__ST.cc
+        src/audio/reSID/wave6581_PST.cc
+        src/audio/reSID/wave8580_PS_.cc
+        src/audio/reSID/wave6581__ST.cc
+        src/audio/reSID/extfilt.cc
+        src/audio/reSID/wave.cc
+        src/audio/reSID/version.cc
+        src/audio/reSID/siddefs.h
+        src/audio/reSID/extfilt.h
+        src/audio/reSID/spline.h
+        src/audio/reSID/ChangeLog
+        src/audio/reSID/pot.h
+        src/audio/reSID/voice.h
+        src/audio/reSID/envelope.h
+        src/audio/reSID/wave.h
+        src/audio/reSID/sid.h
+        src/audio/reSID/filter.h
+        src/audio/reSID/filter6581.h
+)
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
 

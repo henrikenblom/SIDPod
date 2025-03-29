@@ -2,7 +2,7 @@
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../audio/SIDPlayer.h"
-#include "sid.h"
+#include "c64.h"
 
 namespace Visualization {
     DanceFloor::DanceFloor(ssd1306_t *_pDisp) {

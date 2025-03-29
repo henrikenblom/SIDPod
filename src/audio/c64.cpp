@@ -57,9 +57,13 @@
 *
 **************************/
 
-#include "sid.h"
+#include "c64.h"
+
+#include <cmath>
+#include <cstdio>
 #include <string.h>
 #include "../platform_config.h"
+#include "reSID/sid.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -106,6 +110,7 @@ struct s6581 {
         unsigned char ad;
         unsigned char sr;
     } v[3];
+
     unsigned char ffreqlo;
     unsigned char ffreqhi;
     unsigned char res_ftv;
@@ -172,7 +177,7 @@ unsigned char memory[65536];
 /* ----------------------------------------- Variables for sample stuff */
 static int sample_active IDATA_ATTR;
 static int sample_position, sample_start, sample_end, sample_repeat_start IDATA_ATTR;
-static int fracPos IDATA_ATTR;  /* Fractal position of sample */
+static int fracPos IDATA_ATTR; /* Fractal position of sample */
 static int sample_period IDATA_ATTR;
 static int sample_repeats IDATA_ATTR;
 static int sample_order IDATA_ATTR;
@@ -185,57 +190,61 @@ int8_t map_shift_bits = 2;
 
 /* ---------------------------------------------------------- constants */
 static const float attackTimes[16] ICONST_ATTR =
-        {
-                0.0022528606f, 0.0080099577f, 0.0157696042f, 0.0237795619f,
-                0.0372963655f, 0.0550684591f, 0.0668330845f, 0.0783473987f,
-                0.0981219818f, 0.244554021f, 0.489108042f, 0.782472742f,
-                0.977715461f, 2.93364701f, 4.88907793f, 7.82272493f
-        };
+{
+    0.0022528606f, 0.0080099577f, 0.0157696042f, 0.0237795619f,
+    0.0372963655f, 0.0550684591f, 0.0668330845f, 0.0783473987f,
+    0.0981219818f, 0.244554021f, 0.489108042f, 0.782472742f,
+    0.977715461f, 2.93364701f, 4.88907793f, 7.82272493f
+};
 static const float decayReleaseTimes[16] ICONST_ATTR =
-        {
-                0.00891777693f, 0.024594051f, 0.0484185907f, 0.0730116639f, 0.114512475f,
-                0.169078356f, 0.205199432f, 0.240551975f, 0.301266125f, 0.750858245f,
-                1.50171551f, 2.40243682f, 3.00189298f, 9.00721405f, 15.010998f, 24.0182111f
-        };
+{
+    0.00891777693f, 0.024594051f, 0.0484185907f, 0.0730116639f, 0.114512475f,
+    0.169078356f, 0.205199432f, 0.240551975f, 0.301266125f, 0.750858245f,
+    1.50171551f, 2.40243682f, 3.00189298f, 9.00721405f, 15.010998f, 24.0182111f
+};
 
 static const int opcodes[256] ICONST_ATTR = {
-        _brk, ora, xxx, xxx, xxx, ora, asl, xxx, php, ora, asl, xxx, xxx, ora, asl, xxx,
-        bpl, ora, xxx, xxx, xxx, ora, asl, xxx, clc, ora, xxx, xxx, xxx, ora, asl, xxx,
-        jsr, _and, xxx, xxx, bit, _and, rol, xxx, plp, _and, rol, xxx, bit, _and, rol, xxx,
-        bmi, _and, xxx, xxx, xxx, _and, rol, xxx, sec, _and, xxx, xxx, xxx, _and, rol, xxx,
-        rti, eor, xxx, xxx, xxx, eor, lsr, xxx, pha, eor, lsr, xxx, jmp, eor, lsr, xxx,
-        bvc, eor, xxx, xxx, xxx, eor, lsr, xxx, cli, eor, xxx, xxx, xxx, eor, lsr, xxx,
-        rts, adc, xxx, xxx, xxx, adc, ror, xxx, pla, adc, ror, xxx, jmp, adc, ror, xxx,
-        bvs, adc, xxx, xxx, xxx, adc, ror, xxx, sei, adc, xxx, xxx, xxx, adc, ror, xxx,
-        xxx, sta, xxx, xxx, sty, sta, stx, xxx, dey, xxx, txa, xxx, sty, sta, stx, xxx,
-        bcc, sta, xxx, xxx, sty, sta, stx, xxx, tya, sta, txs, xxx, xxx, sta, xxx, xxx,
-        ldy, lda, ldx, xxx, ldy, lda, ldx, xxx, tay, lda, tax, xxx, ldy, lda, ldx, xxx,
-        bcs, lda, xxx, xxx, ldy, lda, ldx, xxx, clv, lda, tsx, xxx, ldy, lda, ldx, xxx,
-        cpy, cmp, xxx, xxx, cpy, cmp, dec, xxx, iny, cmp, dex, xxx, cpy, cmp, dec, xxx,
-        bne, cmp, xxx, xxx, xxx, cmp, dec, xxx, cld, cmp, xxx, xxx, xxx, cmp, dec, xxx,
-        cpx, sbc, xxx, xxx, cpx, sbc, inc, xxx, inx, sbc, _nop, xxx, cpx, sbc, inc, xxx,
-        beq, sbc, xxx, xxx, xxx, sbc, inc, xxx, sed, sbc, xxx, xxx, xxx, sbc, inc, xxx
+    _brk, ora, xxx, xxx, xxx, ora, asl, xxx, php, ora, asl, xxx, xxx, ora, asl, xxx,
+    bpl, ora, xxx, xxx, xxx, ora, asl, xxx, clc, ora, xxx, xxx, xxx, ora, asl, xxx,
+    jsr, _and, xxx, xxx, bit, _and, rol, xxx, plp, _and, rol, xxx, bit, _and, rol, xxx,
+    bmi, _and, xxx, xxx, xxx, _and, rol, xxx, sec, _and, xxx, xxx, xxx, _and, rol, xxx,
+    rti, eor, xxx, xxx, xxx, eor, lsr, xxx, pha, eor, lsr, xxx, jmp, eor, lsr, xxx,
+    bvc, eor, xxx, xxx, xxx, eor, lsr, xxx, cli, eor, xxx, xxx, xxx, eor, lsr, xxx,
+    rts, adc, xxx, xxx, xxx, adc, ror, xxx, pla, adc, ror, xxx, jmp, adc, ror, xxx,
+    bvs, adc, xxx, xxx, xxx, adc, ror, xxx, sei, adc, xxx, xxx, xxx, adc, ror, xxx,
+    xxx, sta, xxx, xxx, sty, sta, stx, xxx, dey, xxx, txa, xxx, sty, sta, stx, xxx,
+    bcc, sta, xxx, xxx, sty, sta, stx, xxx, tya, sta, txs, xxx, xxx, sta, xxx, xxx,
+    ldy, lda, ldx, xxx, ldy, lda, ldx, xxx, tay, lda, tax, xxx, ldy, lda, ldx, xxx,
+    bcs, lda, xxx, xxx, ldy, lda, ldx, xxx, clv, lda, tsx, xxx, ldy, lda, ldx, xxx,
+    cpy, cmp, xxx, xxx, cpy, cmp, dec, xxx, iny, cmp, dex, xxx, cpy, cmp, dec, xxx,
+    bne, cmp, xxx, xxx, xxx, cmp, dec, xxx, cld, cmp, xxx, xxx, xxx, cmp, dec, xxx,
+    cpx, sbc, xxx, xxx, cpx, sbc, inc, xxx, inx, sbc, _nop, xxx, cpx, sbc, inc, xxx,
+    beq, sbc, xxx, xxx, xxx, sbc, inc, xxx, sed, sbc, xxx, xxx, xxx, sbc, inc, xxx
 };
 
 
 static const int modes[256] ICONST_ATTR = {
-        imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
-        _abs, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
-        imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
-        imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, ind, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
-        imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, zpx, zpx, zpy, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx,
-        imm, indx, imm, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, zpx, zpx, zpy, xxx, imp, absy, acc, xxx, absx, absx, absy, xxx,
-        imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx,
-        imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
-        rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx
+    imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
+    _abs, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
+    imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
+    imp, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, ind, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, xxx, zpx, zpx, xxx, imp, absy, xxx, xxx, xxx, absx, absx, xxx,
+    imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, zpx, zpx, zpy, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx,
+    imm, indx, imm, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, zpx, zpx, zpy, xxx, imp, absy, acc, xxx, absx, absx, absy, xxx,
+    imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx,
+    imm, indx, xxx, xxx, zp, zp, zp, xxx, imp, imm, acc, xxx, _abs, _abs, _abs, xxx,
+    rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx
 };
+
+SID reSID;
+cycle_count csdelta;
+int counter = 0;
 
 /* Routines for quick & dirty float calculation */
 
@@ -309,7 +318,10 @@ static inline int GenerateDigi(int sIn) {
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
-void synth_init(unsigned long mixfrq) {
+void C64::synth_init(unsigned long mixfrq) {
+    reSID.reset();
+    reSID.set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
+    csdelta = round((float) CLOCKFREQ / ((float) SAMPLE_RATE / SAMPLES_PER_BUFFER));
     int i;
     mixing_frequency = mixfrq;
     fracPos = 0;
@@ -331,185 +343,10 @@ static inline uint16_t map_sample(int32_t x) {
     return (x + 32768) >> map_shift_bits;
 }
 
-void sid_synth_render(uint16_t *buffer, size_t len) {
-    unsigned long bp;
-    /* step 1: convert the not easily processable sid registers into some
-               more convenient and fast values (makes the thing much faster
-              if you process more than 1 sample value at once) */
-    unsigned char v;
-    for (v = 0; v < 3; v++) {
-        osc[v].pulse = (sid.v[v].pulse & 0xfff) << 16;
-        osc[v].filter = get_bit(sid.res_ftv, v);
-        osc[v].attack = attacks[sid.v[v].ad >> 4];
-        osc[v].decay = releases[sid.v[v].ad & 0xf];
-        osc[v].sustain = sid.v[v].sr & 0xf0;
-        osc[v].release = releases[sid.v[v].sr & 0xf];
-        osc[v].wave = sid.v[v].wave;
-        osc[v].freq = ((unsigned long) sid.v[v].freq) * freqmul;
-    }
-
-    filter.freq = (16 * sid.ffreqhi + (sid.ffreqlo & 0x7)) * filtmul;
-
-    if (filter.freq > quickfloat_ConvertFromInt(1))
-        filter.freq = quickfloat_ConvertFromInt(1);
-    /* the above line isnt correct at all - the problem is that the filter
-       works only up to rmxfreq/4 - this is sufficient for 44KHz but isnt
-       for 32KHz and lower - well, but sound quality is bad enough then to
-       neglect the fact that the filter doesnt come that high ;) */
-    filter.l_ena = get_bit(sid.ftp_vol, 4);
-    filter.b_ena = get_bit(sid.ftp_vol, 5);
-    filter.h_ena = get_bit(sid.ftp_vol, 6);
-    filter.v3ena = !get_bit(sid.ftp_vol, 7);
-    filter.vol = (sid.ftp_vol & 0xf);
-    filter.rez = quickfloat_ConvertFromFloat(1.2f) -
-                 quickfloat_ConvertFromFloat(0.04f) * (sid.res_ftv >> 4);
-
-    /* We precalculate part of the quick float operation, saves time in loop later */
-    filter.rez >>= 8;
-
-
-    /* now render the buffer */
-    for (bp = 0; bp < len; bp++) {
-
-        int outo = 0;
-        int outf = 0;
-        /* step 2 : generate the two output signals (for filtered and non-
-                    filtered) from the osc/eg sections */
-        for (v = 0; v < 3; v++) {
-            /* update wave counter */
-            osc[v].counter = (osc[v].counter + osc[v].freq) & 0xFFFFFFF;
-            /* reset counter / noise generator if reset get_bit set */
-            if (osc[v].wave & 0x08) {
-                osc[v].counter = 0;
-                osc[v].noisepos = 0;
-                osc[v].noiseval = 0xffffff;
-            }
-            unsigned char refosc = v ? v - 1 : 2;  /* reference oscillator for sync/ring */
-            /* sync oscillator to refosc if sync bit set */
-            if (osc[v].wave & 0x02)
-                if (osc[refosc].counter < osc[refosc].freq)
-                    osc[v].counter = osc[refosc].counter * osc[v].freq / osc[refosc].freq;
-            /* generate waveforms with really simple algorithms */
-            unsigned char triout = (unsigned char) (osc[v].counter >> 19);
-            if (osc[v].counter >> 27)
-                triout ^= 0xff;
-            unsigned char sawout = (unsigned char) (osc[v].counter >> 20);
-            unsigned char plsout = (unsigned char) ((osc[v].counter > osc[v].pulse) - 1);
-
-            /* generate noise waveform exactly as the SID does. */
-            if (osc[v].noisepos != (osc[v].counter >> 23)) {
-                osc[v].noisepos = osc[v].counter >> 23;
-                osc[v].noiseval = (osc[v].noiseval << 1) |
-                                  (get_bit(osc[v].noiseval, 22) ^ get_bit(osc[v].noiseval, 17));
-                osc[v].noiseout = (get_bit(osc[v].noiseval, 22) << 7) |
-                                  (get_bit(osc[v].noiseval, 20) << 6) |
-                                  (get_bit(osc[v].noiseval, 16) << 5) |
-                                  (get_bit(osc[v].noiseval, 13) << 4) |
-                                  (get_bit(osc[v].noiseval, 11) << 3) |
-                                  (get_bit(osc[v].noiseval, 7) << 2) |
-                                  (get_bit(osc[v].noiseval, 4) << 1) |
-                                  (get_bit(osc[v].noiseval, 2) << 0);
-            }
-            unsigned char nseout = osc[v].noiseout;
-
-            /* modulate triangle wave if ringmod bit set */
-            if (osc[v].wave & 0x04)
-                if (osc[refosc].counter < 0x8000000)
-                    triout ^= 0xff;
-
-            /* now mix the oscillators with an AND operation as stated in
-               the SID's reference manual - even if this is completely wrong.
-               well, at least, the $30 and $70 waveform sounds correct and there's
-               no real solution to do $50 and $60, so who cares. */
-
-            unsigned char outv = 0xFF;
-            if (osc[v].wave & 0x10) outv &= triout;
-            if (osc[v].wave & 0x20) outv &= sawout;
-            if (osc[v].wave & 0x40) outv &= plsout;
-            if (osc[v].wave & 0x80) outv &= nseout;
-
-            /* so now process the volume according to the phase and adsr values */
-            switch (osc[v].envphase) {
-                case 0 : {                          /* Phase 0 : Attack */
-                    osc[v].envval += osc[v].attack;
-                    if (osc[v].envval >= 0xFFFFFF) {
-                        osc[v].envval = 0xFFFFFF;
-                        osc[v].envphase = 1;
-                    }
-                    break;
-                }
-                case 1 : {                          /* Phase 1 : Decay */
-                    osc[v].envval -= osc[v].decay;
-                    if ((signed int) osc[v].envval <= (signed int) (osc[v].sustain << 16)) {
-                        osc[v].envval = osc[v].sustain << 16;
-                        osc[v].envphase = 2;
-                    }
-                    break;
-                }
-                case 2 : {                          /* Phase 2 : Sustain */
-                    if ((signed int) osc[v].envval != (signed int) (osc[v].sustain << 16)) {
-                        osc[v].envphase = 1;
-                    }
-                    /* :) yes, thats exactly how the SID works. and maybe
-                       a music routine out there supports this, so better
-                       let it in, thanks :) */
-                    break;
-                }
-                case 3 : {                          /* Phase 3 : Release */
-                    osc[v].envval -= osc[v].release;
-                    if (osc[v].envval < 0x40000) osc[v].envval = 0x40000;
-
-                    /* the volume offset is because the SID does not
-                       completely silence the voices when it should. most
-                       emulators do so though and thats the main reason
-                       why the sound of emulators is too, err... emulated :)  */
-                    break;
-                }
-            }
-
-
-            /* now route the voice output to either the non-filtered or the
-               filtered channel and dont forget to blank out osc3 if desired */
-
-            if (v < 2 || filter.v3ena) {
-                if (osc[v].filter)
-                    outf += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
-                else
-                    outo += (((int) (outv - 0x80)) * osc[v].envval) >> 22;
-            }
-
-        }
-
-
-        /* step 3
-         * so, now theres finally time to apply the multi-mode resonant filter
-         * to the signal. The easiest thing ist just modelling a real electronic
-         * filter circuit instead of fiddling around with complex IIRs or even
-         * FIRs ...
-         * it sounds as good as them or maybe better and needs only 3 MULs and
-         * 4 ADDs for EVERYTHING. SIDPlay uses this kind of filter, too, but
-         * Mage messed the whole thing completely up - as the rest of the
-         * emulator.
-         * This filter sounds a lot like the 8580, as the low-quality, dirty
-         * sound of the 6581 is uuh too hard to achieve :) */
-
-        filter.h = quickfloat_ConvertFromInt(outf) - (filter.b >> 8) * filter.rez - filter.l;
-        filter.b += quickfloat_Multiply(filter.freq, filter.h);
-        filter.l += quickfloat_Multiply(filter.freq, filter.b);
-
-        outf = 0;
-
-        if (filter.l_ena) outf += quickfloat_ConvertToInt(filter.l);
-        if (filter.b_ena) outf += quickfloat_ConvertToInt(filter.b);
-        if (filter.h_ena) outf += quickfloat_ConvertToInt(filter.h);
-
-        int final_sample = (filter.vol * (outo + outf));
-        int32_t digi = GenerateDigi(final_sample);
-
-        *(buffer + bp) = map_sample(digi);
-    }
+void C64::sid_synth_render(short *buffer, size_t len) {
+    cycle_count delta_t = round((float) CLOCKFREQ / ((float) SAMPLE_RATE / len));
+    reSID.clock(delta_t, buffer, len);
 }
-
 
 /*
 * C64 Mem Routines
@@ -520,44 +357,44 @@ static inline unsigned char getmem(unsigned short addr) {
 
 static inline void setmem(unsigned short addr, unsigned char value) {
     if ((addr & 0xfc00) == 0xd400) {
-        sidPoke(addr & 0x1f, value);
+        C64::sidPoke(addr & 0x1f, value);
         /* New SID-Register */
         if (addr > 0xd418) {
             switch (addr) {
-                case 0xd41f:    /* Start-Hi */
+                case 0xd41f: /* Start-Hi */
                     internal_start = (internal_start & 0x00ff) | (value << 8);
                     break;
-                case 0xd41e:    /* Start-Lo */
+                case 0xd41e: /* Start-Lo */
                     internal_start = (internal_start & 0xff00) | (value);
                     break;
-                case 0xd47f:    /* Repeat-Hi */
+                case 0xd47f: /* Repeat-Hi */
                     internal_repeat_start = (internal_repeat_start & 0x00ff) | (value << 8);
                     break;
-                case 0xd47e:    /* Repeat-Lo */
+                case 0xd47e: /* Repeat-Lo */
                     internal_repeat_start = (internal_repeat_start & 0xff00) | (value);
                     break;
-                case 0xd43e:    /* End-Hi */
+                case 0xd43e: /* End-Hi */
                     internal_end = (internal_end & 0x00ff) | (value << 8);
                     break;
-                case 0xd43d:    /* End-Lo */
+                case 0xd43d: /* End-Lo */
                     internal_end = (internal_end & 0xff00) | (value);
                     break;
-                case 0xd43f:    /* Loop-Size */
+                case 0xd43f: /* Loop-Size */
                     internal_repeat_times = value;
                     break;
-                case 0xd45e:    /* Period-Hi */
+                case 0xd45e: /* Period-Hi */
                     internal_period = (internal_period & 0x00ff) | (value << 8);
                     break;
-                case 0xd45d:    /* Period-Lo */
+                case 0xd45d: /* Period-Lo */
                     internal_period = (internal_period & 0xff00) | (value);
                     break;
-                case 0xd47d:    /* Sample Order */
+                case 0xd47d: /* Sample Order */
                     internal_order = value;
                     break;
-                case 0xd45f:    /* Sample Add */
+                case 0xd45f: /* Sample Add */
                     internal_add = value;
                     break;
-                case 0xd41d:    /* Start sampling */
+                case 0xd41d: /* Start sampling */
                     sample_repeats = internal_repeat_times;
                     sample_position = internal_start;
                     sample_start = internal_start;
@@ -585,7 +422,8 @@ static inline void setmem(unsigned short addr, unsigned char value) {
 /*
 * Poke a value into the sid register
 */
-void sidPoke(int reg, unsigned char val) {
+void C64::sidPoke(int reg, unsigned char val) {
+    reSID.write(reg, val);
     int voice = 0;
 
     if ((reg >= 7) && (reg <= 13)) {
@@ -597,19 +435,23 @@ void sidPoke(int reg, unsigned char val) {
     }
 
     switch (reg) {
-        case 0: { /* Set frequency: Low byte */
+        case 0: {
+            /* Set frequency: Low byte */
             sid.v[voice].freq = (sid.v[voice].freq & 0xff00) + val;
             break;
         }
-        case 1: { /* Set frequency: High byte */
+        case 1: {
+            /* Set frequency: High byte */
             sid.v[voice].freq = (sid.v[voice].freq & 0xff) + (val << 8);
             break;
         }
-        case 2: { /* Set pulse width: Low byte */
+        case 2: {
+            /* Set pulse width: Low byte */
             sid.v[voice].pulse = (sid.v[voice].pulse & 0xff00) + val;
             break;
         }
-        case 3: { /* Set pulse width: High byte */
+        case 3: {
+            /* Set pulse width: High byte */
             sid.v[voice].pulse = (sid.v[voice].pulse & 0xff) + (val << 8);
             break;
         }
@@ -813,7 +655,7 @@ static inline void branch(int flag) {
     if (flag) pc = wval;
 }
 
-void cpuReset(void) {
+void C64::cpuReset(void) {
     a = x = y = 0;
     p = 0;
     s = 255;
@@ -879,7 +721,7 @@ static inline void cpuParse(void) {
             setflags(FLAG_V, bval & 0x40);
             break;
         case _brk:
-            pc = 0;           /* Just quit the emulation */
+            pc = 0; /* Just quit the emulation */
             break;
         case clc:
             setflags(FLAG_C, 0);
@@ -1041,7 +883,7 @@ static inline void cpuParse(void) {
             setflags(FLAG_Z, !bval);
             break;
         case rti:
-            /* Treat RTI like RTS */
+        /* Treat RTI like RTS */
         case rts:
             wval = pop();
             wval |= pop() << 8;
@@ -1105,7 +947,7 @@ static inline void cpuParse(void) {
     }
 }
 
-void cpuJSR(unsigned short npc, unsigned char na) {
+void C64::cpuJSR(unsigned short npc, unsigned char na) {
     a = na;
     x = 0;
     y = 0;
@@ -1117,10 +959,9 @@ void cpuJSR(unsigned short npc, unsigned char na) {
 
     while (pc > 1)
         cpuParse();
-
 }
 
-bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
+bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
     watchdog_counter = 0;
     a = na;
     x = 0;
@@ -1137,13 +978,13 @@ bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
     return watchdog_counter < CPU_JSR_WATCHDOG_ABORT_LIMIT;
 }
 
-void c64Init(int nSampleRate) {
+void C64::c64Init(int nSampleRate) {
     synth_init(nSampleRate);
     memset(memory, 0, sizeof(memory));
     cpuReset();
 }
 
-bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
+bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     FIL pFile;
     BYTE header[PSID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
@@ -1192,7 +1033,7 @@ bool sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     return true;
 }
 
-void setLineLevel(bool on) {
+void C64::setLineLevel(bool on) {
     if (on) {
         map_shift_bits = 4;
     } else {
@@ -1200,6 +1041,6 @@ void setLineLevel(bool on) {
     }
 }
 
-bool getLineLevelOn() {
+bool C64::getLineLevelOn() {
     return map_shift_bits == 4;
 }

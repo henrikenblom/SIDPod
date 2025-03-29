@@ -5,33 +5,33 @@
 #include <hardware/gpio.h>
 #include "SIDPlayer.h"
 #include "../platform_config.h"
-#include "sid.h"
+#include "c64.h"
 
 struct repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = VOLUME_STEPS;
 static sid_info sidInfo{};
-uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
+short intermediateBuffer[SAMPLES_PER_BUFFER];
 bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
 CatalogEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
-        .sample_freq = SAMPLE_RATE,
-        .format = AUDIO_BUFFER_FORMAT_PCM_S16,
-        .channel_count = 1,
+    .sample_freq = SAMPLE_RATE,
+    .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+    .channel_count = 1,
 };
 static struct audio_buffer_format producer_format = {
-        .format = &audio_format,
-        .sample_stride = 2
+    .format = &audio_format,
+    .sample_stride = 2
 };
 static struct audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
 struct audio_i2s_config config = {
-        .data_pin = PICO_AUDIO_I2S_DATA_PIN,
-        .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-        .dma_channel = 0,
-        .pio_sm = 0,
+    .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+    .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+    .dma_channel = 0,
+    .pio_sm = 0,
 };
 
 // core0 functions
@@ -47,7 +47,7 @@ void SIDPlayer::resetState() {
     loadingSuccessful = true;
     lastCatalogEntry = {};
     memset(intermediateBuffer, 0, SAMPLES_PER_BUFFER);
-    c64Init(SAMPLE_RATE);
+    C64::c64Init(SAMPLE_RATE);
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -59,7 +59,7 @@ void SIDPlayer::ampOn() {
 }
 
 void SIDPlayer::ampOff() {
-    if (!getLineLevelOn()) {
+    if (!C64::getLineLevelOn()) {
         gpio_pull_down(AMP_CONTROL_PIN);
     }
 }
@@ -96,15 +96,15 @@ bool SIDPlayer::isPlaying() {
 }
 
 void SIDPlayer::toggleLineLevel() {
-    if (getLineLevelOn()) {
-        setLineLevel(false);
+    if (C64::getLineLevelOn()) {
+        C64::setLineLevel(false);
     } else {
-        setLineLevel(true);
+        C64::setLineLevel(true);
     }
 }
 
 bool SIDPlayer::lineLevelOn() {
-    return getLineLevelOn();
+    return C64::getLineLevelOn();
 }
 
 sid_info *SIDPlayer::getSidInfo() {
@@ -128,7 +128,7 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
 }
 
 bool SIDPlayer::loadPSID(CatalogEntry *psidFile) {
-    return sid_load_from_file(psidFile->fileName, &sidInfo);
+    return C64::sid_load_from_file(psidFile->fileName, &sidInfo);
 }
 
 void SIDPlayer::generateSamples() {
@@ -137,7 +137,7 @@ void SIDPlayer::generateSamples() {
 
     while (samples_rendered < SAMPLES_PER_BUFFER) {
         if (samples_to_render == 0) {
-            cpuJSR(sidInfo.play_addr, 0);
+            C64::cpuJSR(sidInfo.play_addr, 0);
 
             int n_refresh_cia = (int) (20000 * (memory[0xdc04] | (memory[0xdc05] << 8)) / 0x4c00);
             if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
@@ -146,11 +146,11 @@ void SIDPlayer::generateSamples() {
             samples_to_render = SAMPLE_RATE * n_refresh_cia / 1000000;
         }
         if (samples_rendered + samples_to_render > SAMPLES_PER_BUFFER) {
-            sid_synth_render(intermediateBuffer + samples_rendered, SAMPLES_PER_BUFFER - samples_rendered);
+            C64::sid_synth_render(intermediateBuffer + samples_rendered, SAMPLES_PER_BUFFER - samples_rendered);
             samples_to_render -= SAMPLES_PER_BUFFER - samples_rendered;
             samples_rendered = SAMPLES_PER_BUFFER;
         } else {
-            sid_synth_render(intermediateBuffer + samples_rendered, samples_to_render);
+            C64::sid_synth_render(intermediateBuffer + samples_rendered, samples_to_render);
             samples_rendered += samples_to_render;
             samples_to_render = 0;
         }
@@ -172,8 +172,8 @@ void SIDPlayer::generateSamples() {
                 resetState();
                 if (loadPSID(PSIDCatalog::getCurrentEntry())) {
                     loadingSuccessful = true;
-                    sidPoke(24, 15);
-                    cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                    C64::sidPoke(24, 15);
+                    C64::cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                     rendering = true;
                     ampOn();
                 } else {

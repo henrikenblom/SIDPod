@@ -1,21 +1,15 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
+#include <c64.h>
+
 #include "pico/audio_i2s.h"
 #include "../platform_config.h"
 #include "../PSIDCatalog.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
 
-extern "C" void setLineLevel(bool on);
-extern "C" bool getLineLevelOn();
-extern "C" bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
-extern "C" void sid_synth_render(uint16_t *buffer, size_t len);
-extern "C" void cpuJSR(unsigned short, unsigned char);
-extern "C" void sidPoke(int reg, unsigned char val);
-extern "C" void c64Init(int nSampleRate);
-extern "C" unsigned char memory[];
-extern uint16_t intermediateBuffer[];
+extern short intermediateBuffer[];
 
 class SIDPlayer {
 public:
