@@ -41,15 +41,36 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::drawLeftGround() const {
-        for (int y = 13, x = 5; y <= 23; y += 2, x += 3) {
-            ssd1306_draw_line(pDisp, 0, y, x, 10);
-        }
-    }
+    void DanceFloor::drawCircle(const int32_t x, const int32_t y, const int32_t radius) const {
+        int32_t f = 1 - radius;
+        int32_t ddF_x = 1;
+        int32_t ddF_y = -2 * radius;
+        int32_t xi = 0;
+        int32_t yi = radius;
 
-    void DanceFloor::drawRightGround() const {
-        for (int y = 12, x = 5; y <= 24; y += 2, x += 3) {
-            ssd1306_draw_line(pDisp, DISPLAY_WIDTH - x, 10, DISPLAY_WIDTH, y);
+        ssd1306_draw_pixel(pDisp, x, y + radius);
+        ssd1306_draw_pixel(pDisp, x, y - radius);
+        ssd1306_draw_pixel(pDisp, x + radius, y);
+        ssd1306_draw_pixel(pDisp, x - radius, y);
+
+        while (xi < yi) {
+            if (f >= 0) {
+                yi--;
+                ddF_y += 2;
+                f += ddF_y;
+            }
+            xi++;
+            ddF_x += 2;
+            f += ddF_x;
+
+            ssd1306_draw_pixel(pDisp, x + xi, y + yi);
+            ssd1306_draw_pixel(pDisp, x - xi, y + yi);
+            ssd1306_draw_pixel(pDisp, x + xi, y - yi);
+            ssd1306_draw_pixel(pDisp, x - xi, y - yi);
+            ssd1306_draw_pixel(pDisp, x + yi, y + xi);
+            ssd1306_draw_pixel(pDisp, x - yi, y + xi);
+            ssd1306_draw_pixel(pDisp, x + yi, y - xi);
+            ssd1306_draw_pixel(pDisp, x - yi, y - xi);
         }
     }
 
@@ -58,12 +79,10 @@ namespace Visualization {
         for (const unsigned short i: fibonacci) {
             drawHorizontalLine(10 + i / (20 - rvOffset));
         }
-        drawLeftGround();
         ssd1306_draw_line(pDisp, 0, 25, 23, 10);
         ssd1306_draw_line(pDisp, 42, 31, 48, 10);
         ssd1306_draw_line(pDisp, 79, 10, 86, 31);
         ssd1306_draw_line(pDisp, 104, 10, 127, 25);
-        drawRightGround();
         if (rvOffset++ > 4) rvOffset = 0;
     }
 
@@ -96,6 +115,17 @@ namespace Visualization {
         }
     }
 
+    void DanceFloor::updateRoundSprites() {
+        for (auto &roundSprite: roundSprites) {
+            auto sprite = roundSprite;
+            if (sprite.distance > -16) {
+                drawCircle(sprite.x, sprite.y, sprite.distance / 2);
+                sprite.distance -= 4;
+            }
+            roundSprite = sprite;
+        }
+    }
+
 
     void DanceFloor::drawPausedLabel() {
         int labelWidth = (int) strlen(pausedLabel) * FONT_WIDTH;
@@ -107,10 +137,6 @@ namespace Visualization {
     }
 
     void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
-        ssd1306_clear(pDisp);
-        drawFibonacciLandscape();
-        drawStarrySky();
-        drawScroller();
         for (uint8_t x = 0; x < 127; x++) {
             const int i = static_cast<int>(1.6 * x);
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
@@ -118,17 +144,45 @@ namespace Visualization {
                                      compFactor);
             if (y > 0) {
                 if (y > 28) y /= 8;
-                SoundSprite sprite = {
-                    .velocity = static_cast<int8_t>(std::min(16,
-                                                             y)),
-                    .distance = 20, .frequency_bin = x
-                };
-                soundSprites[sprite_index++] = sprite;
-                if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
+
+                if (alternativeScene) {
+                    if (x % 16 == 0 || x == 0) {
+                        RoundSprite roundSprite = {
+                            .velocity = static_cast<int8_t>(std::min(16,
+                                                                     y)),
+                            .distance = 20, .x = random() % DISPLAY_WIDTH - x,
+                            .y = random() % DISPLAY_HEIGHT
+                        };
+                        roundSprites[roundSpriteIndex++] = roundSprite;
+                        if (roundSpriteIndex > ROUND_SPRITE_COUNT) roundSpriteIndex = 0;
+                    }
+                } else {
+                    SoundSprite sprite = {
+                        .velocity = static_cast<int8_t>(std::min(16,
+                                                                 y)),
+                        .distance = 20, .frequency_bin = x
+                    };
+                    soundSprites[sprite_index++] = sprite;
+                    if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
+                }
             }
         }
-        updateSoundSprites();
+
+        ssd1306_clear(pDisp);
+        if (alternativeScene) {
+            updateRoundSprites();
+        } else {
+            drawFibonacciLandscape();
+            drawStarrySky();
+            drawScroller();
+            updateSoundSprites();
+        }
         ssd1306_show(pDisp);
+
+        if (millis_now() >= millisSinceLastSceneChange + (alternativeScene ? 15000 : 60000)) {
+            millisSinceLastSceneChange = millis_now();
+            alternativeScene = !alternativeScene;
+        }
     }
 
 
@@ -144,7 +198,7 @@ namespace Visualization {
                 sid_info *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2 \"Residious\".",
+                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2. Codename \"Residious\".",
                          entry->title, entry->author, entry->released, experience,
                          entry->rsid == true ? "this RSID" : "it");
                 showScroller = true;

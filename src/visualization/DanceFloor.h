@@ -27,6 +27,13 @@ namespace Visualization {
             uint8_t frequency_bin;
         };
 
+        struct RoundSprite {
+            int8_t velocity;
+            int8_t distance;
+            int32_t x;
+            int32_t y;
+        };
+
     private:
         void drawHorizontalLine(uint8_t y);
 
@@ -34,9 +41,7 @@ namespace Visualization {
 
         void drawStarrySky();
 
-        void drawLeftGround() const;
-
-        void drawRightGround() const;
+        void drawCircle(int32_t x, int32_t y, int32_t radius) const;
 
         void drawFibonacciLandscape();
 
@@ -46,13 +51,20 @@ namespace Visualization {
 
         void updateSoundSprites();
 
+        void updateRoundSprites();
+
         void drawScene(kiss_fft_cpx *fft_out);
 
         static void randomizeExperience(char *experience);
 
         void visualize();
 
+        uint32_t millis_now() {
+            return to_ms_since_boot(get_absolute_time());
+        }
+
         int sprite_index = 0;
+        int roundSpriteIndex = 0;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
         int16_t scrollLimit = -1600;
@@ -66,11 +78,14 @@ namespace Visualization {
         kiss_fftr_cfg fft_cfg{};
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
         CatalogEntry *selectedEntry{};
+        bool alternativeScene = false;
+        uint32_t millisSinceLastSceneChange = millis_now();
 
         void (*stopCallback)() = nullptr;
 
-        DanceFloor::SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
-        DanceFloor::StarSprite starSprites[12] = {
+        SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
+        RoundSprite roundSprites[DISPLAY_WIDTH / 2]{};
+        StarSprite starSprites[12] = {
             {6, 4},
             {14, 0},
             {28, 8},
