@@ -47,29 +47,29 @@ private:
 
     static int64_t endVolumeControlSessionCallback(alarm_id_t id, void *user_data);
 
-    static void startVolumeControlSession();
+    volatile static void startVolumeControlSession();
 
     static void resetVolumeControlSessionTimer();
 
     static void endVolumeControlSession();
 
-    static void doubleClickCallback();
+    volatile static void doubleClickCallback();
 
-    static void startSingleClickSession();
+    volatile static void startSingleClickSession();
 
-    static void startDoubleClickSession();
+    volatile static void startDoubleClickSession();
 
-    static void startLongPressSession();
+    volatile static void startLongPressSession();
 
-    static void endSingleClickSession();
+    volatile static void endSingleClickSession();
 
     static void endDoubleClickSession();
 
     static void endLongPressSession();
 
-    static bool pollSwitch();
+    volatile static bool pollSwitch();
 
-    static void pollEncoder();
+    volatile static void pollEncoder();
 
     static bool pollUserControls(struct repeating_timer *t);
 };

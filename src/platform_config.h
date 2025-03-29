@@ -1,3 +1,4 @@
+#pragma once
 #include "hardware/flash.h"
 
 #ifdef SOLDERPARTY_RP2040_STAMP
@@ -71,4 +72,4 @@
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      1800
-#define SPLASH_DISPLAY_DURATION             2000
+#define SPLASH_DISPLAY_DURATION             4000

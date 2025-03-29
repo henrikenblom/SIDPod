@@ -8,7 +8,7 @@
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"
 #include "visualization/DanceFloor.h"
-#include "sidpod_bmp.h"
+#include "sidpod_24px_height_bmp.h"
 #include "System.h"
 
 ssd1306_t disp;
@@ -50,7 +50,7 @@ void UI::screenOn() {
 
 void UI::screenOff() {
     lastState = currentState;
-    currentState = UI::sleeping;
+    currentState = sleeping;
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
@@ -58,30 +58,32 @@ void UI::screenOff() {
 }
 
 void UI::showSplash() {
-    currentState = UI::splash;
+    currentState = splash;
     ssd1306_clear(&disp);
-    ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
+    ssd1306_bmp_show_image(&disp, SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
+    ssd1306_draw_string(&disp, 0, 25, 1, "2.0");
+    ssd1306_draw_string(&disp, 64, 25, 1, "\"Residious\"");
     ssd1306_show(&disp);
 }
 
 void UI::updateUI() {
     switch (currentState) {
-        case UI::visualization:
+        case visualization:
             danceFloor->start(PSIDCatalog::getCurrentEntry());
             break;
-        case UI::volume_control:
+        case volume_control:
             showVolumeControl();
             break;
-        case UI::raster_bars:
+        case raster_bars:
             showRasterBars();
             break;
-        case UI::splash:
+        case splash:
             if (showSplashCycles == 0) {
                 showSplash();
             }
             if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
                 showSplashCycles = 0;
-                currentState = UI::song_selector;
+                currentState = song_selector;
             } else {
                 sleep_ms(1);
             }
@@ -126,8 +128,8 @@ void UI::animateLongTitle(char *title, int32_t y) {
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
     float advancement =
             longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
-            ? 0.4
-            : 0.02;
+                ? 0.4
+                : 0.02;
     if ((int) (longTitleScrollOffset += advancement) > scrollRange)
         longTitleScrollOffset = 0;
     ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
@@ -191,7 +193,7 @@ void UI::showVolumeControl() {
 }
 
 void UI::stop() {
-    currentState = UI::raster_bars;
+    currentState = raster_bars;
     danceFloor->stop();
 }
 
@@ -213,20 +215,21 @@ bool UI::pollUserControls(struct repeating_timer *t) {
     return true;
 }
 
-void UI::pollEncoder() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::pollEncoder() {
     encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
     if (encDelta != 0) {
         danceFloor->stop();
-        if (currentState == UI::visualization) {
+        if (currentState == visualization) {
             startVolumeControlSession();
-        } else if (currentState == UI::volume_control) {
+        } else if (currentState == volume_control) {
             resetVolumeControlSessionTimer();
         }
         if (encDelta > 0) {
             for (int i = 0; i < encDelta; i++) {
-                if (currentState == UI::volume_control) {
+                if (currentState == volume_control) {
                     SIDPlayer::volumeUp();
                 } else {
                     PSIDCatalog::selectNext();
@@ -235,7 +238,7 @@ void UI::pollEncoder() {
             }
         } else if (encDelta < 0) {
             for (int i = 0; i < encDelta * -1; i++) {
-                if (currentState == UI::volume_control) {
+                if (currentState == volume_control) {
                     SIDPlayer::volumeDown();
                 } else {
                     PSIDCatalog::selectPrevious();
@@ -246,7 +249,8 @@ void UI::pollEncoder() {
     }
 }
 
-bool UI::pollSwitch() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool UI::pollSwitch() {
     bool used = false;
     bool currentSwitchState = !gpio_get(ENC_SW_PIN);
     if (currentSwitchState && currentSwitchState != lastSwitchState) {
@@ -315,7 +319,8 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     return 0;
 }
 
-void UI::doubleClickCallback() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::doubleClickCallback() {
     if (currentState == UI::sleeping) {
         screenOn();
     } else if (currentState == UI::visualization || UI::volume_control) {
@@ -323,20 +328,24 @@ void UI::doubleClickCallback() {
     }
 }
 
-void UI::startSingleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startSingleClickSession() {
     singleClickTimer = add_alarm_in_ms(DOUBLE_CLICK_SPEED_MS, singleClickCallback, nullptr, false);
 }
 
-void UI::startDoubleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startDoubleClickSession() {
     inDoubleClickSession = true;
 }
 
-void UI::startLongPressSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startLongPressSession() {
     inLongPressSession = true;
     longPressTimer = add_alarm_in_ms(LONG_PRESS_DURATION_MS, longPressCallback, nullptr, false);
 }
 
-void UI::endSingleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::endSingleClickSession() {
     if (singleClickTimer) cancel_alarm(singleClickTimer);
 }
 
@@ -353,12 +362,13 @@ int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     (void) id;
     endVolumeControlSession();
-    currentState = UI::visualization;
+    currentState = visualization;
     return 0;
 }
 
-void UI::startVolumeControlSession() {
-    currentState = UI::volume_control;
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startVolumeControlSession() {
+    currentState = volume_control;
     danceFloor->stop();
 }
 
