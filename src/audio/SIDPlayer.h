@@ -1,10 +1,9 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
-#include <c64.h>
+#include <pico/audio.h>
 
-#include "pico/audio_i2s.h"
-#include "../platform_config.h"
+#include "C64.h"
 #include "../PSIDCatalog.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
@@ -37,19 +36,20 @@ public:
 
     static bool lineLevelOn();
 
-    static sid_info * getSidInfo();
+    static sid_info *getSidInfo();
 
     static bool loadingWasSuccessful();
 
     static void resetState();
 
 private:
-
     static void generateSamples();
+
+    static void fillAudioBuffer(audio_buffer *buffer);
 
     [[noreturn]] static void core1Main();
 
-    static bool reapCommand(struct repeating_timer *t);
+    static bool reapCommand(repeating_timer *t);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

@@ -26,6 +26,7 @@ add_executable(${PROJECT_NAME}
         src/io/ffunicode.c
         src/io/ff.c
         src/audio/c64.cpp
+        src/audio/c64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c

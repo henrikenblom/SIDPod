@@ -2,7 +2,7 @@
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../audio/SIDPlayer.h"
-#include "c64.h"
+#include "../audio/C64.h"
 
 namespace Visualization {
     DanceFloor::DanceFloor(ssd1306_t *_pDisp) {
@@ -59,10 +59,10 @@ namespace Visualization {
                                      : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
         int perspectiveComp;
         if (sprite.frequency_bin <= displayCenter) {
-            perspectiveComp = (int) ((displayCenter - sprite.frequency_bin) * (sprite.distance * f));
+            perspectiveComp = static_cast<int>((displayCenter - sprite.frequency_bin) * (sprite.distance * f));
             x = sprite.frequency_bin + perspectiveComp;
         } else {
-            perspectiveComp = (int) ((sprite.frequency_bin - displayCenter) * (sprite.distance * f));
+            perspectiveComp = static_cast<int>((sprite.frequency_bin - displayCenter) * (sprite.distance * f));
             x = sprite.frequency_bin - perspectiveComp;
         }
         ssd1306_draw_line(pDisp, x, std::max(0, y1), x, std::min(DISPLAY_HEIGHT - 1, y2));
@@ -94,7 +94,7 @@ namespace Visualization {
         drawFibonacciLandscape();
         drawStarrySky();
         drawScroller();
-        for (uint8_t x = 0; x < 127; x++) {
+        for (uint8_t x = 1; x < 127; x++) {
             int i = (int) (1.6 * (float) x);
             int y = (int) ((fft_out[i].r * fft_out[i].r + fft_out[i].i * fft_out[i].i +
                             fft_out[i + 1].r * fft_out[i + 1].r + fft_out[i + 1].i * fft_out[i + 1].i) *

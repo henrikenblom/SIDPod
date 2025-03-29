@@ -52,9 +52,9 @@ namespace Visualization {
         int rvOffset = 0;
         int rsOffset = DISPLAY_WIDTH + 32;
         int displayCenter = DISPLAY_WIDTH / 2;
-        bool running = false;
-        bool freeze = false;
-        bool showScroller = false;
+        volatile bool running = false;
+        volatile bool freeze = false;
+        volatile bool showScroller = false;
         kiss_fftr_cfg fft_cfg{};
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
         CatalogEntry *selectedEntry{};

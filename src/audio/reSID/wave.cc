@@ -31,10 +31,10 @@ WaveformGenerator::WaveformGenerator()
 
  // set_chip_model(MOS6581);
  {//instead:
-	wave__ST = &wave__ST[0];
-  wave_P_T = &wave_P_T[0];
-  wave_PS_ = &wave_PS_[0];
-  wave_PST = &wave_PST[0];
+	wave__ST = &wave8580__ST[0];
+  wave_P_T = &wave8580_P_T[0];
+  wave_PS_ = &wave8580_PS_[0];
+  wave_PST = &wave8580_PST[0];
  }
   reset();
 }

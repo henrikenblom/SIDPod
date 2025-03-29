@@ -39,8 +39,8 @@
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
 #define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)
-#define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000004)
-#define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000004)
+#define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.000000003)
+#define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000003)
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
 #define FFT_SAMPLES                         1024
@@ -55,7 +55,7 @@
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
-#define SAMPLES_PER_BUFFER                  (6 * 1024)
+#define SAMPLES_PER_BUFFER                  (4 * 1024)
 
 #define AMP_CONTROL_PIN                     15
 

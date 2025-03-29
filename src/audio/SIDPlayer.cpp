@@ -4,16 +4,20 @@
 #include <pico/util/queue.h>
 #include <hardware/gpio.h>
 #include "SIDPlayer.h"
-#include "../platform_config.h"
-#include "c64.h"
 
-struct repeating_timer reapCommandTimer{};
+#include <pico/audio.h>
+#include <pico/audio_i2s.h>
+
+#include "../platform_config.h"
+#include "C64.h"
+
+repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = VOLUME_STEPS;
 static sid_info sidInfo{};
 short intermediateBuffer[SAMPLES_PER_BUFFER];
-bool playPauseQueued = false;
+volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
 CatalogEntry *lastCatalogEntry = {};
@@ -22,12 +26,12 @@ static audio_format_t audio_format = {
     .format = AUDIO_BUFFER_FORMAT_PCM_S16,
     .channel_count = 1,
 };
-static struct audio_buffer_format producer_format = {
+static audio_buffer_format producer_format = {
     .format = &audio_format,
     .sample_stride = 2
 };
-static struct audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
-struct audio_i2s_config config = {
+static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
+audio_i2s_config config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
     .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
     .dma_channel = 0,
@@ -86,7 +90,6 @@ uint8_t SIDPlayer::getVolume() {
     return volume;
 }
 
-
 CatalogEntry *SIDPlayer::getCurrentlyLoaded() {
     return lastCatalogEntry;
 }
@@ -117,7 +120,7 @@ bool SIDPlayer::loadingWasSuccessful() {
 
 // core1 functions
 
-bool SIDPlayer::reapCommand(struct repeating_timer *t) {
+bool SIDPlayer::reapCommand(repeating_timer *t) {
     (void) t;
     uint8_t value = 0;
     queue_try_remove(&txQueue, &value);
@@ -131,6 +134,7 @@ bool SIDPlayer::loadPSID(CatalogEntry *psidFile) {
     return C64::sid_load_from_file(psidFile->fileName, &sidInfo);
 }
 
+// ReSharper disable once CppDFAUnreachableFunctionCall
 void SIDPlayer::generateSamples() {
     int samples_rendered = 0;
     int samples_to_render = 0;
@@ -139,11 +143,11 @@ void SIDPlayer::generateSamples() {
         if (samples_to_render == 0) {
             C64::cpuJSR(sidInfo.play_addr, 0);
 
-            int n_refresh_cia = (int) (20000 * (memory[0xdc04] | (memory[0xdc05] << 8)) / 0x4c00);
+            int n_refresh_cia = 20000 * (memory[0xdc04] | memory[0xdc05] << 8) / 0x4c00;
             if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
                 n_refresh_cia = 20000;
 
-            samples_to_render = SAMPLE_RATE * n_refresh_cia / 1000000;
+            samples_to_render = SAMPLE_RATE * n_refresh_cia / 985248;
         }
         if (samples_rendered + samples_to_render > SAMPLES_PER_BUFFER) {
             C64::sid_synth_render(intermediateBuffer + samples_rendered, SAMPLES_PER_BUFFER - samples_rendered);
@@ -157,6 +161,16 @@ void SIDPlayer::generateSamples() {
     }
 }
 
+// ReSharper disable once CppDFAUnreachableFunctionCall
+void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
+    float volumeFactor = (float) volume / VOLUME_STEPS; // Make logarithmic
+    auto *samples = (int16_t *) buffer->buffer->bytes;
+    for (uint i = 0; i < buffer->max_sample_count; i++) {
+        samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
+    }
+    buffer->sample_count = buffer->max_sample_count;
+}
+
 [[noreturn]] void SIDPlayer::core1Main() {
     ampOff();
     audio_i2s_setup(&audio_format, &config);
@@ -165,6 +179,9 @@ void SIDPlayer::generateSamples() {
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
+    bool firstBuffer = true;
+    audio_buffer *bufferOne;
+    audio_buffer *bufferTwo = take_audio_buffer(audioBufferPool, true);
     while (true) {
         if (playPauseQueued) {
             CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
@@ -190,16 +207,20 @@ void SIDPlayer::generateSamples() {
             }
             playPauseQueued = false;
         }
+
         if (rendering && sidInfo.play_addr != 0) {
-            float volumeFactor = (float) volume / VOLUME_STEPS;
-            struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            auto *samples = (int16_t *) buffer->buffer->bytes;
             generateSamples();
-            for (uint i = 0; i < buffer->max_sample_count; i++) {
-                samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
+            if (firstBuffer) {
+                firstBuffer = false;
+                bufferOne = take_audio_buffer(audioBufferPool, true);
+                fillAudioBuffer(bufferOne);
+                give_audio_buffer(audioBufferPool, bufferTwo);
+            } else {
+                firstBuffer = true;
+                bufferTwo = take_audio_buffer(audioBufferPool, true);
+                fillAudioBuffer(bufferTwo);
+                give_audio_buffer(audioBufferPool, bufferOne);
             }
-            buffer->sample_count = buffer->max_sample_count;
-            give_audio_buffer(audioBufferPool, buffer);
         }
     }
 }

@@ -9,8 +9,6 @@
 #define SID_SID_H_
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include "ff.h"
 
 #define CLOCKFREQ 985248
@@ -33,7 +31,7 @@ struct sid_info {
 //----------------------------------------------
 class C64 {
 public:
-    static void synth_init(unsigned long mixfrq);
+    static void synth_init();
 
     static void sidPoke(int reg, unsigned char val);
 
