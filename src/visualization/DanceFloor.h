@@ -59,6 +59,8 @@ namespace Visualization {
 
         void drawCircle(int32_t x, int32_t y, int32_t radius) const;
 
+        void drawFilledCircle(int32_t x, int32_t y, int32_t radius) const;
+
         void drawFibonacciLandscape();
 
         void drawSoundSprite(SoundSprite sprite) const;
@@ -99,6 +101,7 @@ namespace Visualization {
         float starShipX = -24;
         float starShipY = DISPLAY_HEIGHT / 2 - 8;
         float starShipVelocity = 0.3;
+        bool letStarShipRoam = false;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
         uint8_t horizontalLineDitherOffset = 0;

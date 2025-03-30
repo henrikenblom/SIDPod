@@ -94,6 +94,16 @@ namespace Visualization {
         }
     }
 
+    void DanceFloor::drawFilledCircle(int32_t x, int32_t y, int32_t radius) const {
+        for (int32_t i = -radius; i <= radius; i++) {
+            for (int32_t j = -radius; j <= radius; j++) {
+                if (i * i + j * j <= radius * radius) {
+                    ssd1306_draw_pixel(pDisp, x + i, y + j);
+                }
+            }
+        }
+    }
+
     void DanceFloor::drawFibonacciLandscape() {
         drawDottedHorizontalLine(horizon);
         for (const unsigned short i: fibonacci) {
@@ -161,15 +171,23 @@ namespace Visualization {
     }
 
     void DanceFloor::drawStarShip() {
-        ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 4, starShipY);
-        ssd1306_draw_line(pDisp, starShipX, starShipY + 1, starShipX + 8, starShipY + 1);
-        ssd1306_draw_line(pDisp, starShipX, starShipY + 2, starShipX + 4, starShipY + 2);
+        if (starShipX > -20) {
+            ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 7, starShipY); // Left gondola
+            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 1);
+            ssd1306_draw_pixel(pDisp, starShipX + 6, starShipY + 2);
+            ssd1306_draw_line(pDisp, starShipX + 5, starShipY + 3, starShipX + 10, starShipY + 3); // Body
+            ssd1306_draw_pixel(pDisp, starShipX + 6, starShipY + 4);
+            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 5);
+            ssd1306_draw_line(pDisp, starShipX, starShipY + 6, starShipX + 7, starShipY + 6); // Right gondola
+            drawFilledCircle(starShipX + 15, starShipY + 3, 4);
+        }
         starShipX += starShipVelocity;
         starShipY += starShipVelocity * 0.1;
-        if (starShipX > DISPLAY_WIDTH / 2) {
-            starShipVelocity = -0.1;
-        } else if (starShipX < 10) {
-            starShipVelocity = 0.3;
+        if (!letStarShipRoam && starShipX > DISPLAY_WIDTH / 2 + 10) {
+            starShipVelocity = -0.2;
+        } else if (starShipX < -50) {
+            starShipVelocity = 3.0;
+            letStarShipRoam = true;
         }
     }
 
