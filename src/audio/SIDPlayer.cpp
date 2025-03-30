@@ -14,7 +14,7 @@
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
-uint8_t volume = VOLUME_STEPS / 2;
+uint8_t volume = VOLUME_STEPS / 10;
 static sid_info sidInfo{};
 short intermediateBuffer[SAMPLES_PER_BUFFER];
 volatile bool playPauseQueued = false;

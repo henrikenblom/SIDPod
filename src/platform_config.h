@@ -62,6 +62,8 @@
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
+#define ALTERNATIVE_SCENE_DURATION          60000
+#define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         SAMPLES_PER_BUFFER
 #define SIDPLAYER_STARTUP_GRACE_TIME        200
 
@@ -75,4 +77,4 @@
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      1400
-#define SPLASH_DISPLAY_DURATION             200
+#define SPLASH_DISPLAY_DURATION             2500

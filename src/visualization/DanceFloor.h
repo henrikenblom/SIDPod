@@ -34,14 +34,26 @@ namespace Visualization {
             int32_t y;
         };
 
+        enum Transition {
+            NO_TRANSITION,
+            FROM_ALTERNATIVE,
+            FROM_SPECTRUM,
+        };
+
     private:
-        void drawHorizontalLine(uint8_t y);
+        void drawDottedHorizontalLine(uint8_t y);
+
+        void drawHorizontalLine(uint8_t y) const;
 
         void drawScroller();
 
         void drawStarrySky();
 
+        void drawHorizonPixel(int32_t x, int32_t y) const;
+
         void drawCircle(int32_t x, int32_t y, int32_t radius) const;
+
+        void drawArc(int32_t x, int32_t y, int32_t radius, int32_t startAngle, int32_t endAngle) const;
 
         void drawFibonacciLandscape();
 
@@ -67,7 +79,6 @@ namespace Visualization {
         int roundSpriteIndex = 0;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
-        int16_t scrollLimit = -1600;
         uint8_t horizontalLineDitherOffset = 0;
         int rvOffset = 0;
         int rsOffset = DISPLAY_WIDTH + 32;
@@ -79,7 +90,9 @@ namespace Visualization {
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
         CatalogEntry *selectedEntry{};
         bool alternativeScene = false;
+        Transition transition = NO_TRANSITION;
         uint32_t millisSinceLastSceneChange = millis_now();
+        float horizon = 10;
 
         void (*stopCallback)() = nullptr;
 

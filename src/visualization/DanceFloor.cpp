@@ -17,7 +17,7 @@ namespace Visualization {
         fft_cfg = kiss_fftr_alloc(FFT_SAMPLES, false, nullptr, nullptr);
     }
 
-    void DanceFloor::drawHorizontalLine(uint8_t y) {
+    void DanceFloor::drawDottedHorizontalLine(uint8_t y) {
         if (y <= DISPLAY_HEIGHT) {
             for (int x = 0; x < DISPLAY_WIDTH - 1; x += 2) {
                 ssd1306_draw_pixel(pDisp, x + horizontalLineDitherOffset, y);
@@ -26,18 +26,34 @@ namespace Visualization {
         horizontalLineDitherOffset ^= 1;
     }
 
+    void DanceFloor::drawHorizontalLine(uint8_t y) const {
+        if (y <= DISPLAY_HEIGHT) {
+            ssd1306_draw_line(pDisp, 0, y, DISPLAY_WIDTH - 1, y);
+        }
+    }
+
     void DanceFloor::drawScroller() {
         if (showScroller) {
             ssd1306_draw_string(pDisp, rsOffset--, 1, 1, scrollText);
-            if (rsOffset < scrollLimit) rsOffset = DISPLAY_WIDTH + 1;
+            if (rsOffset < SCROLL_LIMIT) {
+                rsOffset = DISPLAY_WIDTH + 1;
+                transition = FROM_SPECTRUM;
+                millisSinceLastSceneChange = millis_now();
+            }
         }
     }
 
     void DanceFloor::drawStarrySky() {
         for (auto &sprite: starSprites) {
-            if (random() % (100) != 1) {
-                ssd1306_draw_pixel(pDisp, sprite.x, sprite.y);
+            if (random() % static_cast<int>(100 - horizon * 2.5) != 1) {
+                drawHorizonPixel(sprite.x, sprite.y);
             }
+        }
+    }
+
+    void DanceFloor::drawHorizonPixel(int32_t x, int32_t y) const {
+        if (x >= 0 && x < DISPLAY_WIDTH && y >= 0 && y < DISPLAY_HEIGHT && y < horizon) {
+            ssd1306_draw_pixel(pDisp, x, y);
         }
     }
 
@@ -48,10 +64,10 @@ namespace Visualization {
         int32_t xi = 0;
         int32_t yi = radius;
 
-        ssd1306_draw_pixel(pDisp, x, y + radius);
-        ssd1306_draw_pixel(pDisp, x, y - radius);
-        ssd1306_draw_pixel(pDisp, x + radius, y);
-        ssd1306_draw_pixel(pDisp, x - radius, y);
+        drawHorizonPixel(x, y + radius);
+        drawHorizonPixel(x, y - radius);
+        drawHorizonPixel(x + radius, y);
+        drawHorizonPixel(x - radius, y);
 
         while (xi < yi) {
             if (f >= 0) {
@@ -63,33 +79,45 @@ namespace Visualization {
             ddF_x += 2;
             f += ddF_x;
 
-            ssd1306_draw_pixel(pDisp, x + xi, y + yi);
-            ssd1306_draw_pixel(pDisp, x - xi, y + yi);
-            ssd1306_draw_pixel(pDisp, x + xi, y - yi);
-            ssd1306_draw_pixel(pDisp, x - xi, y - yi);
-            ssd1306_draw_pixel(pDisp, x + yi, y + xi);
-            ssd1306_draw_pixel(pDisp, x - yi, y + xi);
-            ssd1306_draw_pixel(pDisp, x + yi, y - xi);
-            ssd1306_draw_pixel(pDisp, x - yi, y - xi);
+            drawHorizonPixel(x + xi, y + yi);
+            drawHorizonPixel(x - xi, y + yi);
+            drawHorizonPixel(x + xi, y - yi);
+            drawHorizonPixel(x - xi, y - yi);
+            drawHorizonPixel(x + yi, y + xi);
+            drawHorizonPixel(x - yi, y + xi);
+            drawHorizonPixel(x + yi, y - xi);
+            drawHorizonPixel(x - yi, y - xi);
+        }
+    }
+
+    void DanceFloor::drawArc(const int32_t x, const int32_t y, const int32_t radius, const int32_t startAngle,
+                             const int32_t endAngle) const {
+        float angleStep = 0.1f;
+        for (float angle = startAngle; angle < endAngle; angle += angleStep) {
+            int32_t xPos = static_cast<int32_t>(x + radius * cos(angle));
+            int32_t yPos = static_cast<int32_t>(y + radius * sin(angle));
+            drawHorizonPixel(xPos, yPos);
         }
     }
 
     void DanceFloor::drawFibonacciLandscape() {
-        drawHorizontalLine(10);
+        drawDottedHorizontalLine(horizon);
         for (const unsigned short i: fibonacci) {
-            drawHorizontalLine(10 + i / (20 - rvOffset));
+            drawDottedHorizontalLine(horizon + i / (20 - rvOffset));
         }
-        ssd1306_draw_line(pDisp, 0, 25, 23, 10);
-        ssd1306_draw_line(pDisp, 42, 31, 48, 10);
-        ssd1306_draw_line(pDisp, 79, 10, 86, 31);
-        ssd1306_draw_line(pDisp, 104, 10, 127, 25);
+        if (horizon < 20) {
+            ssd1306_draw_line(pDisp, 0, 25, 23, horizon);
+            ssd1306_draw_line(pDisp, 42, 31, 48, horizon);
+            ssd1306_draw_line(pDisp, 79, horizon, 86, 31);
+            ssd1306_draw_line(pDisp, 104, horizon, 127, 25);
+        }
         if (rvOffset++ > 4) rvOffset = 0;
     }
 
     void DanceFloor::drawSoundSprite(SoundSprite sprite) const {
         int x;
         double f = 0.012;
-        int y1 = 39 - sprite.distance - sprite.velocity - 10;
+        int y1 = 39 - sprite.distance - sprite.velocity - (20 - horizon);
         int y2 = sprite.distance < 7
                      ? (int) (y1 + sprite.velocity * 0.4)
                      : (int) (y1 + sprite.velocity + (sprite.distance * 0.29));
@@ -118,8 +146,8 @@ namespace Visualization {
     void DanceFloor::updateRoundSprites() {
         for (auto &roundSprite: roundSprites) {
             auto sprite = roundSprite;
-            if (sprite.distance > -16) {
-                drawCircle(sprite.x, sprite.y, sprite.distance / 2);
+            if (sprite.distance > -16 && sprite.y < horizon) {
+                drawCircle(sprite.x, sprite.y, sprite.distance / 2.5 - (40 - horizon));
                 sprite.distance -= 4;
             }
             roundSprite = sprite;
@@ -138,25 +166,26 @@ namespace Visualization {
 
     void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
         for (uint8_t x = 0; x < 127; x++) {
-            const int i = static_cast<int>(1.6 * x);
+            const int i = static_cast<int>(1.8 * x);
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i) *
                                      compFactor);
             if (y > 0) {
                 if (y > 28) y /= 8;
 
-                if (alternativeScene) {
-                    if (x % 16 == 0 || x == 0) {
+                if (alternativeScene || transition != NO_TRANSITION) {
+                    if (x % 16 == 0 || x == 0 || x == 127) {
                         RoundSprite roundSprite = {
                             .velocity = static_cast<int8_t>(std::min(16,
                                                                      y)),
-                            .distance = 20, .x = random() % DISPLAY_WIDTH - x,
+                            .distance = 20, .x = random() % DISPLAY_WIDTH,
                             .y = random() % DISPLAY_HEIGHT
                         };
                         roundSprites[roundSpriteIndex++] = roundSprite;
                         if (roundSpriteIndex > ROUND_SPRITE_COUNT) roundSpriteIndex = 0;
                     }
-                } else {
+                }
+                if (!alternativeScene || transition != NO_TRANSITION) {
                     SoundSprite sprite = {
                         .velocity = static_cast<int8_t>(std::min(16,
                                                                  y)),
@@ -169,19 +198,36 @@ namespace Visualization {
         }
 
         ssd1306_clear(pDisp);
-        if (alternativeScene) {
+        if (alternativeScene || transition != NO_TRANSITION) {
             updateRoundSprites();
-        } else {
+            drawHorizontalLine(DISPLAY_HEIGHT - 1);
+        }
+        if (!alternativeScene || transition != NO_TRANSITION) {
             drawFibonacciLandscape();
             drawStarrySky();
-            drawScroller();
+            if (transition == NO_TRANSITION) {
+                drawScroller();
+            }
             updateSoundSprites();
         }
         ssd1306_show(pDisp);
 
-        if (millis_now() >= millisSinceLastSceneChange + (alternativeScene ? 15000 : 60000)) {
+        if (alternativeScene && millis_now() >= millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION) {
             millisSinceLastSceneChange = millis_now();
-            alternativeScene = !alternativeScene;
+            transition = FROM_ALTERNATIVE;
+        }
+        if (transition == FROM_SPECTRUM) {
+            horizon += 0.2;
+            if (horizon >= 40) {
+                transition = NO_TRANSITION;
+                alternativeScene = true;
+            }
+        } else if (transition == FROM_ALTERNATIVE) {
+            horizon -= 0.2;
+            if (horizon <= 10) {
+                transition = NO_TRANSITION;
+                alternativeScene = false;
+            }
         }
     }
 
@@ -198,7 +244,7 @@ namespace Visualization {
                 sid_info *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2. Codename \"Residious\".",
+                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
                          entry->title, entry->author, entry->released, experience,
                          entry->rsid == true ? "this RSID" : "it");
                 showScroller = true;
@@ -217,8 +263,6 @@ namespace Visualization {
                 stop();
             } else if (!freeze) {
                 ssd1306_clear(pDisp);
-                drawFibonacciLandscape();
-                drawStarrySky();
                 drawPausedLabel();
                 ssd1306_show(pDisp);
                 freeze = true;
