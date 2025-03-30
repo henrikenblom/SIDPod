@@ -39,6 +39,8 @@ private:
 
     static void showFlashEmptyScreen();
 
+    static int readVoltage();
+
     static void showVolumeControl();
 
     static inline void showRasterBars();

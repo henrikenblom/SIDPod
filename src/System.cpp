@@ -1,20 +1,21 @@
-#include <pico/sleep.h>
 #include <hardware/pll.h>
 #include <hardware/clocks.h>
-#include <cstdio>
 #include <device/usbd.h>
 #include <pico/multicore.h>
 #include <hardware/xosc.h>
+#include <hardware/watchdog.h>
+#include <pico/sleep.h>
 #include "System.h"
 #include "UI.h"
 #include "platform_config.h"
 #include "audio/SIDPlayer.h"
 
-struct repeating_timer tudTaskTimer{};
+
+repeating_timer tudTaskTimer{};
 
 bool connected = false;
 
-void tud_mount_cb(void) {
+void tud_mount_cb() {
     multicore_reset_core1();
     SIDPlayer::ampOff();
     UI::stop();
@@ -70,30 +71,16 @@ void System::softReset() {
     AIRCR_Register = SYSRESETREQ;
 }
 
-void System::goDormant() {
-    SIDPlayer::ampOff();
-    sleepUntilDoubleClick();
-    configureClocks();
+void System::hardReset() {
+    watchdog_enable(1, true);
 }
 
-void System::sleepUntilDoubleClick() {
+void System::goDormant() {
+    SIDPlayer::ampOff();
     sleep_run_from_rosc();
-    bool sleep = true;
-    while (sleep) {
-        sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
-        gpio_pull_up(ENC_SW_PIN);
-        bool lastSwitchState = !gpio_get(ENC_SW_PIN);
-        for (int i = 0; i < DOUBLE_CLICK_SPEED_MS; i++) {
-            bool currentSwitchState = !gpio_get(ENC_SW_PIN);
-            if (currentSwitchState && currentSwitchState != lastSwitchState) {
-                sleep = false;
-                break;
-            }
-            lastSwitchState = currentSwitchState;
-            busy_wait_ms(1);
-        }
-    }
     gpio_pull_up(ENC_SW_PIN);
+    sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
+    hardReset();
 }
 
 void System::enableUsb() {

@@ -2,6 +2,9 @@
 #include <hardware/gpio.h>
 #include <cstdio>
 #include "UI.h"
+
+#include <string>
+
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
 #include "PSIDCatalog.h"
@@ -10,6 +13,7 @@
 #include "visualization/DanceFloor.h"
 #include "sidpod_24px_height_bmp.h"
 #include "System.h"
+#include "hardware/adc.h"
 
 ssd1306_t disp;
 bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
@@ -33,6 +37,8 @@ void UI::initUI() {
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
     danceFloor = new Visualization::DanceFloor(&disp);
+    adc_init();
+    adc_gpio_init(29);
 }
 
 void UI::screenOn() {
@@ -177,18 +183,23 @@ void UI::showFlashEmptyScreen() {
     ssd1306_show(&disp);
 }
 
+int UI::readVoltage() {
+    adc_select_input(3);
+    int v = 0;
+    for (int i = 0; i < 20000; i++) {
+        v += adc_read();
+    }
+    return (v / 20000) * 9875 / (1 << 12) - 20;
+}
+
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
     ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
     ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
     ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
-    ssd1306_draw_string(&disp, 4, 24, 1, lineLevelLabel);
-    int statusLabelX = (int) (strlen(lineLevelLabel) * FONT_WIDTH) + FONT_WIDTH;
-    if (SIDPlayer::lineLevelOn()) {
-        ssd1306_draw_string(&disp, statusLabelX, 24, 1, yesLabel);
-    } else {
-        ssd1306_draw_string(&disp, statusLabelX, 24, 1, noLabel);
-    }
+
+    ssd1306_draw_string(&disp, 4, 22, 1, std::to_string(readVoltage()).c_str());
+
     ssd1306_show(&disp);
 }
 
@@ -394,7 +405,7 @@ void UI::goToSleep() {
     SIDPlayer::resetState();
     System::goDormant();
     lastSwitchState = false;
-    lastState = UI::splash;
+    lastState = song_selector;
     screenOn();
     start();
 }

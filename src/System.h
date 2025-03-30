@@ -9,6 +9,8 @@ public:
 
     static void softReset();
 
+    static void hardReset();
+
     static void enableUsb();
 
     static void runExclusiveUsbDBurst();
@@ -16,8 +18,6 @@ public:
     static bool usbConnected();
 
 private:
-    static void sleepUntilDoubleClick();
-
     static bool repeatingTudTask(struct repeating_timer *t);
 };
 
