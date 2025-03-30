@@ -166,7 +166,7 @@ namespace Visualization {
 
     void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
         for (uint8_t x = 0; x < 127; x++) {
-            const int i = static_cast<int>(1.8 * x);
+            const int i = static_cast<int>(1.4 * x);
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i) *
                                      compFactor);
@@ -176,8 +176,6 @@ namespace Visualization {
                 if (alternativeScene || transition != NO_TRANSITION) {
                     if (x % 16 == 0 || x == 0 || x == 127) {
                         RoundSprite roundSprite = {
-                            .velocity = static_cast<int8_t>(std::min(16,
-                                                                     y)),
                             .distance = 20, .x = random() % DISPLAY_WIDTH,
                             .y = random() % DISPLAY_HEIGHT
                         };

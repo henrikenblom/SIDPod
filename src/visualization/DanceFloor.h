@@ -28,7 +28,6 @@ namespace Visualization {
         };
 
         struct RoundSprite {
-            int8_t velocity;
             int8_t distance;
             int32_t x;
             int32_t y;
