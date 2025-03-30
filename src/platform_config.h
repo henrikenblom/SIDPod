@@ -62,7 +62,8 @@
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
-#define ALTERNATIVE_SCENE_DURATION          60000
+#define ALTERNATIVE_SCENE_DURATION          80000
+#define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         SAMPLES_PER_BUFFER
 #define SIDPLAYER_STARTUP_GRACE_TIME        800

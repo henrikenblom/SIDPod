@@ -94,16 +94,6 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::drawArc(const int32_t x, const int32_t y, const int32_t radius, const int32_t startAngle,
-                             const int32_t endAngle) const {
-        float angleStep = 0.1f;
-        for (float angle = startAngle; angle < endAngle; angle += angleStep) {
-            int32_t xPos = static_cast<int32_t>(x + radius * cos(angle));
-            int32_t yPos = static_cast<int32_t>(y + radius * sin(angle));
-            drawHorizonPixel(xPos, yPos);
-        }
-    }
-
     void DanceFloor::drawFibonacciLandscape() {
         drawDottedHorizontalLine(horizon);
         for (const unsigned short i: fibonacci) {
@@ -153,11 +143,35 @@ namespace Visualization {
             if (sprite.distance > -16 && sprite.y < horizon) {
                 drawCircle(sprite.x, sprite.y, sprite.distance / 2.5 - (40 - horizon));
                 sprite.distance -= 4;
+                sprite.x -= starFieldVisible ? 2 : 0;
             }
             roundSprite = sprite;
         }
     }
 
+    void DanceFloor::updateStarFieldSprites() {
+        for (auto &starFieldSprite: starFieldSprites) {
+            auto sprite = starFieldSprite;
+            if (sprite.x > 0) {
+                drawHorizonPixel(sprite.x, sprite.y);
+                sprite.x -= sprite.velocity;
+            }
+            starFieldSprite = sprite;
+        }
+    }
+
+    void DanceFloor::drawStarShip() {
+        ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 4, starShipY);
+        ssd1306_draw_line(pDisp, starShipX, starShipY + 1, starShipX + 8, starShipY + 1);
+        ssd1306_draw_line(pDisp, starShipX, starShipY + 2, starShipX + 4, starShipY + 2);
+        starShipX += starShipVelocity;
+        starShipY += starShipVelocity * 0.1;
+        if (starShipX > DISPLAY_WIDTH / 2) {
+            starShipVelocity = -0.1;
+        } else if (starShipX < 10) {
+            starShipVelocity = 0.3;
+        }
+    }
 
     void DanceFloor::drawPausedLabel() const {
         int labelWidth = (int) strlen(pausedLabel) * FONT_WIDTH;
@@ -176,6 +190,20 @@ namespace Visualization {
         return !alternativeScene || transition != NO_TRANSITION;
     }
 
+    bool DanceFloor::shouldUpdateStarFieldSprites() const {
+        return starFieldVisible;
+    }
+
+    bool DanceFloor::isWithinStarFieldTimeWindow() const {
+        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER &&
+               millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION + 9000;
+    }
+
+    bool DanceFloor::isOutsideOfRoundSpriteTimeWindow() const {
+        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER + 6000 &&
+               millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION - 6000;
+    }
+
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
         for (uint8_t x = 0; x < 127; x++) {
             const int i = 2 * x;
@@ -185,7 +213,7 @@ namespace Visualization {
             if (y > 0) {
                 if (y > 28) y /= 8;
 
-                if (shouldUpdateRoundSprites()) {
+                if (!isOutsideOfRoundSpriteTimeWindow() && shouldUpdateRoundSprites()) {
                     if (x % 16 == 0 || x == 0 || x == 127) {
                         RoundSprite roundSprite = {
                             .distance = 20, .x = random() % DISPLAY_WIDTH,
@@ -204,13 +232,23 @@ namespace Visualization {
                     soundSprites[sprite_index++] = sprite;
                     if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
                 }
+                if (shouldUpdateStarFieldSprites()) {
+                    if ((x % 64 == 0 || x == 0 || x == 127) && y > 0) {
+                        StarFieldSprite starFieldSprite = {
+                            .x = DISPLAY_WIDTH + 10, .y = (uint8_t) (random() % DISPLAY_HEIGHT),
+                            .velocity = static_cast<int8_t>(std::min(8,
+                                                                     y / 2))
+                        };
+                        starFieldSprites[starFieldSpriteIndex++] = starFieldSprite;
+                        if (starFieldSpriteIndex > DISPLAY_WIDTH) starFieldSpriteIndex = 0;
+                    }
+                }
             }
         }
 
         ssd1306_clear(pDisp);
         if (shouldUpdateRoundSprites()) {
             updateRoundSprites();
-            drawHorizontalLine(DISPLAY_HEIGHT - 1);
         }
         if (shouldUpdateSoundSprites()) {
             drawFibonacciLandscape();
@@ -220,11 +258,18 @@ namespace Visualization {
             }
             updateSoundSprites();
         }
+        if (shouldUpdateStarFieldSprites()) {
+            updateStarFieldSprites();
+            drawStarShip();
+        }
         ssd1306_show(pDisp);
 
         if (alternativeScene && millis_now() >= millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION) {
             millisSinceLastSceneChange = millis_now();
             transition = FROM_ALTERNATIVE;
+        }
+        if (alternativeScene && !starFieldVisible && isWithinStarFieldTimeWindow()) {
+            starFieldVisible = true;
         }
         if (transition == FROM_SPECTRUM) {
             horizon += 0.2;
@@ -237,6 +282,9 @@ namespace Visualization {
             if (horizon <= 10) {
                 transition = NO_TRANSITION;
                 alternativeScene = false;
+                starFieldVisible = false;
+                starShipX = -24;
+                starShipY = DISPLAY_HEIGHT / 2 - 8;
             }
         }
     }
@@ -303,6 +351,10 @@ namespace Visualization {
             for (auto &roundSprite: roundSprites) {
                 roundSprite = {0};
             }
+            for (auto &startFieldSprite: starFieldSprites) {
+                startFieldSprite = {0};
+            }
+
             alternativeScene = false;
             transition = FROM_BEGIN;
             horizon = 32;

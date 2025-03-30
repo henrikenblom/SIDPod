@@ -21,6 +21,12 @@ namespace Visualization {
             uint8_t y;
         };
 
+        struct StarFieldSprite {
+            uint8_t x;
+            uint8_t y;
+            int8_t velocity;
+        };
+
         struct SoundSprite {
             int8_t velocity;
             int8_t distance;
@@ -53,8 +59,6 @@ namespace Visualization {
 
         void drawCircle(int32_t x, int32_t y, int32_t radius) const;
 
-        void drawArc(int32_t x, int32_t y, int32_t radius, int32_t startAngle, int32_t endAngle) const;
-
         void drawFibonacciLandscape();
 
         void drawSoundSprite(SoundSprite sprite) const;
@@ -65,9 +69,19 @@ namespace Visualization {
 
         bool shouldUpdateSoundSprites() const;
 
+        bool shouldUpdateStarFieldSprites() const;
+
+        bool isWithinStarFieldTimeWindow() const;
+
+        bool isOutsideOfRoundSpriteTimeWindow() const;
+
         void updateSoundSprites();
 
         void updateRoundSprites();
+
+        void updateStarFieldSprites();
+
+        void drawStarShip();
 
         void drawScene(const kiss_fft_cpx *fft_out);
 
@@ -75,12 +89,16 @@ namespace Visualization {
 
         void visualize();
 
-        uint32_t millis_now() {
+        uint32_t millis_now() const {
             return to_ms_since_boot(get_absolute_time());
         }
 
         int sprite_index = 0;
         int roundSpriteIndex = 0;
+        int starFieldSpriteIndex = 0;
+        float starShipX = -24;
+        float starShipY = DISPLAY_HEIGHT / 2 - 8;
+        float starShipVelocity = 0.3;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
         uint8_t horizontalLineDitherOffset = 0;
@@ -94,6 +112,7 @@ namespace Visualization {
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
         CatalogEntry *selectedEntry{};
         bool alternativeScene = false;
+        bool starFieldVisible = false;
         Transition transition = NO_TRANSITION;
         uint32_t millisSinceLastSceneChange = millis_now();
         float horizon = 10;
@@ -102,6 +121,7 @@ namespace Visualization {
 
         SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
         RoundSprite roundSprites[DISPLAY_WIDTH / 2]{};
+        StarFieldSprite starFieldSprites[DISPLAY_WIDTH]{};
         StarSprite starSprites[24] = {
             {6, 4},
             {14, 0},
