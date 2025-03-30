@@ -622,7 +622,7 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
     return watchdog_counter < CPU_JSR_WATCHDOG_ABORT_LIMIT;
 }
 
-void C64::c64Init(int nSampleRate) {
+void C64::c64Init() {
     synth_init();
     memset(memory, 0, sizeof(memory));
     cpuReset();

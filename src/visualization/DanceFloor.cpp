@@ -43,10 +43,14 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::drawStarrySky() {
+    void DanceFloor::drawStarrySky(bool ignoreHorizon) {
         for (auto &sprite: starSprites) {
-            if (random() % static_cast<int>(100 - horizon * 2.5) != 1) {
-                drawHorizonPixel(sprite.x, sprite.y);
+            if (random() % 100 != 1) {
+                if (ignoreHorizon || sprite.y < horizon) {
+                    ssd1306_draw_pixel(pDisp, sprite.x, sprite.y);
+                } else {
+                    drawHorizonPixel(sprite.x, sprite.y);
+                }
             }
         }
     }
@@ -155,25 +159,33 @@ namespace Visualization {
     }
 
 
-    void DanceFloor::drawPausedLabel() {
+    void DanceFloor::drawPausedLabel() const {
         int labelWidth = (int) strlen(pausedLabel) * FONT_WIDTH;
         int windowWidth = labelWidth + 4;
         int windowHeight = FONT_HEIGHT + 1;
-        ssd1306_clear_square(pDisp, displayCenter - (windowWidth / 2), 4, windowWidth, windowHeight);
-        ssd13606_draw_empty_square(pDisp, displayCenter - (windowWidth / 2), 1, windowWidth, windowHeight + 4);
-        ssd1306_draw_string(pDisp, displayCenter - (labelWidth / 2) + 1, 5, 1, pausedLabel);
+        ssd1306_clear_square(pDisp, displayCenter - (windowWidth / 2), 12, windowWidth, windowHeight);
+        ssd13606_draw_empty_square(pDisp, displayCenter - (windowWidth / 2), 10, windowWidth, windowHeight + 3);
+        ssd1306_draw_string(pDisp, displayCenter - (labelWidth / 2) + 1, 13, 1, pausedLabel);
     }
 
-    void DanceFloor::drawScene(kiss_fft_cpx *fft_out) {
+    bool DanceFloor::shouldUpdateRoundSprites() const {
+        return alternativeScene || transition == FROM_SPECTRUM || transition == FROM_ALTERNATIVE;
+    }
+
+    bool DanceFloor::shouldUpdateSoundSprites() const {
+        return !alternativeScene || transition != NO_TRANSITION;
+    }
+
+    void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
         for (uint8_t x = 0; x < 127; x++) {
-            const int i = static_cast<int>(1.4 * x);
+            const int i = 2 * x;
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
-                                      fft_out[i + 1].r + fft_out[i + 1].i) *
+                                      fft_out[i + 1].r + fft_out[i + 1].i + static_cast<float>(i)) *
                                      compFactor);
             if (y > 0) {
                 if (y > 28) y /= 8;
 
-                if (alternativeScene || transition != NO_TRANSITION) {
+                if (shouldUpdateRoundSprites()) {
                     if (x % 16 == 0 || x == 0 || x == 127) {
                         RoundSprite roundSprite = {
                             .distance = 20, .x = random() % DISPLAY_WIDTH,
@@ -183,7 +195,7 @@ namespace Visualization {
                         if (roundSpriteIndex > ROUND_SPRITE_COUNT) roundSpriteIndex = 0;
                     }
                 }
-                if (!alternativeScene || transition != NO_TRANSITION) {
+                if (shouldUpdateSoundSprites()) {
                     SoundSprite sprite = {
                         .velocity = static_cast<int8_t>(std::min(16,
                                                                  y)),
@@ -196,13 +208,13 @@ namespace Visualization {
         }
 
         ssd1306_clear(pDisp);
-        if (alternativeScene || transition != NO_TRANSITION) {
+        if (shouldUpdateRoundSprites()) {
             updateRoundSprites();
             drawHorizontalLine(DISPLAY_HEIGHT - 1);
         }
-        if (!alternativeScene || transition != NO_TRANSITION) {
+        if (shouldUpdateSoundSprites()) {
             drawFibonacciLandscape();
-            drawStarrySky();
+            drawStarrySky(false);
             if (transition == NO_TRANSITION) {
                 drawScroller();
             }
@@ -220,7 +232,7 @@ namespace Visualization {
                 transition = NO_TRANSITION;
                 alternativeScene = true;
             }
-        } else if (transition == FROM_ALTERNATIVE) {
+        } else if (transition == FROM_ALTERNATIVE || transition == FROM_BEGIN) {
             horizon -= 0.2;
             if (horizon <= 10) {
                 transition = NO_TRANSITION;
@@ -261,23 +273,39 @@ namespace Visualization {
                 stop();
             } else if (!freeze) {
                 ssd1306_clear(pDisp);
-                drawPausedLabel();
+                drawStarrySky(true);
                 ssd1306_show(pDisp);
-                freeze = true;
+                busy_wait_ms(500);
+                if (!SIDPlayer::isPlaying()) {
+                    drawPausedLabel();
+                    ssd1306_show(pDisp);
+                    freeze = true;
+                }
             }
         }
     }
 
     void DanceFloor::start(CatalogEntry *_selectedEntry) {
-        selectedEntry = _selectedEntry;
-        rvOffset = 0;
-        rsOffset = DISPLAY_WIDTH + 32;
         running = true;
         freeze = false;
-        showScroller = false;
         for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {
             if (SIDPlayer::isPlaying()) break;
             busy_wait_ms(1);
+        }
+        if (selectedEntry != _selectedEntry) {
+            selectedEntry = _selectedEntry;
+            rsOffset = DISPLAY_WIDTH + 32;
+            rvOffset = 0;
+            showScroller = false;
+            for (auto &soundSprite: soundSprites) {
+                soundSprite = {0};
+            }
+            for (auto &roundSprite: roundSprites) {
+                roundSprite = {0};
+            }
+            alternativeScene = false;
+            transition = FROM_BEGIN;
+            horizon = 32;
         }
         visualize();
     }

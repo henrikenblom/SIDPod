@@ -65,7 +65,7 @@
 #define ALTERNATIVE_SCENE_DURATION          60000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         SAMPLES_PER_BUFFER
-#define SIDPLAYER_STARTUP_GRACE_TIME        200
+#define SIDPLAYER_STARTUP_GRACE_TIME        800
 
 #define USER_CONTROLS_POLLRATE_MS           50
 

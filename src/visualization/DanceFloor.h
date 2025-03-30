@@ -12,7 +12,7 @@ namespace Visualization {
     public:
         explicit DanceFloor(ssd1306_t *disp);
 
-        void start(CatalogEntry *selectedEntry);
+        void start(CatalogEntry *_selectedEntry);
 
         void stop();
 
@@ -37,6 +37,7 @@ namespace Visualization {
             NO_TRANSITION,
             FROM_ALTERNATIVE,
             FROM_SPECTRUM,
+            FROM_BEGIN
         };
 
     private:
@@ -46,7 +47,7 @@ namespace Visualization {
 
         void drawScroller();
 
-        void drawStarrySky();
+        void drawStarrySky(bool ignoreHorizon);
 
         void drawHorizonPixel(int32_t x, int32_t y) const;
 
@@ -58,13 +59,17 @@ namespace Visualization {
 
         void drawSoundSprite(SoundSprite sprite) const;
 
-        void drawPausedLabel();
+        void drawPausedLabel() const;
+
+        bool shouldUpdateRoundSprites() const;
+
+        bool shouldUpdateSoundSprites() const;
 
         void updateSoundSprites();
 
         void updateRoundSprites();
 
-        void drawScene(kiss_fft_cpx *fft_out);
+        void drawScene(const kiss_fft_cpx *fft_out);
 
         static void randomizeExperience(char *experience);
 
@@ -97,7 +102,7 @@ namespace Visualization {
 
         SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
         RoundSprite roundSprites[DISPLAY_WIDTH / 2]{};
-        StarSprite starSprites[12] = {
+        StarSprite starSprites[24] = {
             {6, 4},
             {14, 0},
             {28, 8},
@@ -109,7 +114,19 @@ namespace Visualization {
             {96, 1},
             {108, 5},
             {116, 8},
-            {124, 0}
+            {124, 0},
+            {2, 14},
+            {18, 10},
+            {20, 18},
+            {30, 25},
+            {52, 19},
+            {62, 24},
+            {70, 30},
+            {86, 16},
+            {100, 11},
+            {109, 15},
+            {114, 18},
+            {127, 10}
         };
         uint16_t fibonacci[HORIZONTAL_LANDSCAPE_LINES]{};
         kiss_fft_scalar fftIn[FFT_SAMPLES]{};

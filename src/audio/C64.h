@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "ff.h"
 
+
 #define CLOCKFREQ 985248
 
 extern unsigned char memory[];
@@ -33,13 +34,13 @@ public:
 
     static void sidPoke(int reg, unsigned char val);
 
-    static void cpuReset(void);
+    static void cpuReset();
 
     static void cpuJSR(unsigned short npc, unsigned char na);
 
     static bool cpuJSRWithWatchdog(unsigned short npc, unsigned char na);
 
-    static void c64Init(int nSampleRate);
+    static void c64Init();
 
     static void setLineLevel(bool on);
 
