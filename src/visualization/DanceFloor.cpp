@@ -356,6 +356,9 @@ namespace Visualization {
             }
 
             alternativeScene = false;
+            starFieldVisible = false;
+            starShipX = -24;
+            starShipY = DISPLAY_HEIGHT / 2 - 8;
             transition = FROM_BEGIN;
             horizon = 32;
         }
