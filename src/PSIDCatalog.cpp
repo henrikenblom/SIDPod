@@ -2,6 +2,10 @@
 #include <vector>
 #include <cstdio>
 #include "PSIDCatalog.h"
+
+#include <algorithm>
+#include <string>
+
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
@@ -28,6 +32,9 @@ void PSIDCatalog::refresh() {
     }
     f_closedir(dp);
     delete dp;
+    std::sort(catalog.begin(), catalog.end(), [](const CatalogEntry &a, const CatalogEntry &b) -> bool {
+        return strcmp(a.title, b.title) < 0;
+    });
     resetAccessors();
 }
 
@@ -67,6 +74,7 @@ void PSIDCatalog::resetAccessors() {
     }
 }
 
+//TODO: Use the load routine from C64.cpp to validate the playability of the file
 void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[SID_MINIMAL_HEADER_SIZE];

@@ -16,6 +16,8 @@ public:
 
     static bool loadPSID(CatalogEntry *sidFile);
 
+    static void tryJSRToPlayAddr();
+
     static CatalogEntry *getCurrentlyLoaded();
 
     static void togglePlayPause();

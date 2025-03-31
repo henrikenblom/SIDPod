@@ -98,7 +98,7 @@ namespace Visualization {
         int sprite_index = 0;
         int roundSpriteIndex = 0;
         int starFieldSpriteIndex = 0;
-        float starShipX = -24;
+        float starShipX = -64;
         float starShipY = DISPLAY_HEIGHT / 2 - 8;
         float starShipVelocity = 0.3;
         bool letStarShipRoam = false;

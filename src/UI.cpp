@@ -21,10 +21,11 @@ int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
 struct repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
 auto volumeLabel = "Volume";
+auto goingDormantLabel = "See you later!";
 auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
 auto noLabel = "No";
-auto emptyFlashMsg = {"No playable PSIDs.", "Use USB to transfer", "PSIDs to the root", "of the SIDPod."};
+auto emptyFlashMsg = {"No playable SIDs.", "Use USB to transfer", "SIDs to the root", "of the SIDPod."};
 float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 UI::State currentState = UI::splash;
@@ -103,7 +104,7 @@ void UI::showSongSelector() {
     if (PSIDCatalog::getSize()) {
         if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
             && !SIDPlayer::loadingWasSuccessful()) {
-            PSIDCatalog::markCurrentEntryAsUnplayable();
+            PSIDCatalog::markCurrentEntryAsUnplayable(); // TODO: this seems to be broken
             SIDPlayer::resetState();
         }
         ssd1306_clear(&disp);
@@ -322,10 +323,9 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     int i = 0;
     while (!gpio_get(ENC_SW_PIN)) {
         busy_wait_ms(1);
-        i++;
-    }
-    if (i > DORMANT_ADDITIONAL_DURATION_MS) {
-        goToSleep();
+        if (i++ > DORMANT_ADDITIONAL_DURATION_MS) {
+            goToSleep();
+        }
     }
     return 0;
 }
@@ -403,9 +403,18 @@ void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
     danceFloor->stop();
     SIDPlayer::resetState();
-    System::goDormant();
-    lastSwitchState = false;
-    lastState = song_selector;
+    int labelWidth = (int) strlen(goingDormantLabel) * FONT_WIDTH;
+    int windowWidth = labelWidth + 4;
+    int windowHeight = FONT_HEIGHT + 1;
+    int displayCenter = DISPLAY_WIDTH / 2;
     screenOn();
-    start();
+    ssd1306_clear(&disp);
+    ssd1306_clear_square(&disp, displayCenter - (windowWidth / 2), 12, windowWidth, windowHeight);
+    ssd13606_draw_empty_square(&disp, displayCenter - (windowWidth / 2), 10, windowWidth, windowHeight + 3);
+    ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+
+    ssd1306_show(&disp);
+    busy_wait_ms(SPLASH_DISPLAY_DURATION);
+    screenOff();
+    System::goDormant();
 }

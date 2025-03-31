@@ -134,10 +134,22 @@ bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
     return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
 }
 
+void SIDPlayer::tryJSRToPlayAddr() {
+    if (!C64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
+        loadingSuccessful = false;
+    }
+}
+
 // ReSharper disable once CppDFAUnreachableFunctionCall
 void SIDPlayer::generateSamples() {
-    C64::cpuJSR(sidInfo.play_addr, 0);
-    C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER);
+    tryJSRToPlayAddr();
+    if (sidInfo.speed == USE_CIA) {
+        C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER / 2);
+        tryJSRToPlayAddr();
+        C64::sid_synth_render(intermediateBuffer + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
+    } else {
+        C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER);
+    }
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall

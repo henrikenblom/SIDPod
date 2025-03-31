@@ -34,6 +34,7 @@
 #define RSID_ID                             0x52534944
 #define SID_LOAD_BUFFER_SIZE                ((int) 1024)
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
+#define USE_CIA                            1
 
 #define SAMPLE_RATE                         ((uint32_t)48000)
 #define SAMPLES_PER_BUFFER                  1000
@@ -62,7 +63,7 @@
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
-#define ALTERNATIVE_SCENE_DURATION          80000
+#define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         SAMPLES_PER_BUFFER

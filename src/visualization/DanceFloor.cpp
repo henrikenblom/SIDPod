@@ -170,6 +170,7 @@ namespace Visualization {
         }
     }
 
+    // TODO: Refactor this to use the same logic as the other sprites and make sure it's reset after each run
     void DanceFloor::drawStarShip() {
         if (starShipX > -20) {
             ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 7, starShipY); // Left gondola
@@ -178,16 +179,20 @@ namespace Visualization {
             ssd1306_draw_line(pDisp, starShipX + 5, starShipY + 3, starShipX + 10, starShipY + 3); // Body
             ssd1306_draw_pixel(pDisp, starShipX + 6, starShipY + 4);
             ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 5);
+            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 5);
             ssd1306_draw_line(pDisp, starShipX, starShipY + 6, starShipX + 7, starShipY + 6); // Right gondola
             drawFilledCircle(starShipX + 15, starShipY + 3, 4);
         }
         starShipX += starShipVelocity;
-        starShipY += starShipVelocity * 0.1;
+        starShipY += starShipVelocity * 0.05;
         if (!letStarShipRoam && starShipX > DISPLAY_WIDTH / 2 + 10) {
             starShipVelocity = -0.2;
-        } else if (starShipX < -50) {
+        } else if (starShipX < -65) {
             starShipVelocity = 3.0;
             letStarShipRoam = true;
+        }
+        if (letStarShipRoam) {
+            starShipVelocity += 0.2;
         }
     }
 
@@ -301,7 +306,7 @@ namespace Visualization {
                 transition = NO_TRANSITION;
                 alternativeScene = false;
                 starFieldVisible = false;
-                starShipX = -24;
+                starShipX = -64;
                 starShipY = DISPLAY_HEIGHT / 2 - 8;
             }
         }
@@ -375,8 +380,9 @@ namespace Visualization {
 
             alternativeScene = false;
             starFieldVisible = false;
-            starShipX = -24;
+            starShipX = -64;
             starShipY = DISPLAY_HEIGHT / 2 - 8;
+            letStarShipRoam = false;
             transition = FROM_BEGIN;
             horizon = 32;
         }
