@@ -30,8 +30,10 @@ Voice::Voice()
 {
   //set_chip_model(MOS6581);
 	{//instead:
-	wave_zero = 0x380;
-	voice_DC = 0x800*0xff;
+	//wave_zero = 0x380;
+	//voice_DC = 0x800*0xff;
+	  wave_zero = 0x800; //8580
+	  voice_DC = 0; //8580
 	}
 }
 

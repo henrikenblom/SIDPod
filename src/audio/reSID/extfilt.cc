@@ -32,7 +32,8 @@ ExternalFilter::ExternalFilter()
   set_sampling_parameter(15915.6);
   //set_chip_model(MOS6581);
 	{//instead:
-	mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
+	// mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
+    mixer_DC = 0; // 8580
 	}
 }
 
