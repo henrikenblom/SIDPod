@@ -637,6 +637,7 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
     if (bytesRead < SID_HEADER_SIZE) return false;
     auto *pHeader = static_cast<unsigned char *>(header);
+    // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
     unsigned char data_file_offset = pHeader[7];
 
     info->rsid = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18) == RSID_ID;
