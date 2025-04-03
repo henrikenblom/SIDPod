@@ -28,51 +28,16 @@ void tud_suspend_cb(bool remote_wakeup_en) {
     System::softReset();
 }
 
-void System::configureClocks() {
-    clocks_hw->resus.ctrl = 0;
-    xosc_init();
-    pll_init(pll_sys, 1, 1500 * MHZ, 6, 2);
-    pll_init(pll_sys, 1, 1500 * MHZ, 6, 2);
-    pll_init(pll_usb, 1, 1200 * MHZ, 5, 5);
-    clock_configure(clk_ref,
-                    CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC,
-                    0,
-                    12 * MHZ,
-                    12 * MHZ);
-    clock_configure(clk_sys,
-                    CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
-                    CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
-                    125 * MHZ,
-                    125 * MHZ);
-    clock_configure(clk_usb,
-                    0,
-                    CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    48 * MHZ,
-                    48 * MHZ);
-    clock_configure(clk_adc,
-                    0,
-                    CLOCKS_CLK_ADC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    48 * MHZ,
-                    48 * MHZ);
-    clock_configure(clk_rtc,
-                    0,
-                    CLOCKS_CLK_RTC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    48 * MHZ,
-                    46875);
-    clock_configure(clk_peri,
-                    0,
-                    CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-                    125 * MHZ,
-                    125 * MHZ);
-    stdio_init_all();
-}
-
 void System::softReset() {
     AIRCR_Register = SYSRESETREQ;
 }
 
 void System::hardReset() {
     watchdog_enable(1, true);
+}
+
+void System::virtualVBLSync() {
+    busy_wait_us(WAIT_SYNC_NS);
 }
 
 void System::goDormant() {

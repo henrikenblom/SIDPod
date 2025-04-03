@@ -28,7 +28,8 @@ void runPossibleSecondWakeUp() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 int main() {
-    System::configureClocks();
+    set_sys_clock_khz(CLOCK_SPEED_KHZ, true);
+    stdio_init_all();
     UI::initUI();
     runPossibleSecondWakeUp();
     UI::screenOn();

@@ -3,13 +3,13 @@
 
 class System {
 public:
-    static void configureClocks();
-
     static void goDormant();
 
     static void softReset();
 
     static void hardReset();
+
+    static void virtualVBLSync();
 
     static void enableUsb();
 

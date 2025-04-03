@@ -13,15 +13,14 @@
 #include "visualization/DanceFloor.h"
 #include "sidpod_24px_height_bmp.h"
 #include "System.h"
-#include "hardware/adc.h"
 
 ssd1306_t disp;
 bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
 int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
-struct repeating_timer userControlTimer;
+repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
 auto volumeLabel = "Volume";
-auto goingDormantLabel = "See you later!";
+auto goingDormantLabel = "Shutting down...";
 auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
 auto noLabel = "No";
@@ -38,8 +37,6 @@ void UI::initUI() {
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
     danceFloor = new Visualization::DanceFloor(&disp);
-    adc_init();
-    adc_gpio_init(29);
 }
 
 void UI::screenOn() {
@@ -104,7 +101,8 @@ void UI::showSongSelector() {
     if (PSIDCatalog::getSize()) {
         if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
             && !SIDPlayer::loadingWasSuccessful()) {
-            PSIDCatalog::markCurrentEntryAsUnplayable(); // TODO: this seems to be broken
+            PSIDCatalog::markCurrentEntryAsUnplayable();
+            // TODO: this seems to be broken for some files (Immigrant song)
             SIDPlayer::resetState();
         }
         ssd1306_clear(&disp);
@@ -184,23 +182,11 @@ void UI::showFlashEmptyScreen() {
     ssd1306_show(&disp);
 }
 
-int UI::readVoltage() {
-    adc_select_input(3);
-    int v = 0;
-    for (int i = 0; i < 20000; i++) {
-        v += adc_read();
-    }
-    return (v / 20000) * 9875 / (1 << 12) - 20;
-}
-
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
     ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
     ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
     ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
-
-    ssd1306_draw_string(&disp, 4, 22, 1, std::to_string(readVoltage()).c_str());
-
     ssd1306_show(&disp);
 }
 
@@ -399,22 +385,33 @@ void UI::endVolumeControlSession() {
     }
 }
 
+void UI::animateShutdown() {
+    const int labelWidth = (int) strlen(goingDormantLabel) * FONT_WIDTH;
+    constexpr int displayCenter = DISPLAY_WIDTH / 2;
+    screenOn();
+    ssd1306_clear(&disp);
+    ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+    ssd1306_show(&disp);
+    busy_wait_ms(SPLASH_DISPLAY_DURATION);
+
+    for (int i = 0; i < DISPLAY_HEIGHT / 2; i += 4) {
+        ssd1306_clear(&disp);
+        ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+        ssd1306_clear_square(&disp, 0, 0, DISPLAY_WIDTH - 1, i);
+        ssd1306_draw_line(&disp, 0, i, DISPLAY_WIDTH - 1, i);
+        ssd1306_clear_square(&disp, 0, DISPLAY_HEIGHT, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
+        ssd1306_draw_line(&disp, 0, DISPLAY_HEIGHT - i, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
+        ssd1306_show(&disp);
+        System::virtualVBLSync();
+    }
+
+    screenOff();
+}
+
 void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
     danceFloor->stop();
     SIDPlayer::resetState();
-    int labelWidth = (int) strlen(goingDormantLabel) * FONT_WIDTH;
-    int windowWidth = labelWidth + 4;
-    int windowHeight = FONT_HEIGHT + 1;
-    int displayCenter = DISPLAY_WIDTH / 2;
-    screenOn();
-    ssd1306_clear(&disp);
-    ssd1306_clear_square(&disp, displayCenter - (windowWidth / 2), 12, windowWidth, windowHeight);
-    ssd13606_draw_empty_square(&disp, displayCenter - (windowWidth / 2), 10, windowWidth, windowHeight + 3);
-    ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
-
-    ssd1306_show(&disp);
-    busy_wait_ms(SPLASH_DISPLAY_DURATION);
-    screenOff();
+    animateShutdown();
     System::goDormant();
 }

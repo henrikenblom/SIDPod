@@ -11,6 +11,16 @@
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
 
+#define REFERENCE_CLOCK_SPEED_KHZ           125000
+
+#if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
+#define CLOCK_SPEED_KHZ                     200000
+#else
+#define CLOCK_SPEED_KHZ                     160000
+#endif
+
+#define WAIT_SYNC_NS                        ((CLOCK_SPEED_KHZ / REFERENCE_CLOCK_SPEED_KHZ) * 10000)
+
 #define SECTOR_COUNT                        (FLASH_STORAGE_BYTES / FLASH_SECTOR_SIZE)
 #define FLASH_BASE_ADDR                     (PICO_FLASH_SIZE_BYTES - FLASH_STORAGE_BYTES)
 #define FLASH_MMAP_ADDR                     (XIP_BASE + FLASH_BASE_ADDR)

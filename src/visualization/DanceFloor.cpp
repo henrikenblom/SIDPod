@@ -1,6 +1,7 @@
 #include "DanceFloor.h"
 #include "../platform_config.h"
 #include "kiss_fftr.h"
+#include "../System.h"
 #include "../audio/SIDPlayer.h"
 #include "../audio/C64.h"
 
@@ -353,6 +354,7 @@ namespace Visualization {
                     freeze = true;
                 }
             }
+            System::virtualVBLSync();
         }
     }
 

@@ -10,6 +10,8 @@ set(BOARD pico_sdk)
 set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
 
+#add_compile_definitions(SYS_CLK_MHZ=200)
+
 project(SIDPod)
 
 pico_sdk_init()

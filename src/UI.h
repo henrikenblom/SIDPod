@@ -24,6 +24,7 @@ public:
     enum State {
         song_selector, splash, raster_bars, visualization, volume_control, sleeping
     };
+
 private:
     static void showSongSelector();
 
@@ -38,8 +39,6 @@ private:
     static void drawRSIDSymbol(int32_t y);
 
     static void showFlashEmptyScreen();
-
-    static int readVoltage();
 
     static void showVolumeControl();
 
@@ -56,6 +55,8 @@ private:
     static void resetVolumeControlSessionTimer();
 
     static void endVolumeControlSession();
+
+    static void animateShutdown();
 
     volatile static void doubleClickCallback();
 
