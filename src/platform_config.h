@@ -4,7 +4,7 @@
 #ifdef SOLDERPARTY_RP2040_STAMP
 #define FLASH_STORAGE_BYTES (7552 * 1024)
 #endif
-#ifdef RASPBERRYPI_PICO
+#if defined(RASPBERRYPI_PICO) || defined(RASPBERRYPI_PICO_W)
 #define FLASH_STORAGE_BYTES                 (1408 * 1024)
 #endif
 

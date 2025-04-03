@@ -1,14 +1,18 @@
 cmake_minimum_required(VERSION 3.5)
 
+#set(PICO_BOARD solderparty_rp2040_stamp)
+#set(PICO_BOARD pico)
+set(PICO_BOARD pico_w)
+set(BOARD pico_sdk)
+set(FAMILY rp2040)
+
+set(CMAKE_C_STANDARD 11)
+
+set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
+
 include(bin2h.cmake)
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
-
-set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
-set(PICO_BOARD solderparty_rp2040_stamp)
-set(BOARD pico_sdk)
-set(FAMILY rp2040)
-set(CMAKE_C_STANDARD 11)
 
 #add_compile_definitions(SYS_CLK_MHZ=200)
 
@@ -70,7 +74,7 @@ add_executable(${PROJECT_NAME}
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+target_link_libraries(${PROJECT_NAME}
         hardware_rtc
         hardware_sync
         hardware_flash
@@ -79,7 +83,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         hardware_i2c
         hardware_clocks
         hardware_sleep
-        pico_bootsel_via_double_reset
         pico_stdlib
         pico_audio_i2s
         pico_multicore
@@ -101,12 +104,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${TINYUSB_PATH}/hw/
 )
 
+set(BTSTACK_3RD_PARTY_PATH ${PICO_SDK_PATH}/lib/btstack/3rd-party)
+
 target_compile_definitions(${PROJECT_NAME} PUBLIC
         CFG_TUD_MSC=1
         PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1
         PICO_AUDIO_I2S_MONO_INPUT=1
         PICO_AUDIO_I2S_DATA_PIN=26
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+        AUDIO_FREQ_MAX=48000
+        CYW43_LWIP=0
 )
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
