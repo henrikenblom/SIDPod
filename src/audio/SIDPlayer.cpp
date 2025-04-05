@@ -171,9 +171,6 @@ void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
-    bool firstBuffer = true;
-    audio_buffer *bufferOne;
-    audio_buffer *bufferTwo = take_audio_buffer(audioBufferPool, true);
     while (true) {
         if (playPauseQueued) {
             CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
@@ -201,18 +198,15 @@ void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
         }
 
         if (rendering && sidInfo.play_addr != 0) {
+            float volumeFactor = (float) volume / VOLUME_STEPS;
+            audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
+            auto *samples = (int16_t *) buffer->buffer->bytes;
             generateSamples();
-            if (firstBuffer) {
-                firstBuffer = false;
-                bufferOne = take_audio_buffer(audioBufferPool, true);
-                fillAudioBuffer(bufferOne);
-                give_audio_buffer(audioBufferPool, bufferTwo);
-            } else {
-                firstBuffer = true;
-                bufferTwo = take_audio_buffer(audioBufferPool, true);
-                fillAudioBuffer(bufferTwo);
-                give_audio_buffer(audioBufferPool, bufferOne);
+            for (uint i = 0; i < buffer->max_sample_count; i++) {
+                samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
             }
+            buffer->sample_count = buffer->max_sample_count;
+            give_audio_buffer(audioBufferPool, buffer);
         }
     }
 }

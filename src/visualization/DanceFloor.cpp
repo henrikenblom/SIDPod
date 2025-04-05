@@ -230,7 +230,7 @@ namespace Visualization {
 
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
         for (uint8_t x = 0; x < 127; x++) {
-            const int i = 2 * x;
+            const int i = static_cast<int>(1.6) * x;
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i + static_cast<float>(i)) *
                                      compFactor);
