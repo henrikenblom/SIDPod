@@ -132,18 +132,8 @@ int SID::output() {
         return -half;
     }
 
-    return static_cast<int>(static_cast<float>(sample) * volumeFactor);
+    return sample;
 }
-
-void SID::set_master_volume(uint8_t volume) {
-    master_volume = volume;
-    volumeFactor = static_cast<float>(master_volume) / VOLUME_STEPS;
-}
-
-uint8_t SID::get_master_volume() const {
-    return master_volume;
-}
-
 
 // ----------------------------------------------------------------------------
 // Read registers.

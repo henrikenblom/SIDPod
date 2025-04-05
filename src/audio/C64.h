@@ -49,10 +49,6 @@ public:
     static bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
 
     static void sid_synth_render(short *buffer, size_t len);
-
-    static void set_master_volume(uint8_t volume);
-
-    static uint8_t get_master_volume();
 };
 
 //----------------------------------------------

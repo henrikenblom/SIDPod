@@ -16,6 +16,7 @@ repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = 6;
+float volumeFactor;
 static sid_info sidInfo{};
 short visualizationBuffer[FFT_SAMPLES];
 bool firstBuffer = true;
@@ -43,6 +44,7 @@ audio_i2s_config config = {
 // core0 functions
 
 void SIDPlayer::initAudio() {
+    updateVolumeFactor();
     multicore_launch_core1(core1Main);
     multicore_fifo_pop_blocking();
 }
@@ -54,7 +56,6 @@ void SIDPlayer::resetState() {
     lastCatalogEntry = {};
     memset(visualizationBuffer, 0, SAMPLES_PER_BUFFER);
     C64::c64Init();
-    C64::set_master_volume(volume);
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -71,6 +72,10 @@ void SIDPlayer::ampOff() {
     }
 }
 
+void SIDPlayer::updateVolumeFactor() {
+    volumeFactor = static_cast<float>(volume) / VOLUME_STEPS;
+}
+
 void SIDPlayer::volumeUp() {
     if (volume < VOLUME_STEPS) {
         if (volume == 0) {
@@ -78,7 +83,7 @@ void SIDPlayer::volumeUp() {
         }
         volume++;
     }
-    C64::set_master_volume(volume);
+    updateVolumeFactor();
 }
 
 void SIDPlayer::volumeDown() {
@@ -88,7 +93,7 @@ void SIDPlayer::volumeDown() {
         }
         volume--;
     }
-    C64::set_master_volume(volume);
+    updateVolumeFactor();
 }
 
 uint8_t SIDPlayer::getVolume() {
@@ -147,7 +152,7 @@ void SIDPlayer::tryJSRToPlayAddr() {
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 void SIDPlayer::generateSamples(audio_buffer *buffer) {
-    auto *samples = (int16_t *) buffer->buffer->bytes;
+    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     tryJSRToPlayAddr();
     if (sidInfo.speed == USE_CIA) {
         C64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
@@ -156,10 +161,13 @@ void SIDPlayer::generateSamples(audio_buffer *buffer) {
     } else {
         C64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
     }
-    buffer->sample_count = buffer->max_sample_count;
     std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
               visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
     firstBuffer = !firstBuffer;
+    for (int i = 0; i < SAMPLES_PER_BUFFER; i++) {
+        samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
+    }
+    buffer->sample_count = buffer->max_sample_count;
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {

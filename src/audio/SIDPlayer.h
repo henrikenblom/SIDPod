@@ -16,8 +16,6 @@ public:
 
     static bool loadPSID(CatalogEntry *sidFile);
 
-    static void tryJSRToPlayAddr();
-
     static CatalogEntry *getCurrentlyLoaded();
 
     static void togglePlayPause();
@@ -45,6 +43,10 @@ public:
     static void resetState();
 
 private:
+    static void tryJSRToPlayAddr();
+
+    static void updateVolumeFactor();
+
     static void generateSamples(audio_buffer *buffer);
 
     [[noreturn]] static void core1Main();

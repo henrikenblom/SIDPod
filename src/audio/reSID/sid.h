@@ -95,10 +95,6 @@ public:
     // 16-bit output (AUDIO OUT).
     int output();
 
-    void set_master_volume(uint8_t volume);
-
-    uint8_t get_master_volume() const;
-
 protected:
     RESID_INLINE int clock_fast(cycle_count &delta_t, short *buf, int n);
 
@@ -114,8 +110,6 @@ protected:
     cycle_count bus_value_ttl;
 
     float clock_frequency;
-    uint8_t master_volume;
-    float volumeFactor;
 
     // External audio input.
     int ext_in;

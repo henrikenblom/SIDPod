@@ -111,15 +111,7 @@ void C64::synth_init() {
 void C64::sid_synth_render(short *buffer, size_t len) {
     cycle_count delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                               static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    reSID.clock(delta_t, buffer, len);
-}
-
-void C64::set_master_volume(uint8_t volume) {
-    reSID.set_master_volume(volume);
-}
-
-uint8_t C64::get_master_volume() {
-    return reSID.get_master_volume();
+    reSID.clock(delta_t, buffer, static_cast<int>(len));
 }
 
 /*
