@@ -14,7 +14,7 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static bool loadPSID(CatalogEntry *sidFile);
+    static volatile bool loadPSID(CatalogEntry *sidFile);
 
     static CatalogEntry *getCurrentlyLoaded();
 
@@ -43,16 +43,15 @@ public:
     static void resetState();
 
 private:
-    static void tryJSRToPlayAddr();
+    static volatile void tryJSRToPlayAddr();
 
     static void updateVolumeFactor();
 
-    static void generateSamples(audio_buffer *buffer);
+    static volatile void generateSamples(audio_buffer *buffer);
 
     [[noreturn]] static void core1Main();
 
-    // ReSharper disable once CppRedundantElaboratedTypeSpecifier
-    static bool reapCommand(struct repeating_timer *t);
+    static volatile bool reapCommand(struct repeating_timer *t);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

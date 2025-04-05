@@ -130,7 +130,7 @@ bool SIDPlayer::loadingWasSuccessful() {
 
 // core1 functions
 
-bool SIDPlayer::reapCommand(repeating_timer *t) {
+volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
     (void) t;
     uint8_t value = 0;
     queue_try_remove(&txQueue, &value);
@@ -140,18 +140,19 @@ bool SIDPlayer::reapCommand(repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
+volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
     return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
 }
 
-void SIDPlayer::tryJSRToPlayAddr() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void SIDPlayer::tryJSRToPlayAddr() {
     if (!C64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
         loadingSuccessful = false;
     }
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
-void SIDPlayer::generateSamples(audio_buffer *buffer) {
+volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     tryJSRToPlayAddr();
     if (sidInfo.speed == USE_CIA) {
@@ -176,7 +177,7 @@ void SIDPlayer::generateSamples(audio_buffer *buffer) {
     audio_i2s_connect(audioBufferPool);
     audio_i2s_set_enabled(true);
     queue_init(&txQueue, 1, 1);
-    add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
+    add_repeating_timer_ms(50, reinterpret_cast<repeating_timer_callback_t>(reapCommand), nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
