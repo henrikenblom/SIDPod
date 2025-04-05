@@ -8,7 +8,7 @@
 
 #define PLAY_PAUSE_COMMAND_CODE     123
 
-extern short intermediateBuffer[];
+extern short visualizationBuffer[];
 
 class SIDPlayer {
 public:
@@ -45,9 +45,7 @@ public:
     static void resetState();
 
 private:
-    static void generateSamples();
-
-    static void fillAudioBuffer(audio_buffer *buffer);
+    static void generateSamples(audio_buffer *buffer);
 
     [[noreturn]] static void core1Main();
 
