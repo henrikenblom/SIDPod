@@ -114,6 +114,14 @@ void C64::sid_synth_render(short *buffer, size_t len) {
     reSID.clock(delta_t, buffer, len);
 }
 
+void C64::set_master_volume(uint8_t volume) {
+    reSID.set_master_volume(volume);
+}
+
+uint8_t C64::get_master_volume() {
+    return reSID.get_master_volume();
+}
+
 /*
 * C64 Mem Routines
 */

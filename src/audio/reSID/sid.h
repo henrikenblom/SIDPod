@@ -28,104 +28,117 @@
 
 RESID_NAMESPACE_START
 
-class SID
-{
+class SID {
 public:
-  SID();
-  ~SID();
-	//void printFilter(void);
-  //void set_chip_model(chip_model model);
-  void enable_filter(bool enable);
-  void enable_external_filter(bool enable);
-  bool set_sampling_parameters(float clock_freq, sampling_method method,
-			       float sample_freq, float pass_freq = -1,
-			       float filter_scale = 0.97);
-  void adjust_sampling_frequency(float sample_freq);
+    SID();
 
-  //void fc_default(const fc_point*& points, int& count);
-  //PointPlotter<sound_sample> fc_plotter();
+    ~SID();
 
-  void clock();
-  void clock(cycle_count delta_t);
-  int clock(cycle_count& delta_t, short* buf, int n);
-  void reset();
-  
-  // Read/write registers.
-  reg8 read(reg8 offset);
-  void write(reg8 offset, reg8 value);
-  void mute(reg8 channel, bool enable);
+    //void printFilter(void);
+    //void set_chip_model(chip_model model);
+    void enable_filter(bool enable);
 
-  // Read/write state.
-  class State
-  {
-  public:
-    State();
+    void enable_external_filter(bool enable);
 
-    char sid_register[0x20];
+    bool set_sampling_parameters(float clock_freq, sampling_method method,
+                                 float sample_freq, float pass_freq = -1,
+                                 float filter_scale = 0.97);
+
+    void adjust_sampling_frequency(float sample_freq);
+
+    //void fc_default(const fc_point*& points, int& count);
+    //PointPlotter<sound_sample> fc_plotter();
+
+    void clock();
+
+    void clock(cycle_count delta_t);
+
+    int clock(cycle_count &delta_t, short *buf, int n);
+
+    void reset();
+
+    // Read/write registers.
+    reg8 read(reg8 offset);
+
+    void write(reg8 offset, reg8 value);
+
+    void mute(reg8 channel, bool enable);
+
+    // Read/write state.
+    class State {
+    public:
+        State();
+
+        char sid_register[0x20];
+
+        reg8 bus_value;
+        cycle_count bus_value_ttl;
+
+        reg24 accumulator[3];
+        reg24 shift_register[3];
+        reg16 rate_counter[3];
+        reg16 rate_counter_period[3];
+        reg16 exponential_counter[3];
+        reg16 exponential_counter_period[3];
+        reg8 envelope_counter[3];
+        EnvelopeGenerator::State envelope_state[3];
+        bool hold_zero[3];
+    };
+
+    State read_state();
+
+    void write_state(const State &state);
+
+    // 16-bit input (EXT IN).
+    void input(int sample);
+
+    // 16-bit output (AUDIO OUT).
+    int output();
+
+    void set_master_volume(uint8_t volume);
+
+    uint8_t get_master_volume() const;
+
+protected:
+    RESID_INLINE int clock_fast(cycle_count &delta_t, short *buf, int n);
+
+    RESID_INLINE int clock_interpolate(cycle_count &delta_t, short *buf, int n);
+
+    Voice voice[3];
+    Filter filter;
+    ExternalFilter extfilt;
+    Potentiometer potx;
+    Potentiometer poty;
 
     reg8 bus_value;
     cycle_count bus_value_ttl;
 
-    reg24 accumulator[3];
-    reg24 shift_register[3];
-    reg16 rate_counter[3];
-    reg16 rate_counter_period[3];
-    reg16 exponential_counter[3];
-    reg16 exponential_counter_period[3];
-    reg8 envelope_counter[3];
-    EnvelopeGenerator::State envelope_state[3];
-    bool hold_zero[3];
-  };
-    
-  State read_state();
-  void write_state(const State& state);
+    float clock_frequency;
+    uint8_t master_volume;
+    float volumeFactor;
 
-  // 16-bit input (EXT IN).
-  void input(int sample);
+    // External audio input.
+    int ext_in;
 
-  // 16-bit output (AUDIO OUT).
-  int output();
+    // Resampling constants.
+    static const int FIR_N;
+    static const int FIR_RES_INTERPOLATE;
+    static const int FIR_RES_FAST;
+    static const int FIR_SHIFT;
+    static const int RINGSIZE;
 
+    // Fixpoint constants.
+    static const int FIXP_SHIFT;
+    static const int FIXP_MASK;
 
-protected:
-
-  RESID_INLINE int clock_fast(cycle_count& delta_t, short* buf, int n);
-  RESID_INLINE int clock_interpolate(cycle_count& delta_t, short* buf, int n);
-
-	Voice voice[3];
-  Filter filter;
-  ExternalFilter extfilt;
-  Potentiometer potx;
-  Potentiometer poty;
-
-  reg8 bus_value;
-  cycle_count bus_value_ttl;
-
-  float clock_frequency;
-
-  // External audio input.
-  int ext_in;
-
-  // Resampling constants.
-  static const int FIR_N;
-  static const int FIR_RES_INTERPOLATE;
-  static const int FIR_RES_FAST;
-  static const int FIR_SHIFT;
-  static const int RINGSIZE;
-
-  // Fixpoint constants.
-  static const int FIXP_SHIFT;
-  static const int FIXP_MASK;
-
-  // Sampling variables.
-  sampling_method sampling;
-  cycle_count cycles_per_sample;
-  cycle_count sample_offset;
-  int sample_index;
-  short sample_prev;
-  int fir_N;
-  int fir_RES;
-
+    // Sampling variables.
+    sampling_method sampling;
+    cycle_count cycles_per_sample;
+    cycle_count sample_offset;
+    int sample_index;
+    short sample_prev;
+    int fir_N;
+    int fir_RES;
 };
 
 RESID_NAMESPACE_STOP

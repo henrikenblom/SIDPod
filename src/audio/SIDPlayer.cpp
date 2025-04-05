@@ -5,6 +5,7 @@
 #include <hardware/gpio.h>
 #include "SIDPlayer.h"
 
+#include <algorithm>
 #include <pico/audio.h>
 #include <pico/audio_i2s.h>
 
@@ -16,7 +17,8 @@ queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = 6;
 static sid_info sidInfo{};
-short intermediateBuffer[SAMPLES_PER_BUFFER];
+short visualizationBuffer[FFT_SAMPLES];
+bool firstBuffer = true;
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
@@ -50,8 +52,9 @@ void SIDPlayer::resetState() {
     rendering = false;
     loadingSuccessful = true;
     lastCatalogEntry = {};
-    memset(intermediateBuffer, 0, SAMPLES_PER_BUFFER);
+    memset(visualizationBuffer, 0, SAMPLES_PER_BUFFER);
     C64::c64Init();
+    C64::set_master_volume(volume);
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -75,6 +78,7 @@ void SIDPlayer::volumeUp() {
         }
         volume++;
     }
+    C64::set_master_volume(volume);
 }
 
 void SIDPlayer::volumeDown() {
@@ -84,6 +88,7 @@ void SIDPlayer::volumeDown() {
         }
         volume--;
     }
+    C64::set_master_volume(volume);
 }
 
 uint8_t SIDPlayer::getVolume() {
@@ -141,26 +146,20 @@ void SIDPlayer::tryJSRToPlayAddr() {
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
-void SIDPlayer::generateSamples() {
+void SIDPlayer::generateSamples(audio_buffer *buffer) {
+    auto *samples = (int16_t *) buffer->buffer->bytes;
     tryJSRToPlayAddr();
     if (sidInfo.speed == USE_CIA) {
-        C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER / 2);
+        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
         tryJSRToPlayAddr();
-        C64::sid_synth_render(intermediateBuffer + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
+        C64::sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
     } else {
-        C64::sid_synth_render(intermediateBuffer, SAMPLES_PER_BUFFER);
-    }
-}
-
-// ReSharper disable once CppDFAUnreachableFunctionCall
-void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
-    float volumeFactor = static_cast<float>(volume) / VOLUME_STEPS;
-    volumeFactor = volumeFactor * volumeFactor;
-    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
-    for (uint i = 0; i < buffer->max_sample_count; i++) {
-        samples[i] = static_cast<int16_t>((float) intermediateBuffer[i] * volumeFactor);
+        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
     }
     buffer->sample_count = buffer->max_sample_count;
+    std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
+              visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
+    firstBuffer = !firstBuffer;
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
@@ -171,9 +170,6 @@ void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
-    bool firstBuffer = true;
-    audio_buffer *bufferOne;
-    audio_buffer *bufferTwo = take_audio_buffer(audioBufferPool, true);
     while (true) {
         if (playPauseQueued) {
             CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
@@ -190,7 +186,7 @@ void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
                 }
                 lastCatalogEntry = currentCatalogEntry;
             } else if (rendering) {
-                memset(intermediateBuffer, 0, sizeof(intermediateBuffer));
+                memset(visualizationBuffer, 0, sizeof(visualizationBuffer));
                 rendering = false;
                 ampOff();
             } else {
@@ -201,18 +197,9 @@ void SIDPlayer::fillAudioBuffer(audio_buffer *buffer) {
         }
 
         if (rendering && sidInfo.play_addr != 0) {
-            generateSamples();
-            if (firstBuffer) {
-                firstBuffer = false;
-                bufferOne = take_audio_buffer(audioBufferPool, true);
-                fillAudioBuffer(bufferOne);
-                give_audio_buffer(audioBufferPool, bufferTwo);
-            } else {
-                firstBuffer = true;
-                bufferTwo = take_audio_buffer(audioBufferPool, true);
-                fillAudioBuffer(bufferTwo);
-                give_audio_buffer(audioBufferPool, bufferOne);
-            }
+            audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
+            generateSamples(buffer);
+            give_audio_buffer(audioBufferPool, buffer);
         }
     }
 }

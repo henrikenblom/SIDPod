@@ -46,8 +46,8 @@
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 #define USE_CIA                            1
 
-#define SAMPLE_RATE                         ((uint32_t)48000)
-#define SAMPLES_PER_BUFFER                  1000
+#define SAMPLE_RATE                         ((uint32_t)44100)
+#define SAMPLES_PER_BUFFER                  920
 
 #define AMP_CONTROL_PIN                     15
 
@@ -76,7 +76,8 @@
 #define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
-#define FFT_SAMPLES                         SAMPLES_PER_BUFFER
+#define FFT_SAMPLES                         1000
+#define LOW_FREQ_DOMINANCE_COMP_OFFSET      12
 #define SIDPLAYER_STARTUP_GRACE_TIME        800
 
 #define USER_CONTROLS_POLLRATE_MS           50

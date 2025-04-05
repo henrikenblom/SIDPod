@@ -229,8 +229,8 @@ namespace Visualization {
     }
 
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
-        for (uint8_t x = 0; x < 127; x++) {
-            const int i = 2 * x;
+        for (uint8_t x = LOW_FREQ_DOMINANCE_COMP_OFFSET; x < 127 + LOW_FREQ_DOMINANCE_COMP_OFFSET; x++) {
+            const int i = static_cast<int>(1.8) * x;
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i + static_cast<float>(i)) *
                                      compFactor);
@@ -251,7 +251,7 @@ namespace Visualization {
                     SoundSprite sprite = {
                         .velocity = static_cast<int8_t>(std::min(16,
                                                                  y)),
-                        .distance = 20, .frequency_bin = x
+                        .distance = 20, .frequency_bin = static_cast<uint8_t>(x - LOW_FREQ_DOMINANCE_COMP_OFFSET)
                     };
                     soundSprites[sprite_index++] = sprite;
                     if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
@@ -336,7 +336,7 @@ namespace Visualization {
                 freeze = false;
                 int j = 0;
                 for (int i = 0; i < FFT_SAMPLES; i += 1) {
-                    fftIn[j++] = intermediateBuffer[i];
+                    fftIn[j++] = visualizationBuffer[i];
                 }
                 kiss_fftr(fft_cfg, fftIn, fftOut);
 
