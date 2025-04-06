@@ -15,7 +15,7 @@
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
-uint8_t volume = 6;
+uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
 static sid_info sidInfo{};
 short visualizationBuffer[FFT_SAMPLES];
@@ -165,8 +165,10 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
     std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
               visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
     firstBuffer = !firstBuffer;
-    for (int i = 0; i < SAMPLES_PER_BUFFER; i++) {
-        samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
+    for (int16_t i = 0; i < SAMPLES_PER_BUFFER; i++) {
+        if (samples[i]) {
+            samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
+        }
     }
     buffer->sample_count = buffer->max_sample_count;
 }

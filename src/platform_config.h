@@ -51,7 +51,8 @@
 
 #define AMP_CONTROL_PIN                     15
 
-#define VOLUME_STEPS                        20
+#define VOLUME_STEPS                        24
+#define INITIAL_VOLUME                      10
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1
