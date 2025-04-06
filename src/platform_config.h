@@ -42,12 +42,12 @@
 #define SID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x48)
 #define PSID_ID                             0x50534944
 #define RSID_ID                             0x52534944
-#define SID_LOAD_BUFFER_SIZE                ((int) 1024)
+#define SID_LOAD_BUFFER_SIZE                ((int) 256)
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
-#define USE_CIA                            1
+#define USE_CIA                             1
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
-#define SAMPLES_PER_BUFFER                  920
+#define SAMPLES_PER_BUFFER                  896
 
 #define AMP_CONTROL_PIN                     15
 
@@ -59,6 +59,8 @@
 #define DISPLAY_EXTERNAL_VCC                0
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
+#define DISPLAY_X_CENTER                    (DISPLAY_WIDTH / 2)
+#define DISPLAY_Y_CENTER                    (DISPLAY_HEIGHT / 2)
 #define DISPLAY_I2C_ADDRESS                 0x3C
 
 #define DISPLAY_STATE_CHANGE_DELAY_MS       500

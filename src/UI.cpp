@@ -182,6 +182,18 @@ void UI::showFlashEmptyScreen() {
     ssd1306_show(&disp);
 }
 
+void UI::drawDialog(const char *text) {
+    int labelWidth = static_cast<int>(strlen(text)) * FONT_WIDTH;
+    int windowWidth = labelWidth + 4;
+    int windowHeight = FONT_HEIGHT + 1;
+    ssd1306_clear_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
+                         windowWidth, windowHeight + 1);
+    ssd13606_draw_empty_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
+                               windowWidth, windowHeight + 1);
+    ssd1306_draw_string(&disp, DISPLAY_X_CENTER - (labelWidth / 2) + 1, DISPLAY_Y_CENTER - FONT_HEIGHT / 2 + 1, 1,
+                        text);
+}
+
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
     ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);

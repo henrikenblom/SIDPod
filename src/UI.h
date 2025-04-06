@@ -21,6 +21,8 @@ public:
 
     static void goToSleep();
 
+    static void drawDialog(const char *text);
+
     enum State {
         song_selector, splash, raster_bars, visualization, volume_control, sleeping
     };

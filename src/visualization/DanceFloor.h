@@ -65,8 +65,6 @@ namespace Visualization {
 
         void drawSoundSprite(SoundSprite sprite) const;
 
-        void drawPausedLabel() const;
-
         bool shouldUpdateRoundSprites() const;
 
         bool shouldUpdateSoundSprites() const;
@@ -104,6 +102,7 @@ namespace Visualization {
         bool letStarShipRoam = false;
         char scrollText[160]{};
         char pausedLabel[7] = "PAUSED";
+        char failedLabel[7] = "FAILED";
         uint8_t horizontalLineDitherOffset = 0;
         int rvOffset = 0;
         int rsOffset = DISPLAY_WIDTH + 32;

@@ -4,6 +4,7 @@
 #include "../System.h"
 #include "../audio/SIDPlayer.h"
 #include "../audio/C64.h"
+#include "../UI.h"
 
 char experience[20];
 
@@ -197,15 +198,6 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::drawPausedLabel() const {
-        int labelWidth = (int) strlen(pausedLabel) * FONT_WIDTH;
-        int windowWidth = labelWidth + 4;
-        int windowHeight = FONT_HEIGHT + 1;
-        ssd1306_clear_square(pDisp, displayCenter - (windowWidth / 2), 12, windowWidth, windowHeight);
-        ssd13606_draw_empty_square(pDisp, displayCenter - (windowWidth / 2), 10, windowWidth, windowHeight + 3);
-        ssd1306_draw_string(pDisp, displayCenter - (labelWidth / 2) + 1, 13, 1, pausedLabel);
-    }
-
     bool DanceFloor::shouldUpdateRoundSprites() const {
         return alternativeScene || transition == FROM_SPECTRUM || transition == FROM_ALTERNATIVE;
     }
@@ -349,7 +341,11 @@ namespace Visualization {
                 ssd1306_show(pDisp);
                 busy_wait_ms(500);
                 if (!SIDPlayer::isPlaying()) {
-                    drawPausedLabel();
+                    if (!SIDPlayer::loadingWasSuccessful()) {
+                        UI::drawDialog(failedLabel);
+                    } else {
+                        UI::drawDialog(pausedLabel);
+                    }
                     ssd1306_show(pDisp);
                     freeze = true;
                 }
