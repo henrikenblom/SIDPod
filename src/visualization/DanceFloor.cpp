@@ -3,7 +3,6 @@
 #include "kiss_fftr.h"
 #include "../System.h"
 #include "../audio/SIDPlayer.h"
-#include "../audio/C64.h"
 #include "../UI.h"
 
 char experience[20];
@@ -315,13 +314,13 @@ namespace Visualization {
     void DanceFloor::visualize() {
         while (running) {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
-                sid_info *entry = SIDPlayer::getSidInfo();
-                randomizeExperience(experience);
-                snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
-                         entry->title, entry->author, entry->released, experience,
-                         entry->rsid == true ? "this RSID" : "it");
-                showScroller = true;
+                // sid_info *entry = SIDPlayer::getSidInfo();
+                // randomizeExperience(experience);
+                // snprintf(scrollText, sizeof(scrollText),
+                //          "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
+                //          entry->title, entry->author, entry->released, experience,
+                //          entry->rsid == true ? "this RSID" : "it");
+                // showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
             if (SIDPlayer::isPlaying()) {

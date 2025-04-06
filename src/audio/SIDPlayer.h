@@ -3,7 +3,6 @@
 
 #include <pico/audio.h>
 
-#include "C64.h"
 #include "../PSIDCatalog.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
@@ -35,8 +34,6 @@ public:
     static void toggleLineLevel();
 
     static bool lineLevelOn();
-
-    static sid_info *getSidInfo();
 
     static bool loadingWasSuccessful();
 

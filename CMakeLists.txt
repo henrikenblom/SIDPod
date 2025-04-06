@@ -32,8 +32,6 @@ add_executable(${PROJECT_NAME}
         src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
-        src/audio/c64.cpp
-        src/audio/c64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
@@ -42,34 +40,56 @@ add_executable(${PROJECT_NAME}
         src/UI.cpp
         src/visualization/DanceFloor.cpp
         src/System.cpp
-        src/audio/reSID/envelope.cc
-        src/audio/reSID/wave8580_P_T.cc
-        src/audio/reSID/pot.cc
-        src/audio/reSID/voice.cc
-        src/audio/reSID/sid.cc
-        src/audio/reSID/filter.cc
-        src/audio/reSID/wave6581_P_T.cc
-        src/audio/reSID/wave6581_PS_.cc
-        src/audio/reSID/wave8580_PST.cc
-        src/audio/reSID/wave8580__ST.cc
-        src/audio/reSID/wave6581_PST.cc
-        src/audio/reSID/wave8580_PS_.cc
-        src/audio/reSID/wave6581__ST.cc
-        src/audio/reSID/extfilt.cc
-        src/audio/reSID/wave.cc
-        src/audio/reSID/version.cc
-        src/audio/reSID/siddefs.h
-        src/audio/reSID/extfilt.h
-        src/audio/reSID/spline.h
-        src/audio/reSID/ChangeLog
-        src/audio/reSID/pot.h
-        src/audio/reSID/voice.h
-        src/audio/reSID/envelope.h
-        src/audio/reSID/wave.h
-        src/audio/reSID/sid.h
-        src/audio/reSID/filter.h
-        src/audio/reSID/filter6581.h
-        src/audio/reSID/filter8580.h
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/envelope.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave8580_P_T.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/pot.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/voice.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/sid.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/filter.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave6581_P_T.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave6581_PS_.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave8580_PST.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave8580__ST.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave6581_PST.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave8580_PS_.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave6581__ST.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/extfilt.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/wave.cc
+        src/audio/libsidplayfp/src/builders/resid-builder/resid/version.cc
+        src/audio/libsidplayfp/src/EventScheduler.cpp
+        src/audio/libsidplayfp/src/psiddrv.cpp
+        src/audio/libsidplayfp/src/reloc65.cpp
+        src/audio/libsidplayfp/src/c64/VIC_II/mos656x.cpp
+        src/audio/libsidplayfp/src/c64/CPU/mos6510.cpp
+        src/audio/libsidplayfp/src/c64/CPU/mos6510debug.cpp
+        src/audio/libsidplayfp/src/c64/c64.cpp
+        src/audio/libsidplayfp/src/c64/mmu.cpp
+        src/audio/libsidplayfp/src/c64/CIA/mos652x.cpp
+        src/audio/libsidplayfp/src/c64/CIA/tod.cpp
+        src/audio/libsidplayfp/src/c64/CIA/SerialPort.cpp
+        src/audio/libsidplayfp/src/c64/CIA/interrupt.cpp
+        src/audio/libsidplayfp/src/c64/CIA/timer.cpp
+        src/audio/libsidplayfp/src/player.cpp
+        src/audio/libsidplayfp/src/builders/resid-builder/resid-builder.cpp
+        src/audio/libsidplayfp/src/builders/resid-builder/resid-emu.cpp
+        src/audio/libsidplayfp/src/sidtune/PSID.cpp
+        src/audio/libsidplayfp/src/sidtune/SidTuneBase.cpp
+        src/audio/libsidplayfp/src/sidtune/MUS.cpp
+        src/audio/libsidplayfp/src/sidtune/SidTuneTools.cpp
+        src/audio/libsidplayfp/src/sidtune/prg.cpp
+        src/audio/libsidplayfp/src/sidtune/p00.cpp
+        src/audio/libsidplayfp/src/sidemu.cpp
+        src/audio/libsidplayfp/src/mixer.cpp
+        src/audio/libsidplayfp/src/utils/md5Factory.cpp
+        src/audio/libsidplayfp/src/utils/MD5/MD5.cpp
+        src/audio/libsidplayfp/src/utils/STILview/stil.cpp
+        src/audio/libsidplayfp/src/EventScheduler.cpp
+        src/audio/libsidplayfp/src/sidplayfp/SidConfig.cpp
+        src/audio/libsidplayfp/src/sidplayfp/sidplayfp.cpp
+        src/audio/libsidplayfp/src/sidplayfp/SidInfo.cpp
+        src/audio/libsidplayfp/src/sidplayfp/sidbuilder.cpp
+        src/audio/libsidplayfp/src/sidplayfp/SidTune.cpp
+        src/audio/libsidplayfp/src/sidplayfp/SidTuneInfo.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -92,6 +112,19 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/builders/resid-builder/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/builders/resid-builder/resid/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/builders/resid-builder/resid/6581/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/builders/resid-builder/resid/8580/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/PSID/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/MUS/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/p00/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/prg/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/STILview/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/libsidplayfp/src/sidtune/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/

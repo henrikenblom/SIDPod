@@ -82,6 +82,8 @@ const char* resid_version_string = "1";
 }
 #endif
 
+#define VERSION 1
+
 RESID_NAMESPACE_STOP
 
 #endif // not __SIDDEFS_H__
