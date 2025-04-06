@@ -69,21 +69,22 @@ void ExternalFilter::set_sampling_parameter(float pass_freq)
 // ----------------------------------------------------------------------------
 // Set chip model.
 // ----------------------------------------------------------------------------
-/*
+
 void ExternalFilter::set_chip_model(chip_model model)
 {
-  if (model == MOS6581) {
-    // Maximum mixer DC output level; to be removed if the external
-    // filter is turned off: ((wave DC + voice DC)*voices + mixer DC)*volume
-    // See voice.cc and filter.cc for an explanation of the values.
-    mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
-  }
-  else {
-    // No DC offsets in the MOS8580.
-    mixer_DC = 0;
-  }
+  // TODO: Implement this for the 6581
+  // if (model == MOS6581) {
+  //   // Maximum mixer DC output level; to be removed if the external
+  //   // filter is turned off: ((wave DC + voice DC)*voices + mixer DC)*volume
+  //   // See voice.cc and filter.cc for an explanation of the values.
+  //   mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
+  // }
+  // else {
+  //   // No DC offsets in the MOS8580.
+  //   mixer_DC = 0;
+  // }
 }
-*/
+
 
 // ----------------------------------------------------------------------------
 // SID reset.

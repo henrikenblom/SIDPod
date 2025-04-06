@@ -168,39 +168,40 @@ void Filter::enable_filter(bool enable)
 // ----------------------------------------------------------------------------
 // Set chip model.
 // ----------------------------------------------------------------------------
-/*
+
 void Filter::set_chip_model(chip_model model)
 {
-  if (model == MOS6581) {
-    // The mixer has a small input DC offset. This is found as follows:
-    //
-    // The "zero" output level of the mixer measured on the SID audio
-    // output pin is 5.50V at zero volume, and 5.44 at full
-    // volume. This yields a DC offset of (5.44V - 5.50V) = -0.06V.
-    //
-    // The DC offset is thus -0.06V/1.05V ~ -1/18 of the dynamic range
-    // of one voice. See voice.cc for measurement of the dynamic
-    // range.
-
-    mixer_DC = -0xfff*0xff/18 >> 7;
-
-    f0 = f0_6581;
-    f0_points = f0_points_6581;
-    f0_count = sizeof(f0_points_6581)/sizeof(*f0_points_6581);
-  }
-  else {
-    // No DC offsets in the MOS8580.
-    mixer_DC = 0;
-
-    f0 = f0_8580;
-    f0_points = f0_points_8580;
-    f0_count = sizeof(f0_points_8580)/sizeof(*f0_points_8580);
-  }
-
-  set_w0();
-  set_Q();
+  // TODO: Implement this function to set the chip model.
+  // if (model == MOS6581) {
+  //   // The mixer has a small input DC offset. This is found as follows:
+  //   //
+  //   // The "zero" output level of the mixer measured on the SID audio
+  //   // output pin is 5.50V at zero volume, and 5.44 at full
+  //   // volume. This yields a DC offset of (5.44V - 5.50V) = -0.06V.
+  //   //
+  //   // The DC offset is thus -0.06V/1.05V ~ -1/18 of the dynamic range
+  //   // of one voice. See voice.cc for measurement of the dynamic
+  //   // range.
+  //
+  //   mixer_DC = -0xfff*0xff/18 >> 7;
+  //
+  //   f0 = f0_6581;
+  //   f0_points = f0_points_6581;
+  //   f0_count = sizeof(f0_points_6581)/sizeof(*f0_points_6581);
+  // }
+  // else {
+  //   // No DC offsets in the MOS8580.
+  //   mixer_DC = 0;
+  //
+  //   f0 = f0_8580;
+  //   f0_points = f0_points_8580;
+  //   f0_count = sizeof(f0_points_8580)/sizeof(*f0_points_8580);
+  // }
+  //
+  // set_w0();
+  // set_Q();
 }
-*/
+
 
 
 // ----------------------------------------------------------------------------

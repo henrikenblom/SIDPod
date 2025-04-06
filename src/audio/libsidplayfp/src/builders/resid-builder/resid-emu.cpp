@@ -30,138 +30,117 @@
 #include "resid/siddefs.h"
 #include "resid/spline.h"
 
-namespace libsidplayfp
-{
+namespace libsidplayfp {
+    const char *ReSID::getCredits() {
+        static std::string credits;
 
-const char* ReSID::getCredits()
-{
-    static std::string credits;
+        if (credits.empty()) {
+            // Setup credits
+            std::ostringstream ss;
+            ss << "ReSID V" << VERSION << " Engine:\n";
+            ss << "\t(C) 1999-2002 Simon White\n";
+            ss << "MOS6581 (SID) Emulation (ReSID V" << resid_version_string << "):\n";
+            ss << "\t(C) 1999-2010 Dag Lem\n";
+            credits = ss.str();
+        }
 
-    if (credits.empty())
-    {
-        // Setup credits
-        std::ostringstream ss;
-        ss << "ReSID V" << VERSION << " Engine:\n";
-        ss << "\t(C) 1999-2002 Simon White\n";
-        ss << "MOS6581 (SID) Emulation (ReSID V" << resid_version_string << "):\n";
-        ss << "\t(C) 1999-2010 Dag Lem\n";
-        credits = ss.str();
+        return credits.c_str();
     }
 
-    return credits.c_str();
-}
-
-ReSID::ReSID(sidbuilder *builder) :
-    sidemu(builder),
-    m_sid(*(new SID)),
-    m_voiceMask(0x07)
-{
-    m_buffer = new short[OUTPUTBUFFERSIZE];
-    reset(0);
-}
-
-ReSID::~ReSID()
-{
-    delete &m_sid;
-    delete[] m_buffer;
-}
-
-void ReSID::bias(double dac_bias)
-{
-    printf("Bias not supported\n");
-}
-
-// Standard component options
-void ReSID::reset(uint8_t volume)
-{
-    m_accessClk = 0;
-    m_sid.reset();
-    m_sid.write(0x18, volume);
-}
-
-uint8_t ReSID::read(uint_least8_t addr)
-{
-    clock();
-    return m_sid.read(addr);
-}
-
-void ReSID::write(uint_least8_t addr, uint8_t data)
-{
-    clock();
-    m_sid.write(addr, data);
-}
-
-void ReSID::clock()
-{
-    cycle_count cycles = eventScheduler->getTime(EVENT_CLOCK_PHI1) - m_accessClk;
-    m_accessClk += cycles;
-    m_bufferpos += m_sid.clock(cycles, (short *) m_buffer + m_bufferpos, OUTPUTBUFFERSIZE - m_bufferpos, 1);
-    // Adjust in case not all cycles have been consumed
-    m_accessClk -= cycles;
-}
-
-void ReSID::filter(bool enable)
-{
-    m_sid.enable_filter(enable);
-}
-
-void ReSID::sampling(float systemclock, float freq,
-        SidConfig::sampling_method_t method, bool fast)
-{
-    sampling_method sampleMethod;
-    switch (method)
-    {
-    case SidConfig::INTERPOLATE:
-        sampleMethod = fast ? SAMPLE_FAST : SAMPLE_INTERPOLATE;
-        break;
-    case SidConfig::RESAMPLE_INTERPOLATE:
-        printf("Resampling not supported\n");
-        break;
-    default:
-        m_status = false;
-        m_error = ERR_INVALID_SAMPLING;
-        return;
+    ReSID::ReSID(sidbuilder *builder) : sidemu(builder),
+                                        m_sid(*(new SID)),
+                                        m_voiceMask(0x07) {
+        m_buffer = new short[OUTPUTBUFFERSIZE];
+        reset(0);
     }
 
-    if (! m_sid.set_sampling_parameters(systemclock, sampleMethod, freq))
-    {
-        m_status = false;
-        m_error = ERR_UNSUPPORTED_FREQ;
-        return;
+    ReSID::~ReSID() {
+        delete &m_sid;
+        delete[] m_buffer;
     }
 
-    m_status = true;
-}
+    void ReSID::bias(double dac_bias) {
+        printf("Bias not supported\n");
+    }
 
-// Set the emulated SID model
-void ReSID::model(SidConfig::sid_model_t model, bool digiboost)
-{
-    SID::chip_model chipModel;
-    short sample = 0;
-    m_voiceMask &= 0x07;
-    switch (model)
-    {
-        case SidConfig::MOS6581:
-            chipModel = SID::MOS6581;
-            break;
-        case SidConfig::MOS8580:
-            chipModel = SID::MOS8580;
-            if (digiboost)
-            {
-                m_voiceMask |= 0x08;
-                sample = -32768;
-            }
-            break;
-        default:
+    // Standard component options
+    void ReSID::reset(uint8_t volume) {
+        m_accessClk = 0;
+        m_sid.reset();
+        m_sid.write(0x18, volume);
+    }
+
+    uint8_t ReSID::read(uint_least8_t addr) {
+        clock();
+        return m_sid.read(addr);
+    }
+
+    void ReSID::write(uint_least8_t addr, uint8_t data) {
+        clock();
+        m_sid.write(addr, data);
+    }
+
+    void ReSID::clock() {
+        cycle_count cycles = eventScheduler->getTime(EVENT_CLOCK_PHI1) - m_accessClk;
+        m_accessClk += cycles;
+        m_bufferpos += m_sid.clock(cycles, (short *) m_buffer + m_bufferpos, OUTPUTBUFFERSIZE - m_bufferpos);
+        // Adjust in case not all cycles have been consumed
+        m_accessClk -= cycles;
+    }
+
+    void ReSID::filter(bool enable) {
+        m_sid.enable_filter(enable);
+    }
+
+    void ReSID::sampling(float systemclock, float freq,
+                         SidConfig::sampling_method_t method, bool fast) {
+        sampling_method sampleMethod;
+        switch (method) {
+            case SidConfig::INTERPOLATE:
+                sampleMethod = fast ? SAMPLE_FAST : SAMPLE_INTERPOLATE;
+                break;
+            case SidConfig::RESAMPLE_INTERPOLATE:
+                printf("Resampling not supported\n");
+                break;
+            default:
+                m_status = false;
+                m_error = ERR_INVALID_SAMPLING;
+                return;
+        }
+
+        if (!m_sid.set_sampling_parameters(systemclock, sampleMethod, freq)) {
             m_status = false;
-            m_error = ERR_INVALID_CHIP;
+            m_error = ERR_UNSUPPORTED_FREQ;
             return;
+        }
+
+        m_status = true;
     }
 
-    m_sid.set_chip_model(chipModel);
-    m_sid.set_voice_mask(m_voiceMask);
-    m_sid.input(sample);
-    m_status = true;
-}
+    // Set the emulated SID model
+    void ReSID::model(SidConfig::sid_model_t model, bool digiboost) {
+        chip_model chipModel;
+        short sample = 0;
+        m_voiceMask &= 0x07;
+        switch (model) {
+            case SidConfig::MOS6581:
+                chipModel = MOS6581;
+                break;
+            case SidConfig::MOS8580:
+                chipModel = MOS8580;
+                if (digiboost) {
+                    m_voiceMask |= 0x08;
+                    sample = -32768;
+                }
+                break;
+            default:
+                m_status = false;
+                m_error = ERR_INVALID_CHIP;
+                return;
+        }
 
+        m_sid.set_chip_model(chipModel);
+        m_sid.input(sample);
+        m_status = true;
+    }
 }
