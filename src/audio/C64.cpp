@@ -13,6 +13,7 @@
 #include <cstring>
 #include "../platform_config.h"
 #include "reSID/sid.h"
+#include "sidendian.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -638,33 +639,40 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     if (bytesRead < SID_HEADER_SIZE) return false;
     auto *pHeader = static_cast<unsigned char *>(header);
     // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
-    unsigned char data_file_offset = pHeader[7];
+    info->data = pHeader[6] << 8;
+    info->data |= pHeader[7];
 
-    info->rsid = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18) == RSID_ID;
+    printf("o hi: %d", pHeader[6]);
+    printf(" o lo: %d\n", pHeader[7]);
 
-    info->load_addr = pHeader[8] << 8;
-    info->load_addr |= pHeader[9];
+    info->id = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18);
 
-    info->init_addr = pHeader[10] << 8;
-    info->init_addr |= pHeader[11];
+    info->init = pHeader[10] << 8;
+    info->init |= pHeader[11];
 
-    info->play_addr = pHeader[12] << 8;
-    info->play_addr |= pHeader[13];
+    info->play = pHeader[12] << 8;
+    info->play |= pHeader[13];
 
-    info->subsongs = pHeader[0xf] - 1;
-    info->start_song = pHeader[0x11] - 1;
+    info->songs = pHeader[0xf] - 1;
+    info->start = pHeader[0x11] - 1;
 
-    info->load_addr = pHeader[data_file_offset];
-    info->load_addr |= pHeader[data_file_offset + 1] << 8;
+    info->load = pHeader[info->data];
+    info->load |= pHeader[info->data + 1] << 8;
 
     info->speed = pHeader[0x15];
 
-    strcpy(info->title, (const char *) &pHeader[0x16]);
+    strcpy(info->name, (const char *) &pHeader[0x16]);
     strcpy(info->author, (const char *) &pHeader[0x36]);
     strcpy(info->released, (const char *) &pHeader[0x56]);
 
-    f_lseek(&pFile, data_file_offset + 2);
-    uint16_t offset = info->load_addr;
+    print_sid_info(info);
+
+    readHeader(header, *info);
+
+    print_sid_info(info);
+
+    f_lseek(&pFile, info->data + 2);
+    uint16_t offset = info->init;
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
@@ -673,11 +681,53 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     }
     f_close(&pFile);
 
-    if (info->play_addr == 0) {
-        if (!cpuJSRWithWatchdog(info->init_addr, 0)) return false;
-        info->play_addr = (memory[0xffff] << 8) | memory[0xfffe];
+    if (info->play == 0) {
+        if (!cpuJSRWithWatchdog(info->init, 0)) return false;
+        info->play = (memory[0xffff] << 8) | memory[0xfffe];
     }
     return true;
+}
+
+void C64::print_sid_info(struct sid_info *info) {
+    printf("ID: %08x\n", info->id);
+    printf("Version: %d\n", info->version);
+    printf("Data: %d\n", info->data);
+    printf("Load: %d\n", info->load);
+    printf("Init: %d\n", info->init);
+    printf("Play: %d\n", info->play);
+    printf("Songs: %d\n", info->songs);
+    //printf("Start: %d\n", info->start);
+    printf("Speed: %d\n", info->speed);
+    printf("Name: %s\n", info->name);
+    printf("Author: %s\n", info->author);
+    printf("Released: %s\n\n", info->released);
+}
+
+void C64::readHeader(BYTE *buffer, sid_info &info) {
+    // Read v1 fields
+    info.id = endian_big32(&buffer[0]);
+    // info.version = endian_big16(&buffer[4]);
+    info.data = endian_big16(&buffer[6]);
+    //info.load = endian_big16(&buffer[8]);
+    info.init = endian_big16(&buffer[10]);
+    info.play = endian_big16(&buffer[12]);
+    info.songs = endian_big16(&buffer[14]);
+    info.start = endian_big16(&buffer[16]);
+    info.speed = endian_big32(&buffer[18]);
+
+    std::memcpy(info.name, &buffer[22], PSID_MAXSTRLEN);
+    std::memcpy(info.author, &buffer[54], PSID_MAXSTRLEN);
+    std::memcpy(info.released, &buffer[86], PSID_MAXSTRLEN);
+
+    if (info.version >= 2) {
+        printf("v2\n");
+        // Read v2/3/4 fields
+        info.flags = endian_big16(&buffer[118]);
+        info.relocStartPage = buffer[120];
+        info.relocPages = buffer[121];
+        info.sidChipBase2 = buffer[122];
+        info.sidChipBase3 = buffer[123];
+    }
 }
 
 void C64::setLineLevel(bool on) {

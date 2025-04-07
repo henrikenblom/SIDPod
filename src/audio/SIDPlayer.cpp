@@ -146,7 +146,7 @@ volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile void SIDPlayer::tryJSRToPlayAddr() {
-    if (!C64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
+    if (!C64::cpuJSRWithWatchdog(sidInfo.play, 0)) {
         loadingSuccessful = false;
     }
 }
@@ -189,7 +189,7 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
                 if (loadPSID(PSIDCatalog::getCurrentEntry())) {
                     loadingSuccessful = true;
                     C64::sidPoke(24, 15);
-                    C64::cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                    C64::cpuJSR(sidInfo.init, sidInfo.start);
                     rendering = true;
                     ampOn();
                 } else {
@@ -207,7 +207,7 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
             playPauseQueued = false;
         }
 
-        if (rendering && sidInfo.play_addr != 0) {
+        if (rendering && sidInfo.play != 0) {
             audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
             generateSamples(buffer);
             give_audio_buffer(audioBufferPool, buffer);

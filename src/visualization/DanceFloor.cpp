@@ -319,8 +319,8 @@ namespace Visualization {
                 randomizeExperience(experience);
                 snprintf(scrollText, sizeof(scrollText),
                          "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
-                         entry->title, entry->author, entry->released, experience,
-                         entry->rsid == true ? "this RSID" : "it");
+                         entry->name, entry->author, entry->released, experience,
+                         entry->id == RSID_ID ? "this RSID" : "it");
                 showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
