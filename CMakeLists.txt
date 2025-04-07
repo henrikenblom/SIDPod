@@ -32,8 +32,8 @@ add_executable(${PROJECT_NAME}
         src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
-        src/audio/c64.cpp
-        src/audio/c64.h
+        src/audio/SimpleC64.cpp
+        src/audio/SimpleC64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
@@ -92,6 +92,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/

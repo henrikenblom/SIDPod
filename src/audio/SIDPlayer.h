@@ -3,7 +3,7 @@
 
 #include <pico/audio.h>
 
-#include "C64.h"
+#include "SimpleC64.h"
 #include "../PSIDCatalog.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123

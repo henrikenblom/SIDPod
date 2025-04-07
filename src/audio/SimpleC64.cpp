@@ -6,7 +6,7 @@
 *
 ***************************************************************************/
 
-#include "C64.h"
+#include "SimpleC64.h"
 
 #include <cmath>
 #include <cstdio>
@@ -101,14 +101,14 @@ SID reSID;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
-void C64::synth_init() {
+void SimpleC64::synth_init() {
     reSID.reset();
     reSID.enable_filter(true);
     reSID.enable_external_filter(true);
     reSID.set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
-void C64::sid_synth_render(short *buffer, size_t len) {
+void SimpleC64::sid_synth_render(short *buffer, size_t len) {
     cycle_count delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                               static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
     reSID.clock(delta_t, buffer, static_cast<int>(len));
@@ -123,7 +123,7 @@ static unsigned char getmem(unsigned short addr) {
 
 static void setmem(unsigned short addr, unsigned char value) {
     if ((addr & 0xfc00) == 0xd400) {
-        C64::sidPoke(addr & 0x1f, value);
+        SimpleC64::sidPoke(addr & 0x1f, value);
     } else {
         memory[addr] = value;
     }
@@ -132,7 +132,7 @@ static void setmem(unsigned short addr, unsigned char value) {
 /*
 * Poke a value into the sid register
 */
-void C64::sidPoke(int reg, unsigned char val) {
+void SimpleC64::sidPoke(int reg, unsigned char val) {
     reSID.write(reg, val);
 }
 
@@ -297,7 +297,7 @@ static void branch(int flag) {
     if (flag) pc = wval;
 }
 
-void C64::cpuReset() {
+void SimpleC64::cpuReset() {
     a = x = y = 0;
     p = 0;
     s = 255;
@@ -591,7 +591,7 @@ static void cpuParse() {
     }
 }
 
-void C64::cpuJSR(unsigned short npc, unsigned char na) {
+void SimpleC64::cpuJSR(unsigned short npc, unsigned char na) {
     a = na;
     x = 0;
     y = 0;
@@ -605,7 +605,7 @@ void C64::cpuJSR(unsigned short npc, unsigned char na) {
         cpuParse();
 }
 
-bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
+bool SimpleC64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
     watchdog_counter = 0;
     a = na;
     x = 0;
@@ -622,13 +622,13 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
     return watchdog_counter < CPU_JSR_WATCHDOG_ABORT_LIMIT;
 }
 
-void C64::c64Init() {
+void SimpleC64::c64Init() {
     synth_init();
     memset(memory, 0, sizeof(memory));
     cpuReset();
 }
 
-bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
+bool SimpleC64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
@@ -680,10 +680,10 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     return true;
 }
 
-void C64::setLineLevel(bool on) {
+void SimpleC64::setLineLevel(bool on) {
     //reSID.enable_filter(on);
 }
 
-bool C64::getLineLevelOn() {
+bool SimpleC64::getLineLevelOn() {
     return false;
 }

@@ -28,7 +28,7 @@ struct sid_info {
 };
 
 //----------------------------------------------
-class C64 {
+class SimpleC64 {
 public:
     static void synth_init();
 

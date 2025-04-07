@@ -10,7 +10,7 @@
 #include <pico/audio_i2s.h>
 
 #include "../platform_config.h"
-#include "C64.h"
+#include "SimpleC64.h"
 
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
@@ -55,7 +55,7 @@ void SIDPlayer::resetState() {
     loadingSuccessful = true;
     lastCatalogEntry = {};
     memset(visualizationBuffer, 0, SAMPLES_PER_BUFFER);
-    C64::c64Init();
+    SimpleC64::c64Init();
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -67,7 +67,7 @@ void SIDPlayer::ampOn() {
 }
 
 void SIDPlayer::ampOff() {
-    if (!C64::getLineLevelOn()) {
+    if (!SimpleC64::getLineLevelOn()) {
         gpio_pull_down(AMP_CONTROL_PIN);
     }
 }
@@ -109,15 +109,15 @@ bool SIDPlayer::isPlaying() {
 }
 
 void SIDPlayer::toggleLineLevel() {
-    if (C64::getLineLevelOn()) {
-        C64::setLineLevel(false);
+    if (SimpleC64::getLineLevelOn()) {
+        SimpleC64::setLineLevel(false);
     } else {
-        C64::setLineLevel(true);
+        SimpleC64::setLineLevel(true);
     }
 }
 
 bool SIDPlayer::lineLevelOn() {
-    return C64::getLineLevelOn();
+    return SimpleC64::getLineLevelOn();
 }
 
 sid_info *SIDPlayer::getSidInfo() {
@@ -141,12 +141,12 @@ volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
 }
 
 volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
-    return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
+    return SimpleC64::sid_load_from_file(sidFile->fileName, &sidInfo);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile void SIDPlayer::tryJSRToPlayAddr() {
-    if (!C64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
+    if (!SimpleC64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
         loadingSuccessful = false;
     }
 }
@@ -156,11 +156,11 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     tryJSRToPlayAddr();
     if (sidInfo.speed == USE_CIA) {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
+        SimpleC64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
         tryJSRToPlayAddr();
-        C64::sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
+        SimpleC64::sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
     } else {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
+        SimpleC64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
     }
     std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
               visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
@@ -188,8 +188,8 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
                 resetState();
                 if (loadPSID(PSIDCatalog::getCurrentEntry())) {
                     loadingSuccessful = true;
-                    C64::sidPoke(24, 15);
-                    C64::cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+                    SimpleC64::sidPoke(24, 15);
+                    SimpleC64::cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                     rendering = true;
                     ampOn();
                 } else {
