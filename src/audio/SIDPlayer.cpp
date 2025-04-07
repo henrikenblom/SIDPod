@@ -19,7 +19,6 @@ uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
 static sid_info sidInfo{};
 short visualizationBuffer[FFT_SAMPLES];
-bool firstBuffer = true;
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
@@ -144,35 +143,6 @@ volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
     return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
 }
 
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile void SIDPlayer::tryJSRToPlayAddr() {
-    if (!C64::cpuJSRWithWatchdog(sidInfo.play, 0)) {
-        loadingSuccessful = false;
-    }
-}
-
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
-    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
-    tryJSRToPlayAddr();
-    if (sidInfo.speed == USE_CIA) {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
-        tryJSRToPlayAddr();
-        C64::sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
-    } else {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
-    }
-    std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
-              visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
-    firstBuffer = !firstBuffer;
-    for (int16_t i = 0; i < SAMPLES_PER_BUFFER; i++) {
-        if (samples[i]) {
-            samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
-        }
-    }
-    buffer->sample_count = buffer->max_sample_count;
-}
-
 [[noreturn]] void SIDPlayer::core1Main() {
     ampOff();
     audio_i2s_setup(&audio_format, &config);
@@ -188,8 +158,6 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
                 resetState();
                 if (loadPSID(PSIDCatalog::getCurrentEntry())) {
                     loadingSuccessful = true;
-                    C64::sidPoke(24, 15);
-                    C64::cpuJSR(sidInfo.init, sidInfo.start);
                     rendering = true;
                     ampOn();
                 } else {
@@ -207,9 +175,9 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
             playPauseQueued = false;
         }
 
-        if (rendering && sidInfo.play != 0) {
+        if (rendering) {
             audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            generateSamples(buffer);
+            C64::generateSamples(buffer, volumeFactor);
             give_audio_buffer(audioBufferPool, buffer);
         }
     }

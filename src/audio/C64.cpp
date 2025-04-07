@@ -14,6 +14,8 @@
 #include "../platform_config.h"
 #include "reSID/sid.h"
 #include "sidendian.h"
+#include "roms.h"
+#include "SIDPlayer.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -57,7 +59,9 @@ static unsigned short wval IDATA_ATTR;
 static unsigned char a, x, y, s, p IDATA_ATTR;
 static unsigned short pc IDATA_ATTR;
 
-unsigned char memory[65536];
+unsigned char lowerMemory[40959];
+unsigned char upperMemory[8192];
+unsigned char hardwareVectors[6];
 
 static constexpr int opcodes[256] ICONST_ATTR = {
     _brk, ora, xxx, xxx, xxx, ora, asl, xxx, php, ora, asl, xxx, xxx, ora, asl, xxx,
@@ -98,7 +102,14 @@ static constexpr int modes[256] ICONST_ATTR = {
     rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx
 };
 
+const uint8_t POWERON[] =
+{
+#  include "poweron.bin"
+};
+
+playback_info playbackInfo = {};
 SID reSID;
+bool firstBuffer = true;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -119,22 +130,80 @@ void C64::sid_synth_render(short *buffer, size_t len) {
 * C64 Mem Routines
 */
 static unsigned char getmem(unsigned short addr) {
-    return memory[addr];
+    if ((addr & 0xfc00) == 0xd400) {
+        return C64::sidPeek(addr & 0x1f);
+    }
+    if (addr <= 0x9fff) {
+        return lowerMemory[addr];
+    }
+    if (addr >= 0xa000 && addr <= 0xbfff) {
+        return rom_basic[addr - 0xa000];
+    }
+    if (addr >= 0xc000 && addr <= 0xdfff) {
+        return upperMemory[addr - 0xd000];
+    }
+    if (addr >= 0xe000 && addr <= 0xfff9) {
+        return rom_kernal[addr - 0xe000];
+    }
+    return hardwareVectors[addr - 0xfffa];
 }
 
 static void setmem(unsigned short addr, unsigned char value) {
     if ((addr & 0xfc00) == 0xd400) {
         C64::sidPoke(addr & 0x1f, value);
-    } else {
-        memory[addr] = value;
+    } else if (addr <= 0x9fff) {
+        lowerMemory[addr] = value;
+    } else if (addr >= 0xc000 && addr <= 0xdfff) {
+        upperMemory[addr - 0xc000] = value;
+    } else if (addr >= 0xfffa) {
+        hardwareVectors[addr - 0xfffa] = value;
     }
 }
 
-/*
-* Poke a value into the sid register
-*/
 void C64::sidPoke(int reg, unsigned char val) {
     reSID.write(reg, val);
+}
+
+reg8 C64::sidPeek(int reg) {
+    return reSID.read(reg);
+}
+
+void copyPoweronPattern() {
+    uint_least16_t addr = 0;
+    for (unsigned int i = 0; i < sizeof(POWERON);) {
+        uint8_t off = POWERON[i++];
+        uint8_t count = 0;
+        bool compressed = false;
+
+        // Determine data count/compression
+        if (off & 0x80) {
+            // fixup offset
+            off &= 0x7f;
+            count = POWERON[i++];
+            if (count & 0x80) {
+                // fixup count
+                count &= 0x7f;
+                compressed = true;
+            }
+        }
+
+        // Fix count off by ones (see format details)
+        count++;
+        addr += off;
+
+        if (compressed) {
+            // Extract compressed data
+            const uint8_t data = POWERON[i++];
+            while (count-- > 0) {
+                lowerMemory[addr] = data;
+            }
+        } else {
+            // Extract uncompressed data
+            while (count-- > 0) {
+                lowerMemory[addr] = POWERON[i++];
+            }
+        }
+    }
 }
 
 static inline unsigned char getaddr(int mode) {
@@ -625,11 +694,57 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 
 void C64::c64Init() {
     synth_init();
-    memset(memory, 0, sizeof(memory));
+    memset(lowerMemory, 0, sizeof(lowerMemory));
+    memset(upperMemory, 0, sizeof(upperMemory));
+    uint8_t c = 0;
+    for (const uint8_t value: {0xfe, 0x43, 0xfc, 0xe2, 0xff, 0x48}) {
+        hardwareVectors[c++] = value;
+    }
+    for (const uint8_t value: {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) {
+        hardwareVectors[c++] = value;
+    }
+    copyPoweronPattern();
     cpuReset();
 }
 
-bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
+bool C64::useCIA(uint8_t song) {
+    return IS_BIT_SET(playbackInfo.speed, song);
+}
+
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool C64::tryJSRToPlayAddr() {
+    if (!cpuJSRWithWatchdog(playbackInfo.play, 0)) {
+        return false;
+    }
+    return true;
+}
+
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor) {
+    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
+    if (tryJSRToPlayAddr()) {
+        if (useCIA(0)) {
+            sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
+            tryJSRToPlayAddr();
+            sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
+        } else {
+            sid_synth_render(samples, SAMPLES_PER_BUFFER);
+        }
+        std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
+                  visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
+        firstBuffer = !firstBuffer;
+        for (int16_t i = 0; i < SAMPLES_PER_BUFFER; i++) {
+            if (samples[i]) {
+                samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
+            }
+        }
+        buffer->sample_count = buffer->max_sample_count;
+        return true;
+    }
+    return false;
+}
+
+bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
@@ -637,55 +752,68 @@ bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
     if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
     if (bytesRead < SID_HEADER_SIZE) return false;
-    auto *pHeader = static_cast<unsigned char *>(header);
     // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
-    info->data = pHeader[6] << 8;
-    info->data |= pHeader[7];
-
-    printf("o hi: %d", pHeader[6]);
-    printf(" o lo: %d\n", pHeader[7]);
-
-    info->id = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18);
-
-    info->init = pHeader[10] << 8;
-    info->init |= pHeader[11];
-
-    info->play = pHeader[12] << 8;
-    info->play |= pHeader[13];
-
-    info->songs = pHeader[0xf] - 1;
-    info->start = pHeader[0x11] - 1;
-
-    info->load = pHeader[info->data];
-    info->load |= pHeader[info->data + 1] << 8;
-
-    info->speed = pHeader[0x15];
-
-    strcpy(info->name, (const char *) &pHeader[0x16]);
-    strcpy(info->author, (const char *) &pHeader[0x36]);
-    strcpy(info->released, (const char *) &pHeader[0x56]);
-
-    print_sid_info(info);
 
     readHeader(header, *info);
+    decodePlaybackInfo(info, playbackInfo, header);
 
     print_sid_info(info);
 
-    f_lseek(&pFile, info->data + 2);
-    uint16_t offset = info->init;
+    // TODO Something is wrong here. Example Robocop 3.
+    // TODO Compare with previous implementation
+
+    if (playbackInfo.original) {
+        f_lseek(&pFile, playbackInfo.data + 2);
+    }
+    uint16_t offset = playbackInfo.load;
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
-        memcpy(&memory[offset], &buffer, bytesRead);
-        offset += SID_LOAD_BUFFER_SIZE;
+        for (uint8_t byte: buffer) {
+            setmem(offset++, byte);
+        }
     }
     f_close(&pFile);
 
-    if (info->play == 0) {
-        if (!cpuJSRWithWatchdog(info->init, 0)) return false;
-        info->play = (memory[0xffff] << 8) | memory[0xfffe];
+    if (playbackInfo.play == 0) {
+        if (!cpuJSRWithWatchdog(playbackInfo.init, 0)) return false;
+        playbackInfo.play = getmem(0xffff) << 8 | getmem(0xfffe);
     }
+    print_load_info(&playbackInfo);
+    sidPoke(24, 15);
+    cpuJSR(playbackInfo.init, info->start - 1);
     return true;
+}
+
+
+void C64::decodePlaybackInfo(sid_info *sidInfo, playback_info &playbackInfo, const BYTE *buffer) {
+    playbackInfo.data = sidInfo->data;
+    if (!sidInfo->load) {
+        playbackInfo.load = buffer[sidInfo->data];
+        playbackInfo.load |= buffer[sidInfo->data + 1] << 8;
+        playbackInfo.original = true;
+    } else {
+        playbackInfo.load = sidInfo->load;
+        playbackInfo.original = false;
+    }
+    if (!sidInfo->init) {
+        playbackInfo.init = sidInfo->load;
+    } else {
+        playbackInfo.init = sidInfo->init;
+    }
+    playbackInfo.play = sidInfo->play;
+    playbackInfo.rsid = sidInfo->id == RSID_ID;
+    playbackInfo.speed = sidInfo->speed;
+}
+
+void C64::print_load_info(struct playback_info *info) {
+    printf("Data: %d\n", info->data);
+    printf("Load: %d\n", info->load);
+    printf("Init: %d\n", info->init);
+    printf("Play: %d\n", info->play);
+    printf("Speed: %d\n", info->speed);
+    printf("Original: %s\n", info->original ? "true" : "false");
+    printf("RSID: %s\n", info->rsid ? "true" : "false");
 }
 
 void C64::print_sid_info(struct sid_info *info) {
@@ -696,8 +824,9 @@ void C64::print_sid_info(struct sid_info *info) {
     printf("Init: %d\n", info->init);
     printf("Play: %d\n", info->play);
     printf("Songs: %d\n", info->songs);
-    //printf("Start: %d\n", info->start);
+    printf("Start: %d\n", info->start);
     printf("Speed: %d\n", info->speed);
+    printf("Flags: %d\n", info->flags);
     printf("Name: %s\n", info->name);
     printf("Author: %s\n", info->author);
     printf("Released: %s\n\n", info->released);
@@ -706,9 +835,9 @@ void C64::print_sid_info(struct sid_info *info) {
 void C64::readHeader(BYTE *buffer, sid_info &info) {
     // Read v1 fields
     info.id = endian_big32(&buffer[0]);
-    // info.version = endian_big16(&buffer[4]);
+    info.version = endian_big16(&buffer[4]);
     info.data = endian_big16(&buffer[6]);
-    //info.load = endian_big16(&buffer[8]);
+    info.load = endian_big16(&buffer[8]);
     info.init = endian_big16(&buffer[10]);
     info.play = endian_big16(&buffer[12]);
     info.songs = endian_big16(&buffer[14]);
