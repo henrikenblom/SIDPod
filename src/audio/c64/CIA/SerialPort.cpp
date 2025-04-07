@@ -25,8 +25,6 @@
 
 #include "mos652x.h"
 
-namespace libsidplayfp
-{
 
 void SerialPort::reset()
 {
@@ -151,4 +149,3 @@ void SerialPort::flipCnt()
     }
 }
 
-}

@@ -26,9 +26,6 @@
 
 #include "c64/c64sid.h"
 
-namespace libsidplayfp
-{
-
 /**
  * Extra SID bank.
  */
@@ -95,6 +92,5 @@ public:
     }
 };
 
-}
 
 #endif

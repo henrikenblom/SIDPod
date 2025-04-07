@@ -25,8 +25,6 @@
 
 #include "Event.h"
 
-namespace libsidplayfp
-{
 
 /**
  * Interface to PLA functions.
@@ -42,6 +40,5 @@ protected:
     ~PLA() = default;
 };
 
-}
 
 #endif

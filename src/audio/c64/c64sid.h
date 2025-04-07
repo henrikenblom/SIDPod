@@ -28,9 +28,6 @@
 #include <cstring>
 #include <stdint.h>
 
-namespace libsidplayfp
-{
-
 /**
  * SID interface.
  */
@@ -64,7 +61,5 @@ public:
 
     void getStatus(uint8_t regs[0x20]) const { std::memcpy(regs, lastpoke, 0x20); }
 };
-
-}
 
 #endif // C64SID_H

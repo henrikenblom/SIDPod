@@ -37,9 +37,6 @@
 
 #include "sidendian.h"
 
-namespace libsidplayfp
-{
-
 /// Cycle # at which the VIC takes the bus in a bad line (BA goes low).
 constexpr unsigned int VICII_FETCH_CYCLE = 11;
 
@@ -700,6 +697,4 @@ void MOS656X::triggerLightpen()
 void MOS656X::clearLightpen()
 {
     lpAsserted = false;
-}
-
 }

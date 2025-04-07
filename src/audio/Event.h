@@ -26,9 +26,6 @@
 #include <stdint.h>
 
 
-namespace libsidplayfp
-{
-
 using event_clock_t = int_fast64_t;
 
 
@@ -74,7 +71,5 @@ public:
 protected:
     ~Event() = default;
 };
-
-}
 
 #endif // EVENT_H

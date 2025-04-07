@@ -36,9 +36,6 @@
 
 class EventContext;
 
-namespace libsidplayfp
-{
-
 class MOS652X;
 
 /**
@@ -307,6 +304,5 @@ public:
     void setDayOfTimeRate(unsigned int clock) { tod.setPeriod(clock); }
 };
 
-}
 
 #endif // MOS6526_H

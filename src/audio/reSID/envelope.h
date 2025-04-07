@@ -76,7 +76,7 @@ protected:
   // The 16 selectable sustain levels.
   static const reg8 sustain_level[];
 
-friend class SID;
+friend class reSID;
 };
 
 

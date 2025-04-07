@@ -25,11 +25,6 @@
 
 #include "Event.h"
 
-#include "sidcxx11.h"
-
-
-namespace libsidplayfp
-{
 
 template< class This >
 class EventCallback final : public Event
@@ -68,6 +63,5 @@ public:
     {}
 };
 
-}
 
 #endif // EVENTCALLBACK_H

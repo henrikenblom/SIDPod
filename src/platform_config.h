@@ -38,7 +38,7 @@
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
-#define SID_HEADER_SIZE                    ((uint8_t) 0x88)
+#define SID_HEADER_SIZE                    ((uint8_t) 124)
 #define SID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x48)
 #define PSID_ID                             0x50534944
 #define RSID_ID                             0x52534944

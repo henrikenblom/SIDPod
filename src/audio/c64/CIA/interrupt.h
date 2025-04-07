@@ -29,9 +29,6 @@
 
 #include <stdint.h>
 
-namespace libsidplayfp
-{
-
 class MOS652X;
 
 /**
@@ -195,6 +192,5 @@ public:
     void set(uint8_t interruptMask);
 };
 
-}
 
 #endif // INTERRUPT_H

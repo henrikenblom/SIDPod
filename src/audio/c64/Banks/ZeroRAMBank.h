@@ -31,9 +31,6 @@
 
 #include "Event.h"
 
-namespace libsidplayfp
-{
-
 /**
  * Unused data port bits emulation, as investigated by groepaz:
  *
@@ -279,6 +276,5 @@ public:
     }
 };
 
-}
 
 #endif

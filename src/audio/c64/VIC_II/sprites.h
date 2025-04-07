@@ -29,9 +29,6 @@
 #include <algorithm>
 #include <iterator>
 
-namespace libsidplayfp
-{
-
 /**
  * Sprites handling.
  */
@@ -171,7 +168,5 @@ public:
         return dma & val;
     }
 };
-
-}
 
 #endif

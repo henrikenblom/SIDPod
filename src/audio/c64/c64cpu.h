@@ -35,8 +35,6 @@
 
 //#define PRINTSCREENCODES
 
-namespace libsidplayfp
-{
 #ifdef PRINTSCREENCODES
 /**
  * Screen codes conversion table (0x01 = no output)
@@ -102,7 +100,5 @@ public:
     c64cpubus (MMU &mmu) :
         m_mmu(mmu) {}
 };
-
-}
 
 #endif // C64CPU_H

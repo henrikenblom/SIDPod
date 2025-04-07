@@ -24,9 +24,6 @@
 
 #include "mos652x.h"
 
-namespace libsidplayfp
-{
-
 void InterruptSource::interrupt()
 {
     if (!interruptTriggered())
@@ -122,4 +119,3 @@ uint8_t InterruptSource::clear()
     return idr;
 }
 
-}

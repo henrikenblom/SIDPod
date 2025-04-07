@@ -25,8 +25,7 @@
 #include "Banks/Bank.h"
 #include "Banks/IOBank.h"
 
-namespace libsidplayfp
-{
+
 // Use static type to allow compiler to optimize virtual function call
 template<class BankType, BankType MMU::* Bank>
 uint8_t readBank(MMU &self, uint_least16_t addr)
@@ -114,6 +113,4 @@ uint8_t MMU::getLastReadByte() const
 {
     seed = random(seed);
     return seed;
-}
-
 }

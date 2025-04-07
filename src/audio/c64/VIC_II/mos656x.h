@@ -33,9 +33,6 @@
 #include "EventCallback.h"
 #include "EventScheduler.h"
 
-namespace libsidplayfp
-{
-
 /**
  * MOS 6567/6569/6572/6573 emulation.
  * Not cycle exact but good enough for SID playback.
@@ -380,8 +377,6 @@ template<>
 inline void MOS656X::endDma<7>()
 {
     setBA(true);
-}
-
 }
 
 #endif // MOS656X_H

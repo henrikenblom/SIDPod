@@ -46,9 +46,6 @@
 #  include "config.h"
 #endif
 
-namespace libsidplayfp
-{
-
 class c64sid;
 class sidmemory;
 
@@ -293,8 +290,6 @@ void c64::lightpen(bool state)
         vic.triggerLightpen();
     else
         vic.clearLightpen();
-}
-
 }
 
 #endif // C64_H

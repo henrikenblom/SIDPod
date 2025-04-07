@@ -29,9 +29,6 @@
 #include "EventCallback.h"
 #include "EventScheduler.h"
 
-namespace libsidplayfp
-{
-
 class MOS652X;
 
 /**
@@ -266,8 +263,6 @@ void Timer::reschedule()
 
         ciaEventPauseTime = -1;
     }
-}
-
 }
 
 #endif // TIMER_H

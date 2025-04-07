@@ -27,9 +27,6 @@
 
 #include "Bank.h"
 
-namespace libsidplayfp
-{
-
 /**
  * Area backed by RAM.
  */
@@ -78,6 +75,5 @@ public:
     }
 };
 
-}
 
 #endif

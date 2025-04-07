@@ -17,7 +17,7 @@
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //  ---------------------------------------------------------------------------
 
-#include "sid.h"
+#include "reSID.h"
 #include <math.h>
 #include "../platform_config.h"
 
@@ -30,20 +30,20 @@ RESID_NAMESPACE_START
 // http://www-ccrma.stanford.edu/~jos/resample/Choice_Table_Size.html
 // For a resolution of 16 bits this yields L >= 285 and L >= 51473,
 // respectively.
-const int SID::FIR_N = 125;
-const int SID::FIR_RES_INTERPOLATE = 285;
-const int SID::FIR_RES_FAST = 51473;
-const int SID::FIR_SHIFT = 15;
-const int SID::RINGSIZE = 16384;
+const int reSID::FIR_N = 125;
+const int reSID::FIR_RES_INTERPOLATE = 285;
+const int reSID::FIR_RES_FAST = 51473;
+const int reSID::FIR_SHIFT = 15;
+const int reSID::RINGSIZE = 16384;
 
 // Fixpoint constants (16.16 bits).
-const int SID::FIXP_SHIFT = 16;
-const int SID::FIXP_MASK = 0xffff;
+const int reSID::FIXP_SHIFT = 16;
+const int reSID::FIXP_MASK = 0xffff;
 
 // ----------------------------------------------------------------------------
 // Constructor.
 // ----------------------------------------------------------------------------
-SID::SID() {
+reSID::reSID() {
     voice[0].set_sync_source(&voice[2]);
     voice[1].set_sync_source(&voice[0]);
     voice[2].set_sync_source(&voice[1]);
@@ -68,7 +68,7 @@ void SID::printFilter(void){
 // ----------------------------------------------------------------------------
 // Destructor.
 // ----------------------------------------------------------------------------
-SID::~SID() {
+reSID::~reSID() {
 }
 
 
@@ -90,7 +90,7 @@ void SID::set_chip_model(chip_model model)
 // ----------------------------------------------------------------------------
 // SID reset.
 // ----------------------------------------------------------------------------
-void SID::reset() {
+void reSID::reset() {
     voice[0].reset();
     voice[1].reset();
     voice[2].reset();
@@ -109,7 +109,7 @@ void SID::reset() {
 // Note that to mix in an external audio signal, the signal should be
 // resampled to 1MHz first to avoid sampling noise.
 // ----------------------------------------------------------------------------
-void SID::input(int sample) {
+void reSID::input(int sample) {
     // Voice outputs are 20 bits. Scale up to match three voices in order
     // to facilitate simulation of the MOS8580 "digi boost" hardware hack.
     ext_in = (sample << 4) * 3;
@@ -118,7 +118,7 @@ void SID::input(int sample) {
 // ----------------------------------------------------------------------------
 // Read sample from audio output.
 // ----------------------------------------------------------------------------
-int SID::output() {
+int reSID::output() {
     const int range = 1 << 16;
     const int half = range >> 1;
     int sample = extfilt.output() / ((4095 * 255 >> 7) * 3 * 15 * 2 / range);
@@ -152,7 +152,7 @@ int SID::output() {
 // value instead). With this in mind we return the last value written to
 // any SID register for $2000 cycles without modeling the bit fading.
 // ----------------------------------------------------------------------------
-reg8 SID::read(reg8 offset) {
+reg8 reSID::read(reg8 offset) {
     switch (offset) {
         case 0x19:
             return potx.readPOT();
@@ -171,7 +171,7 @@ reg8 SID::read(reg8 offset) {
 // ----------------------------------------------------------------------------
 // Write registers.
 // ----------------------------------------------------------------------------
-void SID::write(reg8 offset, reg8 value) {
+void reSID::write(reg8 offset, reg8 value) {
     bus_value = value;
     bus_value_ttl = 0x2000;
 
@@ -260,7 +260,7 @@ void SID::write(reg8 offset, reg8 value) {
 // ----------------------------------------------------------------------------
 // SID voice muting.
 // ----------------------------------------------------------------------------
-void SID::mute(reg8 channel, bool enable) {
+void reSID::mute(reg8 channel, bool enable) {
     // Only have 3 voices!
     if (channel >= 3)
         return;
@@ -272,7 +272,7 @@ void SID::mute(reg8 channel, bool enable) {
 // ----------------------------------------------------------------------------
 // Constructor.
 // ----------------------------------------------------------------------------
-SID::State::State() {
+reSID::State::State() {
     int i;
 
     for (i = 0; i < 0x20; i++) {
@@ -299,7 +299,7 @@ SID::State::State() {
 // ----------------------------------------------------------------------------
 // Read state.
 // ----------------------------------------------------------------------------
-SID::State SID::read_state() {
+reSID::State reSID::read_state() {
     State state;
     int i, j;
 
@@ -358,7 +358,7 @@ SID::State SID::read_state() {
 // ----------------------------------------------------------------------------
 // Write state.
 // ----------------------------------------------------------------------------
-void SID::write_state(const State &state) {
+void reSID::write_state(const State &state) {
     int i;
 
     for (i = 0; i <= 0x18; i++) {
@@ -385,7 +385,7 @@ void SID::write_state(const State &state) {
 // ----------------------------------------------------------------------------
 // Enable filter.
 // ----------------------------------------------------------------------------
-void SID::enable_filter(bool enable) {
+void reSID::enable_filter(bool enable) {
     filter.enable_filter(enable);
 }
 
@@ -393,7 +393,7 @@ void SID::enable_filter(bool enable) {
 // ----------------------------------------------------------------------------
 // Enable external filter.
 // ----------------------------------------------------------------------------
-void SID::enable_external_filter(bool enable) {
+void reSID::enable_external_filter(bool enable) {
     extfilt.enable_filter(enable);
 }
 
@@ -446,7 +446,7 @@ float SID::I0(float x)
 // to slightly below 20kHz. This constraint ensures that the FIR table is
 // not overfilled.
 // ----------------------------------------------------------------------------
-bool SID::set_sampling_parameters(float clock_freq, sampling_method method,
+bool reSID::set_sampling_parameters(float clock_freq, sampling_method method,
                                   float sample_freq, float pass_freq,
                                   float filter_scale) {
     // The default passband limit is 0.9*sample_freq/2 for sample
@@ -495,7 +495,7 @@ bool SID::set_sampling_parameters(float clock_freq, sampling_method method,
 // that any adjustment of the sampling frequency will change the
 // characteristics of the resampling filter, since the filter is not rebuilt.
 // ----------------------------------------------------------------------------
-void SID::adjust_sampling_frequency(float sample_freq) {
+void reSID::adjust_sampling_frequency(float sample_freq) {
     cycles_per_sample =
             cycle_count(clock_frequency / sample_freq * (1 << FIXP_SHIFT) + 0.5);
 }
@@ -525,7 +525,7 @@ PointPlotter<sound_sample> SID::fc_plotter()
 // ----------------------------------------------------------------------------
 // SID clocking - 1 cycle.
 // ----------------------------------------------------------------------------
-void SID::clock() {
+void reSID::clock() {
     // Age bus value.
     if (--bus_value_ttl <= 0) {
         bus_value = 0;
@@ -558,7 +558,7 @@ void SID::clock() {
 // ----------------------------------------------------------------------------
 // SID clocking - delta_t cycles.
 // ----------------------------------------------------------------------------
-void SID::clock(cycle_count delta_t) {
+void reSID::clock(cycle_count delta_t) {
     int i;
 
     if (delta_t <= 0) {
@@ -650,7 +650,7 @@ void SID::clock(cycle_count delta_t) {
 // }
 //
 // ----------------------------------------------------------------------------
-int SID::clock(cycle_count &delta_t, short *buf, int n) {
+int reSID::clock(cycle_count &delta_t, short *buf, int n) {
     switch (sampling) {
         default:
         case SAMPLE_FAST:
@@ -664,7 +664,7 @@ int SID::clock(cycle_count &delta_t, short *buf, int n) {
 // SID clocking with audio sampling - delta clocking picking nearest sample.
 // ----------------------------------------------------------------------------
 RESID_INLINE
-int SID::clock_fast(cycle_count &delta_t, short *buf, int n) {
+int reSID::clock_fast(cycle_count &delta_t, short *buf, int n) {
     int s = 0;
 
     for (;;) {
@@ -699,7 +699,7 @@ int SID::clock_fast(cycle_count &delta_t, short *buf, int n) {
 // sampling noise.
 // ----------------------------------------------------------------------------
 RESID_INLINE
-int SID::clock_interpolate(cycle_count &delta_t, short *buf, int n) {
+int reSID::clock_interpolate(cycle_count &delta_t, short *buf, int n) {
     int s = 0;
     int i;
 

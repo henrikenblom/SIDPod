@@ -28,9 +28,6 @@
 
 #include "sidendian.h"
 
-namespace libsidplayfp
-{
-
 enum
 {
     PRA     = 0,
@@ -333,6 +330,4 @@ void MOS652X::setModel(model_t model)
         interruptSource.reset(new InterruptSource8521(eventScheduler, *this));
         break;
     }
-}
-
 }

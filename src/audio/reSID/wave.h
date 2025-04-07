@@ -123,7 +123,7 @@ protected:
 
 
 friend class Voice;
-friend class SID;
+friend class reSID;
 };
 
 

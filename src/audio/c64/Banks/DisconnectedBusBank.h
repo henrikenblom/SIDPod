@@ -25,8 +25,6 @@
 #include "Bank.h"
 #include "pla.h"
 
-namespace libsidplayfp
-{
 
 /**
  * IO1/IO2
@@ -58,6 +56,5 @@ public:
     uint8_t peek(uint_least16_t) override { return pla.getLastReadByte(); }
 };
 
-}
 
 #endif

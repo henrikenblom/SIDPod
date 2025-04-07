@@ -24,9 +24,6 @@
 #ifndef LIGHTPEN_H
 #define LIGHTPEN_H
 
-namespace libsidplayfp
-{
-
 /**
  * Lightpen emulation.
  * Does not reflect model differences.
@@ -168,6 +165,5 @@ public:
     void untrigger() { isTriggered = false; }
 };
 
-}
 
 #endif

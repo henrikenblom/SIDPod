@@ -28,9 +28,6 @@
 
 #include "Event.h"
 
-namespace libsidplayfp
-{
-
 class MOS652X;
 
 class SerialPort : private Event
@@ -90,7 +87,5 @@ public:
 
     void handle();
 };
-
-}
 
 #endif // SERIALPORT_H

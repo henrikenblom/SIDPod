@@ -23,9 +23,6 @@
 #include "EventScheduler.h"
 
 
-namespace libsidplayfp
-{
-
 void EventScheduler::reset()
 {
     firstEvent = nullptr;
@@ -59,6 +56,4 @@ bool EventScheduler::isPending(Event &event) const
         scan = scan->next;
     }
     return false;
-}
-
 }

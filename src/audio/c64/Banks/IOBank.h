@@ -26,8 +26,6 @@
 
 #include "Bank.h"
 
-namespace libsidplayfp
-{
 
 /**
  * IO region handler. 4k region, 16 chips, 256b banks.
@@ -61,6 +59,5 @@ public:
     }
 };
 
-}
 
 #endif

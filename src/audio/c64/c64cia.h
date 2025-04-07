@@ -31,9 +31,6 @@
 #include "sidendian.h"
 #include "CIA/mos652x.h"
 
-namespace libsidplayfp
-{
-
 /**
  * CIA 1
  *
@@ -128,6 +125,5 @@ public:
     }
 };
 
-}
 
 #endif // C64CIA_H

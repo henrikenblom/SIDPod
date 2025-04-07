@@ -28,9 +28,6 @@
 #include "Bank.h"
 #include "c64/CPU/opcodes.h"
 
-namespace libsidplayfp
-{
-
 /**
  * ROM bank base class.
  */
@@ -205,6 +202,5 @@ public:
  */
 class CharacterRomBank final : public romBank<0x1000> {};
 
-}
 
 #endif

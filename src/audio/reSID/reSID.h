@@ -28,11 +28,11 @@
 
 RESID_NAMESPACE_START
 
-class SID {
+class reSID {
 public:
-    SID();
+    reSID();
 
-    ~SID();
+    ~reSID();
 
     //void printFilter(void);
     //void set_chip_model(chip_model model);

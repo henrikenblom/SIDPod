@@ -28,8 +28,6 @@
 
 #include "Bank.h"
 
-namespace libsidplayfp
-{
 
 /**
  * Color RAM.
@@ -60,6 +58,5 @@ public:
     }
 };
 
-}
 
 #endif

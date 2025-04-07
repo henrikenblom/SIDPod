@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include "../platform_config.h"
-#include "reSID/sid.h"
+#include "reSID/reSID.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -97,7 +97,7 @@ static constexpr int modes[256] ICONST_ATTR = {
     rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx
 };
 
-SID reSID;
+reSID reSID;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */

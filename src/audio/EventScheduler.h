@@ -25,11 +25,6 @@
 
 #include "Event.h"
 
-#include "sidcxx11.h"
-
-
-namespace libsidplayfp
-{
 
 /**
  * C64 system runs actions at system clock high and low
@@ -170,6 +165,5 @@ public:
     event_clock_t remaining(Event &event) const { return event.triggerTime - currentTime; }
 };
 
-}
 
 #endif // EVENTSCHEDULER_H

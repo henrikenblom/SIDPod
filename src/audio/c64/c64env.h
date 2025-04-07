@@ -29,9 +29,6 @@
 #  include "config.h"
 #endif
 
-namespace libsidplayfp
-{
-
 /**
  * An implementation of of this class can be created to perform the C64
  * specifics.  A pointer to this child class can then be passed to
@@ -58,7 +55,5 @@ public:
 protected:
     ~c64env() = default;
 };
-
-}
 
 #endif // C64ENV_H

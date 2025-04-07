@@ -27,8 +27,6 @@
 
 #include "mos652x.h"
 
-namespace libsidplayfp
-{
 
 void Tod::reset()
 {
@@ -241,6 +239,4 @@ void Tod::checkAlarm()
     {
         parent.todInterrupt();
     }
-}
-
 }

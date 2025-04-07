@@ -24,8 +24,6 @@
 
 #include "sidendian.h"
 
-namespace libsidplayfp
-{
 
 void Timer::setControlRegister(uint8_t cr)
 {
@@ -156,4 +154,3 @@ void Timer::latchHi(uint8_t data)
         state |= CIAT_LOAD1;
 }
 
-}

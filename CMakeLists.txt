@@ -46,7 +46,7 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/wave8580_P_T.cc
         src/audio/reSID/pot.cc
         src/audio/reSID/voice.cc
-        src/audio/reSID/sid.cc
+        src/audio/reSID/reSID.cc
         src/audio/reSID/filter.cc
         src/audio/reSID/wave6581_P_T.cc
         src/audio/reSID/wave6581_PS_.cc
@@ -66,10 +66,22 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/voice.h
         src/audio/reSID/envelope.h
         src/audio/reSID/wave.h
-        src/audio/reSID/sid.h
+        src/audio/reSID/reSID.h
         src/audio/reSID/filter.h
         src/audio/reSID/filter6581.h
         src/audio/reSID/filter8580.h
+        src/audio/c64/VIC_II/mos656x.cpp
+        src/audio/c64/CPU/mos6510.cpp
+        src/audio/c64/CPU/mos6510debug.cpp
+        src/audio/c64/c64.cpp
+        src/audio/c64/mmu.cpp
+        src/audio/c64/CIA/mos652x.cpp
+        src/audio/c64/CIA/tod.cpp
+        src/audio/c64/CIA/SerialPort.cpp
+        src/audio/c64/CIA/interrupt.cpp
+        src/audio/c64/CIA/timer.cpp
+        src/audio//EventScheduler.cpp
+        src/audio/reloc65.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -93,6 +105,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/reSID/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/

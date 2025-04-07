@@ -25,8 +25,6 @@
 #include "c64/CIA/mos652x.h"
 #include "c64/VIC_II/mos656x.h"
 
-namespace libsidplayfp
-{
 
 using model_data_t = struct
 {
@@ -200,6 +198,4 @@ void c64::clearSids()
         delete sidBank.second;
 
     extraSidBanks.clear();
-}
-
 }

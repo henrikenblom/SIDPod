@@ -25,9 +25,6 @@
 
 #include <stdint.h>
 
-namespace libsidplayfp
-{
-
 /**
  * Processor Status Register
  */
@@ -103,6 +100,5 @@ public:
     inline void setI(bool f) { I = f; }
 };
 
-}
 
 #endif

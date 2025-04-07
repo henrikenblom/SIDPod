@@ -36,9 +36,6 @@
 
 #include <cstring>
 
-namespace libsidplayfp
-{
-
 class Bank;
 class IOBank;
 
@@ -143,7 +140,5 @@ public:
      */
     void cpuWrite(uint_least16_t addr, uint8_t data) { cpuWriteMap[addr >> 12]->poke(addr, data); }
 };
-
-}
 
 #endif
