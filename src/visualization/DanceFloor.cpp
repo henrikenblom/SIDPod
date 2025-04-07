@@ -3,7 +3,7 @@
 #include "kiss_fftr.h"
 #include "../System.h"
 #include "../audio/SIDPlayer.h"
-#include "../audio/C64.h"
+#include "../audio/SimpleC64.h"
 #include "../UI.h"
 
 char experience[20];
