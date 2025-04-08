@@ -108,23 +108,39 @@ const uint8_t POWERON[] =
 };
 
 sid_info info;
-SID reSID;
+SID *firstSID = new SID;
+SID *secondSID = new SID;
+unsigned short firstSidAddr = 0xd400;
+unsigned short secondSidAddr = 0;
 bool firstBuffer = true;
 uint16_t currentSong;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
 void C64::synth_init() {
-    reSID.reset();
-    reSID.enable_filter(true);
-    reSID.enable_external_filter(true);
-    reSID.set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
+    firstSID->reset();
+    firstSID->enable_filter(true);
+    firstSID->enable_external_filter(true);
+    firstSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
+    secondSID->reset();
+    secondSID->enable_filter(true);
+    secondSID->enable_external_filter(true);
+    secondSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
+
 void C64::sid_synth_render(short *buffer, size_t len) {
-    cycle_count delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
-                              static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    reSID.clock(delta_t, buffer, static_cast<int>(len));
+    cycle_count first_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
+                                        static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
+    cycle_count second_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
+                                         static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
+    short firstBuffer[len];
+    short secondBuffer[len];
+    firstSID->clock(first_sid_delta_t, firstBuffer, static_cast<int>(len));
+    secondSID->clock(second_sid_delta_t, secondBuffer, static_cast<int>(len));
+    for (int i = 0; i < len; i++) {
+        buffer[i] = firstBuffer[i] / 2 + secondBuffer[i] / 2;
+    }
 }
 
 /*
@@ -135,17 +151,28 @@ static inline unsigned char getmem(unsigned short addr) {
 }
 
 static void setmem(unsigned short addr, unsigned char value) {
-    if ((addr & 0xfc00) == 0xd400) {
-        C64::sidPoke(addr & 0x1f, value);
+    if (addr >= firstSidAddr && addr < firstSidAddr + 0x20) {
+        C64::sidPoke(addr & 0x1f, value, 0);
+    } else if (addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
+        C64::sidPoke(addr & 0x1f, value, 1);
     } else memory[addr] = value;
 }
 
-void C64::sidPoke(int reg, unsigned char val) {
-    reSID.write(reg, val);
+void C64::sidPoke(int reg, unsigned char val, int8_t sid) {
+    switch (sid) {
+        case 0:
+            firstSID->write(reg, val);
+            break;
+        case 1:
+            secondSID->write(reg, val);
+            break;
+        default:
+            break;
+    }
 }
 
 reg8 C64::sidPeek(unsigned short reg) {
-    return reSID.read(reg);
+    return firstSID->read(reg);
 }
 
 void copyPoweronPattern() {
@@ -744,6 +771,10 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
     f_close(&pFile);
 
+    secondSidAddr = info.sidChipBase2 + 0xD4B0;
+    sidPoke(24, 15, 1);
+    printf("Second SID: 0x%x\n", secondSidAddr);
+
     if (info.play == 0) {
         if (!cpuJSRWithWatchdog(info.init, 0)) return false;
         info.play = (memory[0xffff] << 8) | memory[0xfffe];
@@ -751,7 +782,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
 
     currentSong = info.start;
 
-    sidPoke(24, 15);
+    sidPoke(24, 15, 0);
     cpuJSR(info.init, currentSong);
     return true;
 }

@@ -50,7 +50,7 @@ class C64 {
 public:
     static void synth_init();
 
-    static void sidPoke(int reg, unsigned char val);
+    static void sidPoke(int reg, unsigned char val, int8_t sid);
 
     static reg8 sidPeek(unsigned short reg);
 
