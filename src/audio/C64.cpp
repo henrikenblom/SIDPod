@@ -128,7 +128,9 @@ void C64::synth_init() {
     secondSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
-
+// TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
+// TODO: Don't mix if the song only uses one SID
+// TODO: Explore using stereo mixing for dual SIDs
 void C64::sid_synth_render(short *buffer, size_t len) {
     cycle_count first_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                                         static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
@@ -153,7 +155,7 @@ static inline unsigned char getmem(unsigned short addr) {
 static void setmem(unsigned short addr, unsigned char value) {
     if (addr >= firstSidAddr && addr < firstSidAddr + 0x20) {
         C64::sidPoke(addr & 0x1f, value, 0);
-    } else if (addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
+    } else if (secondSidAddr && addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
         C64::sidPoke(addr & 0x1f, value, 1);
     } else memory[addr] = value;
 }
@@ -780,8 +782,6 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
 
     currentSong = info.start;
-
-    //TODO: Check why Myth stopped working.
 
     sidPoke(24, 15, 0);
     cpuJSR(info.init, currentSong);
