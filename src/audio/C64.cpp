@@ -62,6 +62,7 @@ static unsigned short pc IDATA_ATTR;
 unsigned char lowerMemory[40959];
 unsigned char upperMemory[8192];
 unsigned char hardwareVectors[6];
+unsigned char memory[65536];
 
 static constexpr int opcodes[256] ICONST_ATTR = {
     _brk, ora, xxx, xxx, xxx, ora, asl, xxx, php, ora, asl, xxx, xxx, ora, asl, xxx,
@@ -129,35 +130,14 @@ void C64::sid_synth_render(short *buffer, size_t len) {
 /*
 * C64 Mem Routines
 */
-static unsigned char getmem(unsigned short addr) {
-    if ((addr & 0xfc00) == 0xd400) {
-        return C64::sidPeek(addr & 0x1f);
-    }
-    if (addr <= 0x9fff) {
-        return lowerMemory[addr];
-    }
-    if (addr >= 0xa000 && addr <= 0xbfff) {
-        return rom_basic[addr - 0xa000];
-    }
-    if (addr >= 0xc000 && addr <= 0xdfff) {
-        return upperMemory[addr - 0xd000];
-    }
-    if (addr >= 0xe000 && addr <= 0xfff9) {
-        return rom_kernal[addr - 0xe000];
-    }
-    return hardwareVectors[addr - 0xfffa];
+static inline unsigned char getmem(unsigned short addr) {
+    return memory[addr];
 }
 
 static void setmem(unsigned short addr, unsigned char value) {
     if ((addr & 0xfc00) == 0xd400) {
         C64::sidPoke(addr & 0x1f, value);
-    } else if (addr <= 0x9fff) {
-        lowerMemory[addr] = value;
-    } else if (addr >= 0xc000 && addr <= 0xdfff) {
-        upperMemory[addr - 0xc000] = value;
-    } else if (addr >= 0xfffa) {
-        hardwareVectors[addr - 0xfffa] = value;
-    }
+    } else memory[addr] = value;
 }
 
 void C64::sidPoke(int reg, unsigned char val) {
@@ -696,19 +676,20 @@ void C64::c64Init() {
     synth_init();
     memset(lowerMemory, 0, sizeof(lowerMemory));
     memset(upperMemory, 0, sizeof(upperMemory));
-    uint8_t c = 0;
-    for (const uint8_t value: {0xfe, 0x43, 0xfc, 0xe2, 0xff, 0x48}) {
-        hardwareVectors[c++] = value;
-    }
-    for (const uint8_t value: {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) {
-        hardwareVectors[c++] = value;
-    }
-    copyPoweronPattern();
+    memset(memory, 0, sizeof(memory));
+    // uint8_t c = 0;
+    // for (const uint8_t value: {0xfe, 0x43, 0xfc, 0xe2, 0xff, 0x48}) {
+    //     hardwareVectors[c++] = value;
+    // }
+    // for (const uint8_t value: {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) {
+    //     hardwareVectors[c++] = value;
+    // }
+    // copyPoweronPattern();
     cpuReset();
 }
 
 bool C64::useCIA(uint8_t song) {
-    return IS_BIT_SET(playbackInfo.speed, song - 1);
+    return IS_BIT_SET(playbackInfo.speed, song);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
@@ -759,9 +740,6 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
 
     print_sid_info(info);
 
-    // TODO Something is wrong here. Example Robocop 3.
-    // TODO Compare with previous implementation
-
     if (playbackInfo.original) {
         f_lseek(&pFile, playbackInfo.data + 2);
     }
@@ -769,19 +747,18 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
-        for (uint8_t byte: buffer) {
-            setmem(offset++, byte);
-        }
+        memcpy(&memory[offset], &buffer, bytesRead);
+        offset += SID_LOAD_BUFFER_SIZE;
     }
     f_close(&pFile);
 
     if (playbackInfo.play == 0) {
         if (!cpuJSRWithWatchdog(playbackInfo.init, 0)) return false;
-        playbackInfo.play = getmem(0xffff) << 8 | getmem(0xfffe);
+        playbackInfo.play = (memory[0xffff] << 8) | memory[0xfffe];
     }
-    print_load_info(&playbackInfo);
+
     sidPoke(24, 15);
-    cpuJSR(playbackInfo.init, info->start - 1);
+    cpuJSR(info->init, info->start);
     return true;
 }
 
@@ -841,7 +818,7 @@ void C64::readHeader(BYTE *buffer, sid_info &info) {
     info.init = endian_big16(&buffer[10]);
     info.play = endian_big16(&buffer[12]);
     info.songs = endian_big16(&buffer[14]);
-    info.start = endian_big16(&buffer[16]);
+    info.start = endian_big16(&buffer[16]) - 1;
     info.speed = endian_big32(&buffer[18]);
 
     std::memcpy(info.name, &buffer[22], PSID_MAXSTRLEN);
