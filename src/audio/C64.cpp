@@ -114,6 +114,7 @@ unsigned short firstSidAddr = 0xd400;
 unsigned short secondSidAddr = 0;
 bool firstBuffer = true;
 uint16_t currentSong;
+uint16_t cia1TimerAValue = 0;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -128,20 +129,60 @@ void C64::synth_init() {
     secondSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
+double f64_sqrt(double x) {
+    const int h = 1; // may be platform dependent MSB/LSB order
+    const int l = 0;
+    DWORD b; // bit mask
+    int e; // exponent
+    union // semi result
+    {
+        double f; // 64bit floating point
+        DWORD u[2]; // 2x32 bit uint
+    } y;
+    // fabs
+    y.f = x;
+    y.u[h] &= 0x7FFFFFFF;
+    x = y.f;
+    // set safe exponent (~ abs half)
+    e = ((y.u[h] >> 20) & 0x07FF) - 1023;
+    e /= 2; // here can use bit shift with copying MSB ...
+    y.u[h] = ((e + 1023) & 0x07FF) << 20;
+    // mantisa=0
+    y.u[l] = 0x00000000;
+    y.u[h] &= 0xFFF00000;
+    // correct exponent
+    if (y.f * y.f > x) {
+        e--;
+        y.u[h] = ((e + 1023) & 0x07FF) << 20;
+    }
+    // binary search
+    for (b = 0x00080000; b; b >>= 1) {
+        y.u[h] |= b;
+        if (y.f * y.f > x) y.u[h] ^= b;
+    }
+    for (b = 0x80000000; b; b >>= 1) {
+        y.u[l] |= b;
+        if (y.f * y.f > x) y.u[l] ^= b;
+    }
+    return y.f;
+}
+
 // TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
-// TODO: Don't mix if the song only uses one SID
 // TODO: Explore using stereo mixing for dual SIDs
+// TODO: Name this function something mixer related and perhaps implement master volume here
 void C64::sid_synth_render(short *buffer, size_t len) {
     cycle_count first_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                                         static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    cycle_count second_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
+    firstSID->clock(first_sid_delta_t, buffer, static_cast<int>(len));
+
+    if (secondSidAddr) {
+        short secondBuffer[len];
+        cycle_count second_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                                          static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    short firstBuffer[len];
-    short secondBuffer[len];
-    firstSID->clock(first_sid_delta_t, firstBuffer, static_cast<int>(len));
-    secondSID->clock(second_sid_delta_t, secondBuffer, static_cast<int>(len));
-    for (int i = 0; i < len; i++) {
-        buffer[i] = firstBuffer[i] / 2 + secondBuffer[i] / 2;
+        secondSID->clock(second_sid_delta_t, secondBuffer, static_cast<int>(len));
+        for (int i = 0; i < len; i++) {
+            buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
+        }
     }
 }
 
@@ -150,6 +191,12 @@ void C64::sid_synth_render(short *buffer, size_t len) {
 */
 static inline unsigned char getmem(unsigned short addr) {
     return memory[addr];
+}
+
+void C64::dumpMem(unsigned short startAddr, unsigned short endAddr) {
+    for (unsigned short addr = startAddr; addr <= endAddr; ++addr) {
+        printf("0x%04X: 0x%02X\n", addr, getmem(addr));
+    }
 }
 
 static void setmem(unsigned short addr, unsigned char value) {
@@ -721,29 +768,18 @@ volatile bool C64::tryJSRToPlayAddr() {
     return true;
 }
 
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor) {
+// TODO: Restore volume control + visualization buffer shuffling
+// TODO: Set NTSC speed factor when needed
+volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
-    if (tryJSRToPlayAddr()) {
-        if (useCIA()) {
-            sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
-            tryJSRToPlayAddr();
-            sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
-        } else {
-            sid_synth_render(samples, SAMPLES_PER_BUFFER);
-        }
-        std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
-                  visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
-        firstBuffer = !firstBuffer;
-        for (int16_t i = 0; i < SAMPLES_PER_BUFFER; i++) {
-            if (samples[i]) {
-                samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
-            }
-        }
-        buffer->sample_count = buffer->max_sample_count;
-        return true;
+    float speedFactor = 0.77f; // PAL ?
+    if (useCIA()) {
+        speedFactor = static_cast<float>(cia1TimerAValue) / 65535;
     }
-    return false;
+    tryJSRToPlayAddr();
+    sid_synth_render(samples, SAMPLES_PER_BUFFER * speedFactor);
+    buffer->sample_count = SAMPLES_PER_BUFFER * speedFactor;
+    return true;
 }
 
 bool C64::sid_load_from_file(TCHAR file_name[]) {
@@ -754,7 +790,6 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
     if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
     if (bytesRead < SID_HEADER_SIZE) return false;
-    // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
 
     readHeader(header, info);
 
@@ -783,8 +818,12 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
 
     currentSong = info.start;
 
-    sidPoke(24, 15, 0);
+    // TODO: Add ability to switch between 6582 and 8580
     cpuJSR(info.init, currentSong);
+    if (useCIA()) {
+        cia1TimerAValue = endian_big16(&memory[0xdc04]);
+        printf("CIA Timer Value: %d\n", cia1TimerAValue);
+    }
     return true;
 }
 

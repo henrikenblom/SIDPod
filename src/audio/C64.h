@@ -66,7 +66,7 @@ public:
 
     static volatile bool tryJSRToPlayAddr();
 
-    static volatile bool generateSamples(audio_buffer *buffer, float volumeFactor);
+    static volatile bool clock(audio_buffer *buffer, float volumeFactor);
 
     static void setLineLevel(bool on);
 
@@ -81,6 +81,8 @@ public:
     static void readHeader(BYTE *buffer, sid_info &info);
 
     static void sid_synth_render(short *buffer, size_t len);
+
+    static void dumpMem(unsigned short startAddr, unsigned short endAddr);
 };
 
 //----------------------------------------------

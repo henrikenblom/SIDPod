@@ -176,7 +176,7 @@ volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
 
         if (rendering) {
             audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            C64::generateSamples(buffer, volumeFactor);
+            C64::clock(buffer, volumeFactor);
             give_audio_buffer(audioBufferPool, buffer);
         }
     }

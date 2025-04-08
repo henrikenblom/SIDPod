@@ -46,8 +46,8 @@
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 #define USE_CIA                             1
 
-#define SAMPLE_RATE                         ((uint32_t)44100)
-#define SAMPLES_PER_BUFFER                  896
+#define SAMPLE_RATE                         ((uint32_t)48000)
+#define SAMPLES_PER_BUFFER                  1240
 
 #define AMP_CONTROL_PIN                     15
 
