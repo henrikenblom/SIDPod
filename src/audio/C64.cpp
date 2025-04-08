@@ -708,7 +708,7 @@ void C64::c64Init() {
 }
 
 bool C64::useCIA(uint8_t song) {
-    return IS_BIT_SET(playbackInfo.speed, song);
+    return IS_BIT_SET(playbackInfo.speed, song - 1);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
@@ -720,10 +720,10 @@ volatile bool C64::tryJSRToPlayAddr() {
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
-volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor) {
+volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor, const int16_t song) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     if (tryJSRToPlayAddr()) {
-        if (useCIA(0)) {
+        if (useCIA(song)) {
             sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
             tryJSRToPlayAddr();
             sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);

@@ -74,7 +74,7 @@ public:
 
     static volatile bool tryJSRToPlayAddr();
 
-    static volatile bool generateSamples(audio_buffer *buffer, float volumeFactor);
+    static volatile bool generateSamples(audio_buffer *buffer, float volumeFactor, int16_t song);
 
     static void setLineLevel(bool on);
 
