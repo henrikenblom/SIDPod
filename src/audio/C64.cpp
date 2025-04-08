@@ -771,8 +771,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
     f_close(&pFile);
 
-    secondSidAddr = info.sidChipBase2 + 0xD4B0;
-    sidPoke(24, 15, 1);
+    secondSidAddr = (info.sidChipBase2) ? info.sidChipBase2 + 0xD4B0 : 0;
     printf("Second SID: 0x%x\n", secondSidAddr);
 
     if (info.play == 0) {
@@ -781,6 +780,8 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
 
     currentSong = info.start;
+
+    //TODO: Check why Myth stopped working.
 
     sidPoke(24, 15, 0);
     cpuJSR(info.init, currentSong);
