@@ -107,9 +107,10 @@ const uint8_t POWERON[] =
 #  include "poweron.bin"
 };
 
-playback_info playbackInfo = {};
+sid_info info;
 SID reSID;
 bool firstBuffer = true;
+uint16_t currentSong;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -679,23 +680,23 @@ void C64::c64Init() {
     cpuReset();
 }
 
-bool C64::useCIA(uint8_t song) {
-    return IS_BIT_SET(playbackInfo.speed, song);
+bool C64::useCIA() {
+    return IS_BIT_SET(info.speed, currentSong);
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile bool C64::tryJSRToPlayAddr() {
-    if (!cpuJSRWithWatchdog(playbackInfo.play, 0)) {
+    if (!cpuJSRWithWatchdog(info.play, 0)) {
         return false;
     }
     return true;
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
-volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor, const int16_t song) {
+volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
     if (tryJSRToPlayAddr()) {
-        if (useCIA(song)) {
+        if (useCIA()) {
             sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
             tryJSRToPlayAddr();
             sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
@@ -716,7 +717,7 @@ volatile bool C64::generateSamples(audio_buffer *buffer, float volumeFactor, con
     return false;
 }
 
-bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
+bool C64::sid_load_from_file(TCHAR file_name[]) {
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
     BYTE buffer[SID_LOAD_BUFFER_SIZE];
@@ -726,15 +727,14 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     if (bytesRead < SID_HEADER_SIZE) return false;
     // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
 
-    readHeader(header, *info);
-    decodePlaybackInfo(info, playbackInfo, header);
+    readHeader(header, info);
 
-    print_sid_info(info);
+    print_sid_info();
 
-    if (playbackInfo.original) {
-        f_lseek(&pFile, playbackInfo.data + 2);
+    if (info.originalFileFormat) {
+        f_lseek(&pFile, info.data + 2);
     }
-    uint16_t offset = playbackInfo.load;
+    uint16_t offset = info.load;
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
@@ -744,63 +744,42 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     }
     f_close(&pFile);
 
-    if (playbackInfo.play == 0) {
-        if (!cpuJSRWithWatchdog(playbackInfo.init, 0)) return false;
-        playbackInfo.play = (memory[0xffff] << 8) | memory[0xfffe];
+    if (info.play == 0) {
+        if (!cpuJSRWithWatchdog(info.init, 0)) return false;
+        info.play = (memory[0xffff] << 8) | memory[0xfffe];
     }
 
+    currentSong = info.start;
+
     sidPoke(24, 15);
-    cpuJSR(playbackInfo.init, info->start);
+    cpuJSR(info.init, currentSong);
     return true;
 }
 
-
-void C64::decodePlaybackInfo(sid_info *sidInfo, playback_info &playbackInfo, const BYTE *buffer) {
-    playbackInfo.data = sidInfo->data;
-    if (!sidInfo->load) {
-        playbackInfo.load = buffer[sidInfo->data];
-        playbackInfo.load |= buffer[sidInfo->data + 1] << 8;
-        playbackInfo.original = true;
-    } else {
-        playbackInfo.load = sidInfo->load;
-        playbackInfo.original = false;
-    }
-    if (!sidInfo->init) {
-        playbackInfo.init = sidInfo->load;
-    } else {
-        playbackInfo.init = sidInfo->init;
-    }
-    playbackInfo.play = sidInfo->play;
-    playbackInfo.rsid = sidInfo->id == RSID_ID;
-    playbackInfo.speed = sidInfo->speed;
+sid_info *C64::getSidInfo() {
+    return &info;
 }
 
-void C64::print_load_info(struct playback_info *info) {
-    printf("Data: %d\n", info->data);
-    printf("Load: %d\n", info->load);
-    printf("Init: %d\n", info->init);
-    printf("Play: %d\n", info->play);
-    printf("Speed: %d\n", info->speed);
-    printf("Original: %s\n", info->original ? "true" : "false");
-    printf("RSID: %s\n", info->rsid ? "true" : "false");
-}
-
-void C64::print_sid_info(struct sid_info *info) {
-    printf("ID: %08x\n", info->id);
-    printf("Version: %d\n", info->version);
-    printf("Data: %d\n", info->data);
-    printf("Load: %d\n", info->load);
-    printf("Init: %d\n", info->init);
-    printf("Play: %d\n", info->play);
-    printf("Songs: %d\n", info->songs);
-    printf("Start: %d\n", info->start);
+void C64::print_sid_info() {
+    printf("ID: %08x\n", info.id);
+    printf("Version: %d\n", info.version);
+    printf("Data: %d\n", info.data);
+    printf("Load: %d\n", info.load);
+    printf("Init: %d\n", info.init);
+    printf("Play: %d\n", info.play);
+    printf("RelocStartPage: %d\n", info.relocStartPage);
+    printf("RelocPages: %d\n", info.relocPages);
+    printf("SIDChipBase2: 0x%x\n", info.sidChipBase2);;
+    printf("SIDChipBase3: 0x%x\n", info.sidChipBase3);
+    printf("Songs: %d\n", info.songs);
+    printf("Start: %d\n", info.start);
     printf("Speed:\n");
     for (int i = 31; i >= 0; i--) {
         printf("%02d ", i);
     }
     printf("\n");
     for (int i = 31; i >= 0; i--) {
-        printf("%d  ", info->speed >> i & 1);
+        printf("%d  ", info.speed >> i & 1);
     }
     printf("\nFlags:\n");
     for (int i = 15; i >= 0; i--) {
@@ -808,11 +787,11 @@ void C64::print_sid_info(struct sid_info *info) {
     }
     printf("\n");
     for (int i = 15; i >= 0; i--) {
-        printf("%d  ", info->flags >> i & 1);
+        printf("%d  ", info.flags >> i & 1);
     }
-    printf("\nName: %s\n", info->name);
-    printf("Author: %s\n", info->author);
-    printf("Released: %s\n\n", info->released);
+    printf("\nName: %s\n", info.name);
+    printf("Author: %s\n", info.author);
+    printf("Released: %s\n\n", info.released);
 }
 
 void C64::readHeader(BYTE *buffer, sid_info &info) {
@@ -839,6 +818,17 @@ void C64::readHeader(BYTE *buffer, sid_info &info) {
         info.relocPages = buffer[121];
         info.sidChipBase2 = buffer[122];
         info.sidChipBase3 = buffer[123];
+    }
+
+    if (!info.load) {
+        info.load = buffer[info.data];
+        info.load |= buffer[info.data + 1] << 8;
+        info.originalFileFormat = true;
+    } else {
+        info.originalFileFormat = false;
+    }
+    if (!info.init) {
+        info.init = info.load;
     }
 }
 

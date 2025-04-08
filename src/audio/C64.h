@@ -21,16 +21,6 @@ constexpr int PSID_MAXSTRLEN = 32;
 constexpr int psid_headerSize = 118;
 constexpr int psidv2_headerSize = psid_headerSize + 6;
 
-struct playback_info {
-    bool rsid;
-    bool original;
-    uint16_t data; // 16-bit offset to binary data in file
-    uint16_t load; // 16-bit C64 address to load file to
-    uint16_t init; // 16-bit C64 address of init subroutine
-    uint16_t play; // 16-bit C64 address of play subroutine
-    uint32_t speed; // 32-bit speed info
-};
-
 struct sid_info {
     uint32_t id; // 'PSID' or 'RSID' (ASCII)
     uint16_t version; // 1, 2, 3 or 4
@@ -51,6 +41,8 @@ struct sid_info {
     uint8_t relocPages; // only version >= 2ng
     uint8_t sidChipBase2; // only version >= 3
     uint8_t sidChipBase3; // only version >= 4
+
+    bool originalFileFormat;
 };
 
 //----------------------------------------------
@@ -70,23 +62,21 @@ public:
 
     static void c64Init();
 
-    static bool useCIA(uint8_t song);
+    static bool useCIA();
 
     static volatile bool tryJSRToPlayAddr();
 
-    static volatile bool generateSamples(audio_buffer *buffer, float volumeFactor, int16_t song);
+    static volatile bool generateSamples(audio_buffer *buffer, float volumeFactor);
 
     static void setLineLevel(bool on);
 
     static bool getLineLevelOn();
 
-    static bool sid_load_from_file(TCHAR file_name[], struct sid_info *info);
+    static bool sid_load_from_file(TCHAR file_name[]);
 
-    static void decodePlaybackInfo(sid_info *sidInfo, playback_info &playbackInfo, const BYTE *buffer);
+    static sid_info *getSidInfo();
 
-    static void print_load_info(struct playback_info *info);
-
-    static void print_sid_info(struct sid_info *info);
+    static void print_sid_info();
 
     static void readHeader(BYTE *buffer, sid_info &info);
 

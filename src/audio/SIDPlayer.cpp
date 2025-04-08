@@ -17,7 +17,6 @@ queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
-static sid_info sidInfo{};
 short visualizationBuffer[FFT_SAMPLES];
 volatile bool playPauseQueued = false;
 bool rendering = false;
@@ -120,7 +119,7 @@ bool SIDPlayer::lineLevelOn() {
 }
 
 sid_info *SIDPlayer::getSidInfo() {
-    return &sidInfo;
+    return C64::getSidInfo();
 }
 
 bool SIDPlayer::loadingWasSuccessful() {
@@ -140,7 +139,7 @@ volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
 }
 
 volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
-    return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
+    return C64::sid_load_from_file(sidFile->fileName);
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
@@ -177,7 +176,7 @@ volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
 
         if (rendering) {
             audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            C64::generateSamples(buffer, volumeFactor, sidInfo.start);
+            C64::generateSamples(buffer, volumeFactor);
             give_audio_buffer(audioBufferPool, buffer);
         }
     }
