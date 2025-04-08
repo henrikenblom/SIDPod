@@ -60,7 +60,7 @@ public:
 
     static void sidPoke(int reg, unsigned char val);
 
-    static reg8 sidPeek(int reg);
+    static reg8 sidPeek(unsigned short reg);
 
     static void cpuReset();
 

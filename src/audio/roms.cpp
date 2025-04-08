@@ -9,7 +9,7 @@ bin2h characters.901225-01.bin -id=rom_characters >> roms.h
 */
 
 //file auto-generated from basic.901226-01.bin by bin2h.exe
-const size_t rom_basic_len = 8192;
+
 const unsigned char rom_basic[8192]=
 {
 	0x94,0xE3,0x7B,0xE3,0x43,0x42,0x4D,0x42,0x41,0x53,0x49,
@@ -759,7 +759,7 @@ const unsigned char rom_basic[8192]=
 	0x90,0x03,0x20,0x23,0xBC,0x4C,0x00,0xE0,
 };
 //file auto-generated from kernal.901227-03.bin by bin2h.exe
-const size_t rom_kernal_len = 8192;
+
 const unsigned char rom_kernal[8192]=
 {
 	0x85,0x56,0x20,0x0F,0xBC,0xA5,0x61,0xC9,0x88,0x90,0x03,
@@ -1519,7 +1519,6 @@ const unsigned char rom_kernal[8192]=
 };
 
 //file auto-generated from characters.901225-01.bin by bin2h.exe
-const size_t rom_characters_len = 4096;
 const unsigned char rom_characters[4096]=
 {
 	0x3C,0x66,0x6E,0x6E,0x60,0x62,0x3C,0x00,0x18,0x3C,0x66,

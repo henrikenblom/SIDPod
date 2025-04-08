@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <hardware/pio.h>
+
 #include "../platform_config.h"
 #include "reSID/sid.h"
 #include "sidendian.h"
@@ -59,9 +61,6 @@ static unsigned short wval IDATA_ATTR;
 static unsigned char a, x, y, s, p IDATA_ATTR;
 static unsigned short pc IDATA_ATTR;
 
-unsigned char lowerMemory[40959];
-unsigned char upperMemory[8192];
-unsigned char hardwareVectors[6];
 unsigned char memory[65536];
 
 static constexpr int opcodes[256] ICONST_ATTR = {
@@ -144,7 +143,7 @@ void C64::sidPoke(int reg, unsigned char val) {
     reSID.write(reg, val);
 }
 
-reg8 C64::sidPeek(int reg) {
+reg8 C64::sidPeek(unsigned short reg) {
     return reSID.read(reg);
 }
 
@@ -175,12 +174,12 @@ void copyPoweronPattern() {
             // Extract compressed data
             const uint8_t data = POWERON[i++];
             while (count-- > 0) {
-                lowerMemory[addr] = data;
+                setmem(addr, data);
             }
         } else {
             // Extract uncompressed data
             while (count-- > 0) {
-                lowerMemory[addr] = POWERON[i++];
+                setmem(addr, POWERON[i++]);
             }
         }
     }
@@ -674,17 +673,9 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 
 void C64::c64Init() {
     synth_init();
-    memset(lowerMemory, 0, sizeof(lowerMemory));
-    memset(upperMemory, 0, sizeof(upperMemory));
     memset(memory, 0, sizeof(memory));
-    // uint8_t c = 0;
-    // for (const uint8_t value: {0xfe, 0x43, 0xfc, 0xe2, 0xff, 0x48}) {
-    //     hardwareVectors[c++] = value;
-    // }
-    // for (const uint8_t value: {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) {
-    //     hardwareVectors[c++] = value;
-    // }
-    // copyPoweronPattern();
+    memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
+    copyPoweronPattern();
     cpuReset();
 }
 
@@ -747,8 +738,9 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     while (true) {
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
-        memcpy(&memory[offset], &buffer, bytesRead);
-        offset += SID_LOAD_BUFFER_SIZE;
+        for (int i = 0; i < bytesRead; i++) {
+            setmem(offset++, buffer[i]);
+        }
     }
     f_close(&pFile);
 
@@ -758,7 +750,7 @@ bool C64::sid_load_from_file(TCHAR file_name[], sid_info *info) {
     }
 
     sidPoke(24, 15);
-    cpuJSR(info->init, info->start);
+    cpuJSR(playbackInfo.init, info->start);
     return true;
 }
 
@@ -802,9 +794,23 @@ void C64::print_sid_info(struct sid_info *info) {
     printf("Play: %d\n", info->play);
     printf("Songs: %d\n", info->songs);
     printf("Start: %d\n", info->start);
-    printf("Speed: %d\n", info->speed);
-    printf("Flags: %d\n", info->flags);
-    printf("Name: %s\n", info->name);
+    printf("Speed:\n");
+    for (int i = 31; i >= 0; i--) {
+        printf("%02d ", i);
+    }
+    printf("\n");
+    for (int i = 31; i >= 0; i--) {
+        printf("%d  ", info->speed >> i & 1);
+    }
+    printf("\nFlags:\n");
+    for (int i = 15; i >= 0; i--) {
+        printf("%02d ", i);
+    }
+    printf("\n");
+    for (int i = 15; i >= 0; i--) {
+        printf("%d  ", info->flags >> i & 1);
+    }
+    printf("\nName: %s\n", info->name);
     printf("Author: %s\n", info->author);
     printf("Released: %s\n\n", info->released);
 }
