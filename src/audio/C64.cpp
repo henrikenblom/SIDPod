@@ -170,8 +170,10 @@ void C64::dumpMem(unsigned short startAddr, unsigned short endAddr) {
 static void setmem(unsigned short addr, unsigned char value) {
     if (addr >= firstSidAddr && addr < firstSidAddr + 0x20) {
         C64::sidPoke(addr & 0x1f, value, 0);
-    } else if (secondSidAddr && addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
+    } else if (addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
         C64::sidPoke(addr & 0x1f, value, 1);
+    } else if (addr > 0xd440 && addr <= 0xd7ff) {
+        //printf("addr: 0x%04X\n", addr);
     } else memory[addr] = value;
 }
 
@@ -731,7 +733,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
     f_close(&pFile);
 
-    secondSidAddr = (info.sidChipBase2) ? info.sidChipBase2 + 0xD4B0 : 0;
+    secondSidAddr = (info.sidChipBase2) ? (info.sidChipBase2 * 0x10) + 0xD000 : 0;
 
     firstSID->set_chip_model(info.sid1is8580 ? MOS8580 : MOS6581);
     secondSID->set_chip_model(info.sid2is8580 ? MOS8580 : MOS6581);
