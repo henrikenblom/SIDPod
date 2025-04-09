@@ -16,7 +16,7 @@
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
 #define CLOCK_SPEED_KHZ                     200000
 #else
-#define CLOCK_SPEED_KHZ                     160000
+#define CLOCK_SPEED_KHZ                     180000
 #endif
 
 #define WAIT_SYNC_NS                        ((CLOCK_SPEED_KHZ / REFERENCE_CLOCK_SPEED_KHZ) * 10000)
@@ -38,16 +38,17 @@
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
-#define SID_HEADER_SIZE                    ((uint8_t) 0x88)
+#define SID_HEADER_SIZE                    ((uint8_t) 0x7e)
 #define SID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x48)
 #define PSID_ID                             0x50534944
 #define RSID_ID                             0x52534944
 #define SID_LOAD_BUFFER_SIZE                ((int) 256)
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
-#define USE_CIA                             1
 
-#define SAMPLE_RATE                         ((uint32_t)44100)
-#define SAMPLES_PER_BUFFER                  896
+#define SAMPLE_RATE                         ((uint32_t)48000)
+#define MAX_SAMPLES_PER_BUFFER              1240
+#define NTSC_SPEED_FACTOR                   0.77f
+#define PAL_SPEED_FACTOR                    0.93f
 
 #define AMP_CONTROL_PIN                     15
 
@@ -80,7 +81,7 @@
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         1000
-#define LOW_FREQ_DOMINANCE_COMP_OFFSET      12
+#define LOW_FREQ_DOMINANCE_COMP_OFFSET      2
 #define SIDPLAYER_STARTUP_GRACE_TIME        800
 
 #define USER_CONTROLS_POLLRATE_MS           50
@@ -93,4 +94,4 @@
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      1200
-#define SPLASH_DISPLAY_DURATION             2000
+#define SPLASH_DISPLAY_DURATION             200

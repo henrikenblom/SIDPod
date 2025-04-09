@@ -36,7 +36,7 @@ public:
 
     static bool lineLevelOn();
 
-    static sid_info *getSidInfo();
+    static SidInfo *getSidInfo();
 
     static bool loadingWasSuccessful();
 

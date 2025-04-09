@@ -4,7 +4,6 @@
 #include "PSIDCatalog.h"
 
 #include <algorithm>
-#include <string>
 
 #include "platform_config.h"
 

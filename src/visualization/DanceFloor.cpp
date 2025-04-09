@@ -315,12 +315,12 @@ namespace Visualization {
     void DanceFloor::visualize() {
         while (running) {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
-                sid_info *entry = SIDPlayer::getSidInfo();
+                SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 snprintf(scrollText, sizeof(scrollText),
                          "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
-                         entry->title, entry->author, entry->released, experience,
-                         entry->rsid == true ? "this RSID" : "it");
+                         entry->name, entry->author, entry->released, experience,
+                         entry->isPSID ? "it" : "this RSID");
                 showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;

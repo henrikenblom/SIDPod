@@ -17,9 +17,7 @@ queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
-static sid_info sidInfo{};
 short visualizationBuffer[FFT_SAMPLES];
-bool firstBuffer = true;
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
@@ -33,7 +31,7 @@ static audio_buffer_format producer_format = {
     .format = &audio_format,
     .sample_stride = 2
 };
-static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
+static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, MAX_SAMPLES_PER_BUFFER);
 audio_i2s_config config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
     .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
@@ -54,7 +52,7 @@ void SIDPlayer::resetState() {
     rendering = false;
     loadingSuccessful = true;
     lastCatalogEntry = {};
-    memset(visualizationBuffer, 0, SAMPLES_PER_BUFFER);
+    memset(visualizationBuffer, 0, FFT_SAMPLES);
     C64::c64Init();
 }
 
@@ -120,8 +118,8 @@ bool SIDPlayer::lineLevelOn() {
     return C64::getLineLevelOn();
 }
 
-sid_info *SIDPlayer::getSidInfo() {
-    return &sidInfo;
+SidInfo *SIDPlayer::getSidInfo() {
+    return C64::getSidInfo();
 }
 
 bool SIDPlayer::loadingWasSuccessful() {
@@ -141,36 +139,7 @@ volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
 }
 
 volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
-    return C64::sid_load_from_file(sidFile->fileName, &sidInfo);
-}
-
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile void SIDPlayer::tryJSRToPlayAddr() {
-    if (!C64::cpuJSRWithWatchdog(sidInfo.play_addr, 0)) {
-        loadingSuccessful = false;
-    }
-}
-
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
-    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
-    tryJSRToPlayAddr();
-    if (sidInfo.speed == USE_CIA) {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER / 2);
-        tryJSRToPlayAddr();
-        C64::sid_synth_render(samples + SAMPLES_PER_BUFFER / 2, SAMPLES_PER_BUFFER / 2);
-    } else {
-        C64::sid_synth_render(samples, SAMPLES_PER_BUFFER);
-    }
-    std::copy(samples, samples + (FFT_SAMPLES - SAMPLES_PER_BUFFER),
-              visualizationBuffer + (firstBuffer ? 0 : SAMPLES_PER_BUFFER));
-    firstBuffer = !firstBuffer;
-    for (int16_t i = 0; i < SAMPLES_PER_BUFFER; i++) {
-        if (samples[i]) {
-            samples[i] = static_cast<int16_t>(static_cast<float>(samples[i]) * volumeFactor);
-        }
-    }
-    buffer->sample_count = buffer->max_sample_count;
+    return C64::sid_load_from_file(sidFile->fileName);
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
@@ -188,8 +157,6 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
                 resetState();
                 if (loadPSID(PSIDCatalog::getCurrentEntry())) {
                     loadingSuccessful = true;
-                    C64::sidPoke(24, 15);
-                    C64::cpuJSR(sidInfo.init_addr, sidInfo.start_song);
                     rendering = true;
                     ampOn();
                 } else {
@@ -207,9 +174,9 @@ volatile void SIDPlayer::generateSamples(audio_buffer *buffer) {
             playPauseQueued = false;
         }
 
-        if (rendering && sidInfo.play_addr != 0) {
+        if (rendering) {
             audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            generateSamples(buffer);
+            C64::clock(buffer, volumeFactor);
             give_audio_buffer(audioBufferPool, buffer);
         }
     }

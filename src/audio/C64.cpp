@@ -11,8 +11,13 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <hardware/pio.h>
+
 #include "../platform_config.h"
 #include "reSID/sid.h"
+#include "sidendian.h"
+#include "roms.h"
+#include "SIDPlayer.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -97,43 +102,172 @@ static constexpr int modes[256] ICONST_ATTR = {
     rel, indy, xxx, xxx, zpx, zpx, zpx, xxx, imp, absy, acc, xxx, xxx, absx, absx, xxx
 };
 
-SID reSID;
+const uint8_t POWERON[] =
+{
+#  include "poweron.bin"
+};
+
+SidInfo info;
+SID *firstSID = new SID;
+SID *secondSID = new SID;
+unsigned short firstSidAddr = 0xd400;
+unsigned short secondSidAddr = 0;
+bool firstBuffer = true;
+uint16_t currentSong;
+int sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
+int currentVisualizationBufferOffset = 0;
+cycle_count initialCycleCount = 0;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
 void C64::synth_init() {
-    reSID.reset();
-    reSID.enable_filter(true);
-    reSID.enable_external_filter(true);
-    reSID.set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
+    firstSID->reset();
+    firstSID->enable_filter(true);
+    firstSID->enable_external_filter(true);
+    firstSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
+    secondSID->reset();
+    secondSID->enable_filter(true);
+    secondSID->enable_external_filter(true);
+    secondSID->set_sampling_parameters(CLOCKFREQ, SAMPLE_FAST, SAMPLE_RATE);
 }
 
-void C64::sid_synth_render(short *buffer, size_t len) {
-    cycle_count delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
-                              static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    reSID.clock(delta_t, buffer, static_cast<int>(len));
+double f64_sqrt(double x) {
+    const int h = 1; // may be platform dependent MSB/LSB order
+    const int l = 0;
+    DWORD b; // bit mask
+    int e; // exponent
+    union // semi result
+    {
+        double f; // 64bit floating point
+        DWORD u[2]; // 2x32 bit uint
+    } y;
+    // fabs
+    y.f = x;
+    y.u[h] &= 0x7FFFFFFF;
+    x = y.f;
+    // set safe exponent (~ abs half)
+    e = ((y.u[h] >> 20) & 0x07FF) - 1023;
+    e /= 2; // here can use bit shift with copying MSB ...
+    y.u[h] = ((e + 1023) & 0x07FF) << 20;
+    // mantisa=0
+    y.u[l] = 0x00000000;
+    y.u[h] &= 0xFFF00000;
+    // correct exponent
+    if (y.f * y.f > x) {
+        e--;
+        y.u[h] = ((e + 1023) & 0x07FF) << 20;
+    }
+    // binary search
+    for (b = 0x00080000; b; b >>= 1) {
+        y.u[h] |= b;
+        if (y.f * y.f > x) y.u[h] ^= b;
+    }
+    for (b = 0x80000000; b; b >>= 1) {
+        y.u[l] |= b;
+        if (y.f * y.f > x) y.u[l] ^= b;
+    }
+    return y.f;
+}
+
+// TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
+// TODO: Explore using stereo mixing for dual SIDs
+// TODO: Name this function something mixer related and perhaps implement master volume here
+int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
+    cycle_count delta_t = initialCycleCount;
+    const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
+
+    if (secondSidAddr) {
+        short secondBuffer[len];
+        delta_t = initialCycleCount;
+        secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
+        for (int i = 0; i < len; i++) {
+            buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
+            visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
+            if (currentVisualizationBufferOffset == FFT_SAMPLES) {
+                currentVisualizationBufferOffset = 0;
+            }
+            if (buffer[i]) {
+                buffer[i] = static_cast<int16_t>(static_cast<float>(buffer[i]) * volumeFactor);
+            }
+        }
+    }
+    return sampleCount;
 }
 
 /*
 * C64 Mem Routines
 */
-static unsigned char getmem(unsigned short addr) {
+static inline unsigned char getmem(unsigned short addr) {
     return memory[addr];
 }
 
-static void setmem(unsigned short addr, unsigned char value) {
-    if ((addr & 0xfc00) == 0xd400) {
-        C64::sidPoke(addr & 0x1f, value);
-    } else {
-        memory[addr] = value;
+void C64::dumpMem(unsigned short startAddr, unsigned short endAddr) {
+    for (unsigned short addr = startAddr; addr <= endAddr; ++addr) {
+        printf("0x%04X: 0x%02X\n", addr, getmem(addr));
     }
 }
 
-/*
-* Poke a value into the sid register
-*/
-void C64::sidPoke(int reg, unsigned char val) {
-    reSID.write(reg, val);
+static void setmem(unsigned short addr, unsigned char value) {
+    if (addr >= firstSidAddr && addr < firstSidAddr + 0x20) {
+        C64::sidPoke(addr & 0x1f, value, 0);
+    } else if (secondSidAddr && addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
+        C64::sidPoke(addr & 0x1f, value, 1);
+    } else memory[addr] = value;
+}
+
+void C64::sidPoke(int reg, unsigned char val, int8_t sid) {
+    switch (sid) {
+        case 0:
+            firstSID->write(reg, val);
+            break;
+        case 1:
+            secondSID->write(reg, val);
+            break;
+        default:
+            break;
+    }
+}
+
+reg8 C64::sidPeek(unsigned short reg) {
+    return firstSID->read(reg);
+}
+
+void copyPoweronPattern() {
+    uint_least16_t addr = 0;
+    for (unsigned int i = 0; i < sizeof(POWERON);) {
+        uint8_t off = POWERON[i++];
+        uint8_t count = 0;
+        bool compressed = false;
+
+        // Determine data count/compression
+        if (off & 0x80) {
+            // fixup offset
+            off &= 0x7f;
+            count = POWERON[i++];
+            if (count & 0x80) {
+                // fixup count
+                count &= 0x7f;
+                compressed = true;
+            }
+        }
+
+        // Fix count off by ones (see format details)
+        count++;
+        addr += off;
+
+        if (compressed) {
+            // Extract compressed data
+            const uint8_t data = POWERON[i++];
+            while (count-- > 0) {
+                setmem(addr, data);
+            }
+        } else {
+            // Extract uncompressed data
+            while (count-- > 0) {
+                setmem(addr, POWERON[i++]);
+            }
+        }
+    }
 }
 
 static inline unsigned char getaddr(int mode) {
@@ -625,59 +759,179 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 void C64::c64Init() {
     synth_init();
     memset(memory, 0, sizeof(memory));
+    memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
+    copyPoweronPattern();
     cpuReset();
 }
 
-bool C64::sid_load_from_file(TCHAR file_name[], struct sid_info *info) {
+bool C64::useCIA() {
+    return IS_BIT_SET(info.speed, currentSong);
+}
+
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool C64::tryJSRToPlayAddr() {
+    if (!cpuJSRWithWatchdog(info.play, 0)) {
+        return false;
+    }
+    return true;
+}
+
+volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
+    auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
+    if (tryJSRToPlayAddr()) {
+        buffer->sample_count = renderAndMix(samples, sampleCount, volumeFactor);
+        return true;
+    }
+    return false;
+}
+
+bool C64::sid_load_from_file(TCHAR file_name[]) {
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
-    BYTE buffer[SID_LOAD_BUFFER_SIZE];
     UINT bytesRead;
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
     if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
     if (bytesRead < SID_HEADER_SIZE) return false;
-    auto *pHeader = static_cast<unsigned char *>(header);
-    // TODO: Rewrite, similar to the PSID class in libsidplayfp, so that speed, chip model/count etc are properly set.
-    unsigned char data_file_offset = pHeader[7];
 
-    info->rsid = (pHeader[3] | pHeader[2] << 0x08 | pHeader[1] << 0x10 | pHeader[0] << 0x18) == RSID_ID;
+    readHeader(header, info);
 
-    info->load_addr = pHeader[8] << 8;
-    info->load_addr |= pHeader[9];
+    print_sid_info();
 
-    info->init_addr = pHeader[10] << 8;
-    info->init_addr |= pHeader[11];
-
-    info->play_addr = pHeader[12] << 8;
-    info->play_addr |= pHeader[13];
-
-    info->subsongs = pHeader[0xf] - 1;
-    info->start_song = pHeader[0x11] - 1;
-
-    info->load_addr = pHeader[data_file_offset];
-    info->load_addr |= pHeader[data_file_offset + 1] << 8;
-
-    info->speed = pHeader[0x15];
-
-    strcpy(info->title, (const char *) &pHeader[0x16]);
-    strcpy(info->author, (const char *) &pHeader[0x36]);
-    strcpy(info->released, (const char *) &pHeader[0x56]);
-
-    f_lseek(&pFile, data_file_offset + 2);
-    uint16_t offset = info->load_addr;
+    if (info.originalFileFormat) {
+        f_lseek(&pFile, info.data + 2);
+    }
+    uint16_t offset = info.load;
     while (true) {
+        BYTE buffer[SID_LOAD_BUFFER_SIZE];
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
-        memcpy(&memory[offset], &buffer, bytesRead);
-        offset += SID_LOAD_BUFFER_SIZE;
+        for (int i = 0; i < bytesRead; i++) {
+            setmem(offset++, buffer[i]);
+        }
     }
     f_close(&pFile);
 
-    if (info->play_addr == 0) {
-        if (!cpuJSRWithWatchdog(info->init_addr, 0)) return false;
-        info->play_addr = (memory[0xffff] << 8) | memory[0xfffe];
+    secondSidAddr = (info.sidChipBase2) ? info.sidChipBase2 + 0xD4B0 : 0;
+
+    // TODO: Implement this in the SID class
+    // firstSID->set_chip_model(info.sid1is8580 ? SID::SID8580 : SID::SID6581);
+    // secondSID->set_chip_model(info.sid2is8580 ? SID::SID8580 : SID::SID6581);
+
+    if (info.play == 0) {
+        if (!cpuJSRWithWatchdog(info.init, 0)) return false;
+        info.play = (memory[0xffff] << 8) | memory[0xfffe];
     }
+
+    currentSong = info.start;
+
+    cpuJSR(info.init, currentSong);
+    if (useCIA()) {
+        uint_least64_t cia1TimerAValue = endian_big16(&memory[0xdc04]);
+        printf("CIA Timer Value: %llu\n", cia1TimerAValue);
+        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 65535;
+    } else if (info.isNTSC) {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
+    } else {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
+    }
+
+    initialCycleCount = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
+                            static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
+
+    printf("Sample Count: %d\n", sampleCount);
     return true;
+}
+
+SidInfo *C64::getSidInfo() {
+    return &info;
+}
+
+void C64::print_sid_info() {
+    printf("Version: %d\n", info.version);
+    printf("Data: %d\n", info.data);
+    printf("Load: %d\n", info.load);
+    printf("Init: %d\n", info.init);
+    printf("Play: %d\n", info.play);
+    printf("RelocStartPage: %d\n", info.relocStartPage);
+    printf("RelocPages: %d\n", info.relocPages);
+    printf("SIDChipBase2: 0x%x\n", info.sidChipBase2);;
+    printf("SIDChipBase3: 0x%x\n", info.sidChipBase3);
+    printf("Songs: %d\n", info.songs);
+    printf("Start: %d\n", info.start);
+    printf("Speed:\n");
+    for (int i = 31; i >= 0; i--) {
+        printf("%02d ", i);
+    }
+    printf("\n");
+    for (int i = 31; i >= 0; i--) {
+        printf("%d  ", info.speed >> i & 1);
+    }
+    printf("\nFlags:\n");
+    for (int i = 15; i >= 0; i--) {
+        printf("%02d ", i);
+    }
+    printf("\n");
+    for (int i = 15; i >= 0; i--) {
+        printf("%d  ", info.flags >> i & 1);
+    }
+    printf("\nName: %s\n", info.name);
+    printf("Author: %s\n", info.author);
+    printf("Released: %s\n\n", info.released);
+    printf("Type: %s\n", info.isPSID ? "PSID" : "RSID");
+    printf("NTSC: %s\n", info.isNTSC ? "true" : "false");
+    printf("SID1 model: %s\n", info.sid1is8580 ? "8580" : "6581");
+    printf("SID2 model: %s\n", info.sid2is8580 ? "8580" : "6581");
+    printf("SID3 model: %s\n", info.sid3is8580 ? "8580" : "6581");
+}
+
+void C64::readHeader(BYTE *buffer, SidInfo &info) {
+    // Read v1 fields
+    info.isPSID = endian_big32(&buffer[0]) == PSID_ID;
+    info.version = endian_big16(&buffer[4]);
+    info.data = endian_big16(&buffer[6]);
+    info.load = endian_big16(&buffer[8]);
+    info.init = endian_big16(&buffer[10]);
+    info.play = endian_big16(&buffer[12]);
+    info.songs = endian_big16(&buffer[14]);
+    info.start = endian_big16(&buffer[16]) - 1;
+    info.speed = endian_big32(&buffer[18]);
+
+    std::memcpy(info.name, &buffer[22], PSID_MAXSTRLEN);
+    std::memcpy(info.author, &buffer[54], PSID_MAXSTRLEN);
+    std::memcpy(info.released, &buffer[86], PSID_MAXSTRLEN);
+
+    if (info.version >= 2) {
+        printf("v2\n");
+        // Read v2/3/4 fields
+        info.flags = endian_big16(&buffer[118]);
+        info.relocStartPage = buffer[120];
+        info.relocPages = buffer[121];
+        info.sidChipBase2 = buffer[122];
+        info.sidChipBase3 = buffer[123];
+    }
+
+    if (!info.load) {
+        info.load = buffer[info.data];
+        info.load |= buffer[info.data + 1] << 8;
+        info.originalFileFormat = true;
+    } else {
+        info.originalFileFormat = false;
+    }
+    if (!info.init) {
+        info.init = info.load;
+    }
+    info.isNTSC = IS_BIT_SET(info.flags, 2);
+    info.sid1is8580 = !IS_BIT_SET(info.flags, 4) && IS_BIT_SET(info.flags, 5);
+    if (!IS_BIT_SET(info.flags, 6) && !IS_BIT_SET(info.flags, 7)) {
+        info.sid2is8580 = info.sid1is8580;
+    } else {
+        info.sid2is8580 = !IS_BIT_SET(info.flags, 6) && IS_BIT_SET(info.flags, 7);
+    }
+    if (!IS_BIT_SET(info.flags, 8) && !IS_BIT_SET(info.flags, 9)) {
+        info.sid3is8580 = info.sid2is8580;
+    } else {
+        info.sid3is8580 = !IS_BIT_SET(info.flags, 8) && IS_BIT_SET(info.flags, 9);
+    }
 }
 
 void C64::setLineLevel(bool on) {
