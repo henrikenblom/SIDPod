@@ -128,7 +128,7 @@ public:
 
     void enable_filter(bool enable);
 
-    // void set_chip_model(chip_model model);
+    void set_chip_model(chip_model model);
 
     RESID_INLINE
     void clock(sound_sample voice1, sound_sample voice2, sound_sample voice3,

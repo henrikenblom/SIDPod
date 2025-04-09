@@ -35,7 +35,7 @@ public:
     ~SID();
 
     //void printFilter(void);
-    //void set_chip_model(chip_model model);
+    void set_chip_model(chip_model model);
     void enable_filter(bool enable);
 
     void enable_external_filter(bool enable);

@@ -28,19 +28,12 @@ RESID_NAMESPACE_START
 Voice::Voice()
   : muted(false)
 {
-  //set_chip_model(MOS6581);
-	{//instead:
-	//wave_zero = 0x380;
-	//voice_DC = 0x800*0xff;
-	  wave_zero = 0x800; //8580
-	  voice_DC = 0; //8580
-	}
+  set_chip_model(MOS6581);
 }
 
 // ----------------------------------------------------------------------------
 // Set chip model.
 // ----------------------------------------------------------------------------
-/*
 void Voice::set_chip_model(chip_model model)
 {
   wave.set_chip_model(model);
@@ -114,7 +107,7 @@ void Voice::set_chip_model(chip_model model)
     voice_DC = 0;
   }
 }
-*/
+
 // ----------------------------------------------------------------------------
 // Set sync source.
 // ----------------------------------------------------------------------------

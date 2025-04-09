@@ -759,8 +759,8 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 void C64::c64Init() {
     synth_init();
     memset(memory, 0, sizeof(memory));
-    memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
-    copyPoweronPattern();
+    //memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
+    //copyPoweronPattern();
     cpuReset();
 }
 
@@ -814,8 +814,8 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     secondSidAddr = (info.sidChipBase2) ? info.sidChipBase2 + 0xD4B0 : 0;
 
     // TODO: Implement this in the SID class
-    // firstSID->set_chip_model(info.sid1is8580 ? SID::SID8580 : SID::SID6581);
-    // secondSID->set_chip_model(info.sid2is8580 ? SID::SID8580 : SID::SID6581);
+    firstSID->set_chip_model(info.sid1is8580 ? MOS8580 : MOS6581);
+    secondSID->set_chip_model(info.sid2is8580 ? MOS8580 : MOS6581);
 
     if (info.play == 0) {
         if (!cpuJSRWithWatchdog(info.init, 0)) return false;

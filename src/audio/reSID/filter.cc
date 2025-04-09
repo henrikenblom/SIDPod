@@ -142,16 +142,7 @@ Filter::Filter()
 	      + sizeof(f0_points_8580)/sizeof(*f0_points_8580) - 1,
 	      PointPlotter<sound_sample>(f0_8580), 1.0);
 */
-//  set_chip_model(MOS6581);
-{//instead:
-	    //mixer_DC = -0xfff*0xff/18 >> 7;
-    mixer_DC = 0; // 8580
-    //f0 = f0_6581;
-   // f0_points = f0_points_6581;		
-   // f0_count = sizeof(f0_points_6581)/sizeof(*f0_points_6581);
-		set_w0();
-    set_Q();
-}
+  set_chip_model(MOS6581);
 		
 }
 
@@ -168,7 +159,6 @@ void Filter::enable_filter(bool enable)
 // ----------------------------------------------------------------------------
 // Set chip model.
 // ----------------------------------------------------------------------------
-/*
 void Filter::set_chip_model(chip_model model)
 {
   if (model == MOS6581) {
@@ -184,23 +174,20 @@ void Filter::set_chip_model(chip_model model)
 
     mixer_DC = -0xfff*0xff/18 >> 7;
 
-    f0 = f0_6581;
-    f0_points = f0_points_6581;
-    f0_count = sizeof(f0_points_6581)/sizeof(*f0_points_6581);
+    f0 = filter6581;
+
   }
   else {
     // No DC offsets in the MOS8580.
     mixer_DC = 0;
 
-    f0 = f0_8580;
-    f0_points = f0_points_8580;
-    f0_count = sizeof(f0_points_8580)/sizeof(*f0_points_8580);
+    f0 = filter8580;
+
   }
 
   set_w0();
   set_Q();
 }
-*/
 
 
 // ----------------------------------------------------------------------------

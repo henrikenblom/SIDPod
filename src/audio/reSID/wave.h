@@ -38,7 +38,7 @@ public:
   WaveformGenerator();
 
   void set_sync_source(WaveformGenerator*);
-  //void set_chip_model(chip_model model);
+  void set_chip_model(chip_model model);
 
   RESID_INLINE void clock();
   RESID_INLINE void clock(cycle_count delta_t);
@@ -99,12 +99,12 @@ protected:
   RESID_INLINE reg12 outputNPST();
 
   // Sample data for combinations of waveforms.
-	/*
+
   static reg8 wave6581__ST[];
   static reg8 wave6581_P_T[];
   static reg8 wave6581_PS_[];
   static reg8 wave6581_PST[];
-  */
+
   static reg8 wave8580__ST[];
   static reg8 wave8580_P_T[];
   static reg8 wave8580_PS_[];

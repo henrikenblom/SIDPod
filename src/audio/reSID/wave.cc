@@ -29,13 +29,8 @@ WaveformGenerator::WaveformGenerator()
 {
   sync_source = this;
 
- // set_chip_model(MOS6581);
- {//instead:
-	wave__ST = &wave8580__ST[0];
-  wave_P_T = &wave8580_P_T[0];
-  wave_PS_ = &wave8580_PS_[0];
-  wave_PST = &wave8580_PST[0];
- }
+ set_chip_model(MOS6581);
+
   reset();
 }
 
@@ -53,7 +48,7 @@ void WaveformGenerator::set_sync_source(WaveformGenerator* source)
 // ----------------------------------------------------------------------------
 // Set chip model.
 // ----------------------------------------------------------------------------
-/*
+
 void WaveformGenerator::set_chip_model(chip_model model)
 {
   if (model == MOS6581) {
@@ -69,7 +64,7 @@ void WaveformGenerator::set_chip_model(chip_model model)
     wave_PST = &wave8580_PST[0];
   }
 }
-*/
+
 
 // ----------------------------------------------------------------------------
 // Register functions.
