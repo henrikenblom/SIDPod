@@ -656,6 +656,7 @@ int SID::clock(cycle_count &delta_t, short *buf, int n) {
         case SAMPLE_FAST:
             return clock_fast(delta_t, buf, n);
         case SAMPLE_INTERPOLATE:
+            // TODO: Explore if the hardware interpolation can be used
             return clock_interpolate(delta_t, buf, n);
     }
 }

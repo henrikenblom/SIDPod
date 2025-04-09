@@ -170,20 +170,21 @@ double f64_sqrt(double x) {
 // TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
 // TODO: Explore using stereo mixing for dual SIDs
 // TODO: Name this function something mixer related and perhaps implement master volume here
-void C64::sid_synth_render(short *buffer, size_t len) {
+int C64::sid_synth_render(short *buffer, size_t len) {
     cycle_count first_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
                                         static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    firstSID->clock(first_sid_delta_t, buffer, static_cast<int>(len));
+    const int sampleCount = firstSID->clock(first_sid_delta_t, buffer, static_cast<int>(len));
 
     if (secondSidAddr) {
         short secondBuffer[len];
         cycle_count second_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
-                                         static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
+                                             static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
         secondSID->clock(second_sid_delta_t, secondBuffer, static_cast<int>(len));
         for (int i = 0; i < len; i++) {
             buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
         }
     }
+    return sampleCount;
 }
 
 /*
@@ -777,15 +778,13 @@ volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
         speedFactor = static_cast<float>(cia1TimerAValue) / 65535;
     }
     tryJSRToPlayAddr();
-    sid_synth_render(samples, SAMPLES_PER_BUFFER * speedFactor);
-    buffer->sample_count = SAMPLES_PER_BUFFER * speedFactor;
+    buffer->sample_count = sid_synth_render(samples, MAX_SAMPLES_PER_BUFFER * speedFactor);
     return true;
 }
 
 bool C64::sid_load_from_file(TCHAR file_name[]) {
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
-    BYTE buffer[SID_LOAD_BUFFER_SIZE];
     UINT bytesRead;
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
     if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
@@ -800,6 +799,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
     uint16_t offset = info.load;
     while (true) {
+        BYTE buffer[SID_LOAD_BUFFER_SIZE];
         f_read(&pFile, buffer, SID_LOAD_BUFFER_SIZE, &bytesRead);
         if (bytesRead == 0) break;
         for (int i = 0; i < bytesRead; i++) {

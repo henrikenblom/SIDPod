@@ -47,7 +47,7 @@
 #define USE_CIA                             1
 
 #define SAMPLE_RATE                         ((uint32_t)48000)
-#define SAMPLES_PER_BUFFER                  1240
+#define MAX_SAMPLES_PER_BUFFER              1240
 
 #define AMP_CONTROL_PIN                     15
 

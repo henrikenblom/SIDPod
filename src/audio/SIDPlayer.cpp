@@ -31,7 +31,7 @@ static audio_buffer_format producer_format = {
     .format = &audio_format,
     .sample_stride = 2
 };
-static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
+static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, MAX_SAMPLES_PER_BUFFER);
 audio_i2s_config config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
     .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
@@ -52,7 +52,7 @@ void SIDPlayer::resetState() {
     rendering = false;
     loadingSuccessful = true;
     lastCatalogEntry = {};
-    memset(visualizationBuffer, 0, SAMPLES_PER_BUFFER);
+    memset(visualizationBuffer, 0, FFT_SAMPLES);
     C64::c64Init();
 }
 
