@@ -21,8 +21,7 @@ constexpr int PSID_MAXSTRLEN = 32;
 constexpr int psid_headerSize = 118;
 constexpr int psidv2_headerSize = psid_headerSize + 6;
 
-struct sid_info {
-    uint32_t id; // 'PSID' or 'RSID' (ASCII)
+struct SidInfo {
     uint16_t version; // 1, 2, 3 or 4
     uint16_t data; // 16-bit offset to binary data in file
     uint16_t load; // 16-bit C64 address to load file to
@@ -43,6 +42,11 @@ struct sid_info {
     uint8_t sidChipBase3; // only version >= 4
 
     bool originalFileFormat;
+    bool isPSID;
+    bool sid1is8580;
+    bool sid2is8580;
+    bool sid3is8580;
+    bool isNTSC;
 };
 
 //----------------------------------------------
@@ -74,13 +78,13 @@ public:
 
     static bool sid_load_from_file(TCHAR file_name[]);
 
-    static sid_info *getSidInfo();
+    static SidInfo *getSidInfo();
 
     static void print_sid_info();
 
-    static void readHeader(BYTE *buffer, sid_info &info);
+    static void readHeader(BYTE *buffer, SidInfo &info);
 
-    static int sid_synth_render(short *buffer, size_t len);
+    static int renderAndMix(short *buffer, size_t len, float volumeFactor);
 
     static void dumpMem(unsigned short startAddr, unsigned short endAddr);
 };

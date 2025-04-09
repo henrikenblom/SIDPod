@@ -118,7 +118,7 @@ bool SIDPlayer::lineLevelOn() {
     return C64::getLineLevelOn();
 }
 
-sid_info *SIDPlayer::getSidInfo() {
+SidInfo *SIDPlayer::getSidInfo() {
     return C64::getSidInfo();
 }
 

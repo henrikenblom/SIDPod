@@ -107,14 +107,16 @@ const uint8_t POWERON[] =
 #  include "poweron.bin"
 };
 
-sid_info info;
+SidInfo info;
 SID *firstSID = new SID;
 SID *secondSID = new SID;
 unsigned short firstSidAddr = 0xd400;
 unsigned short secondSidAddr = 0;
 bool firstBuffer = true;
 uint16_t currentSong;
-uint16_t cia1TimerAValue = 0;
+int sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
+int currentVisualizationBufferOffset = 0;
+cycle_count initialCycleCount = 0;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -170,18 +172,23 @@ double f64_sqrt(double x) {
 // TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
 // TODO: Explore using stereo mixing for dual SIDs
 // TODO: Name this function something mixer related and perhaps implement master volume here
-int C64::sid_synth_render(short *buffer, size_t len) {
-    cycle_count first_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
-                                        static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-    const int sampleCount = firstSID->clock(first_sid_delta_t, buffer, static_cast<int>(len));
+int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
+    cycle_count delta_t = initialCycleCount;
+    const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
 
     if (secondSidAddr) {
         short secondBuffer[len];
-        cycle_count second_sid_delta_t = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
-                                             static_cast<float>(SAMPLE_RATE) / static_cast<float>(len));
-        secondSID->clock(second_sid_delta_t, secondBuffer, static_cast<int>(len));
+        delta_t = initialCycleCount;
+        secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
         for (int i = 0; i < len; i++) {
             buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
+            visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
+            if (currentVisualizationBufferOffset == FFT_SAMPLES) {
+                currentVisualizationBufferOffset = 0;
+            }
+            if (buffer[i]) {
+                buffer[i] = static_cast<int16_t>(static_cast<float>(buffer[i]) * volumeFactor);
+            }
         }
     }
     return sampleCount;
@@ -769,17 +776,13 @@ volatile bool C64::tryJSRToPlayAddr() {
     return true;
 }
 
-// TODO: Restore volume control + visualization buffer shuffling
-// TODO: Set NTSC speed factor when needed
 volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
     auto *samples = reinterpret_cast<int16_t *>(buffer->buffer->bytes);
-    float speedFactor = 0.77f; // PAL ?
-    if (useCIA()) {
-        speedFactor = static_cast<float>(cia1TimerAValue) / 65535;
+    if (tryJSRToPlayAddr()) {
+        buffer->sample_count = renderAndMix(samples, sampleCount, volumeFactor);
+        return true;
     }
-    tryJSRToPlayAddr();
-    buffer->sample_count = sid_synth_render(samples, MAX_SAMPLES_PER_BUFFER * speedFactor);
-    return true;
+    return false;
 }
 
 bool C64::sid_load_from_file(TCHAR file_name[]) {
@@ -809,7 +812,10 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     f_close(&pFile);
 
     secondSidAddr = (info.sidChipBase2) ? info.sidChipBase2 + 0xD4B0 : 0;
-    printf("Second SID: 0x%x\n", secondSidAddr);
+
+    // TODO: Implement this in the SID class
+    // firstSID->set_chip_model(info.sid1is8580 ? SID::SID8580 : SID::SID6581);
+    // secondSID->set_chip_model(info.sid2is8580 ? SID::SID8580 : SID::SID6581);
 
     if (info.play == 0) {
         if (!cpuJSRWithWatchdog(info.init, 0)) return false;
@@ -818,21 +824,29 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
 
     currentSong = info.start;
 
-    // TODO: Add ability to switch between 6582 and 8580
     cpuJSR(info.init, currentSong);
     if (useCIA()) {
-        cia1TimerAValue = endian_big16(&memory[0xdc04]);
-        printf("CIA Timer Value: %d\n", cia1TimerAValue);
+        uint_least64_t cia1TimerAValue = endian_big16(&memory[0xdc04]);
+        printf("CIA Timer Value: %llu\n", cia1TimerAValue);
+        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 65535;
+    } else if (info.isNTSC) {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
+    } else {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
     }
+
+    initialCycleCount = static_cast<cycle_count>(static_cast<float>(CLOCKFREQ)) / (
+                            static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
+
+    printf("Sample Count: %d\n", sampleCount);
     return true;
 }
 
-sid_info *C64::getSidInfo() {
+SidInfo *C64::getSidInfo() {
     return &info;
 }
 
 void C64::print_sid_info() {
-    printf("ID: %08x\n", info.id);
     printf("Version: %d\n", info.version);
     printf("Data: %d\n", info.data);
     printf("Load: %d\n", info.load);
@@ -863,11 +877,16 @@ void C64::print_sid_info() {
     printf("\nName: %s\n", info.name);
     printf("Author: %s\n", info.author);
     printf("Released: %s\n\n", info.released);
+    printf("Type: %s\n", info.isPSID ? "PSID" : "RSID");
+    printf("NTSC: %s\n", info.isNTSC ? "true" : "false");
+    printf("SID1 model: %s\n", info.sid1is8580 ? "8580" : "6581");
+    printf("SID2 model: %s\n", info.sid2is8580 ? "8580" : "6581");
+    printf("SID3 model: %s\n", info.sid3is8580 ? "8580" : "6581");
 }
 
-void C64::readHeader(BYTE *buffer, sid_info &info) {
+void C64::readHeader(BYTE *buffer, SidInfo &info) {
     // Read v1 fields
-    info.id = endian_big32(&buffer[0]);
+    info.isPSID = endian_big32(&buffer[0]) == PSID_ID;
     info.version = endian_big16(&buffer[4]);
     info.data = endian_big16(&buffer[6]);
     info.load = endian_big16(&buffer[8]);
@@ -900,6 +919,18 @@ void C64::readHeader(BYTE *buffer, sid_info &info) {
     }
     if (!info.init) {
         info.init = info.load;
+    }
+    info.isNTSC = IS_BIT_SET(info.flags, 2);
+    info.sid1is8580 = !IS_BIT_SET(info.flags, 4) && IS_BIT_SET(info.flags, 5);
+    if (!IS_BIT_SET(info.flags, 6) && !IS_BIT_SET(info.flags, 7)) {
+        info.sid2is8580 = info.sid1is8580;
+    } else {
+        info.sid2is8580 = !IS_BIT_SET(info.flags, 6) && IS_BIT_SET(info.flags, 7);
+    }
+    if (!IS_BIT_SET(info.flags, 8) && !IS_BIT_SET(info.flags, 9)) {
+        info.sid3is8580 = info.sid2is8580;
+    } else {
+        info.sid3is8580 = !IS_BIT_SET(info.flags, 8) && IS_BIT_SET(info.flags, 9);
     }
 }
 
