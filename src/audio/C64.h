@@ -11,7 +11,6 @@
 #include "ff.h"
 #include "reSID/siddefs.h"
 
-#define CLOCKFREQ 985248
 #define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
 
 extern unsigned char memory[];
@@ -46,7 +45,7 @@ struct SidInfo {
     bool sid1is8580;
     bool sid2is8580;
     bool sid3is8580;
-    bool isNTSC;
+    bool isPAL;
 };
 
 //----------------------------------------------
