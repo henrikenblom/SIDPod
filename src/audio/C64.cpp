@@ -104,8 +104,10 @@ static constexpr int modes[256] ICONST_ATTR = {
 SidInfo info;
 SID *firstSID = new SID;
 SID *secondSID = new SID;
+SID *thirdSID = new SID;
 unsigned short firstSidAddr = 0xd400;
 unsigned short secondSidAddr = 0;
+unsigned short thirdSidAddr = 0;
 bool firstBuffer = true;
 uint16_t currentSong;
 int sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
@@ -122,6 +124,10 @@ void C64::synth_init() {
     secondSID->reset();
     secondSID->enable_filter(true);
     secondSID->enable_external_filter(true);
+
+    thirdSID->reset();
+    thirdSID->enable_filter(true);
+    thirdSID->enable_external_filter(true);
 }
 
 // TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
@@ -131,15 +137,25 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
 
     short *secondBuffer = nullptr;
+    short *thirdBuffer = nullptr;
     if (secondSidAddr) {
         secondBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
         secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
     }
 
+    if (thirdSidAddr) {
+        thirdBuffer = new short[sampleCount];
+        delta_t = initialCycleCount;
+        thirdSID->clock(delta_t, thirdBuffer, static_cast<int>(len));
+    }
+
     for (int i = 0; i < len; i++) {
         if (secondSidAddr) {
             buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
+        }
+        if (thirdSidAddr) {
+            buffer[i] = (buffer[i] >> 1) + (thirdBuffer[i] >> 1);
         }
         visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
         if (currentVisualizationBufferOffset == FFT_SAMPLES) {
@@ -151,6 +167,7 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     }
 
     delete[] secondBuffer;
+    delete[] thirdBuffer;
     return sampleCount;
 }
 
@@ -170,10 +187,10 @@ void C64::dumpMem(unsigned short startAddr, unsigned short endAddr) {
 static void setmem(unsigned short addr, unsigned char value) {
     if (addr >= firstSidAddr && addr < firstSidAddr + 0x20) {
         C64::sidPoke(addr & 0x1f, value, 0);
-    } else if (addr >= secondSidAddr && addr < secondSidAddr + 0x20) {
+    } else if (secondSidAddr && (addr >= secondSidAddr && addr < secondSidAddr + 0x20)) {
         C64::sidPoke(addr & 0x1f, value, 1);
-    } else if (addr > 0xd440 && addr <= 0xd7ff) {
-        //printf("addr: 0x%04X\n", addr);
+    } else if (thirdSidAddr && (addr >= thirdSidAddr && addr < thirdSidAddr + 0x20)) {
+        C64::sidPoke(addr & 0x1f, value, 2);
     } else memory[addr] = value;
 }
 
@@ -185,6 +202,8 @@ void C64::sidPoke(int reg, unsigned char val, int8_t sid) {
         case 1:
             secondSID->write(reg, val);
             break;
+        case 2:
+            thirdSID->write(reg, val);
         default:
             break;
     }
@@ -734,6 +753,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     f_close(&pFile);
 
     secondSidAddr = (info.sidChipBase2) ? (info.sidChipBase2 * 0x10) + 0xD000 : 0;
+    thirdSidAddr = (info.sidChipBase3) ? (info.sidChipBase3 * 0x10) + 0xD000 : 0;
 
     firstSID->set_chip_model(info.sid1is8580 ? MOS8580 : MOS6581);
     secondSID->set_chip_model(info.sid2is8580 ? MOS8580 : MOS6581);
@@ -746,7 +766,7 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     currentSong = info.start;
 
     cpuJSR(info.init, currentSong);
-    int cpuFrequency = PAL_CPU_FREQUENCY;
+    float cpuFrequency = PAL_CPU_FREQUENCY;
 
     if (useCIA()) {
         uint_least64_t cia1TimerAValue = endian_big16(&memory[0xdc04]);
@@ -759,7 +779,13 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     }
 
     firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
-    initialCycleCount = static_cast<cycle_count>(static_cast<float>(cpuFrequency)) / (
+    if (secondSidAddr) {
+        secondSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    }
+    if (thirdSidAddr) {
+        thirdSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    }
+    initialCycleCount = static_cast<cycle_count>(cpuFrequency) / (
                             static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
 
     return true;

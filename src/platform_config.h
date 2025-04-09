@@ -45,8 +45,8 @@
 #define SID_LOAD_BUFFER_SIZE                ((int) 256)
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 
-#define SAMPLE_RATE                         ((uint32_t)48000)
-#define MAX_SAMPLES_PER_BUFFER              1240
+#define SAMPLE_RATE                         ((uint32_t)44100)
+#define MAX_SAMPLES_PER_BUFFER              1136
 #define PAL_SPEED_FACTOR                    0.776f
 #define NTSC_SPEED_FACTOR                   0.64f
 #define NTSC_CPU_FREQUENCY                  1022730

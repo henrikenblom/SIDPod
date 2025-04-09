@@ -14,7 +14,7 @@ include(bin2h.cmake)
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
 
-#add_compile_definitions(SYS_CLK_MHZ=200)
+add_compile_definitions(SYS_CLK_MHZ=200)
 
 project(SIDPod)
 
@@ -114,7 +114,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         PICO_AUDIO_I2S_MONO_INPUT=1
         PICO_AUDIO_I2S_DATA_PIN=26
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
-        PICO_AUDIO_I2S_MONO_OUTPUT=1
 )
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
