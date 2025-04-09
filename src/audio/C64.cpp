@@ -176,21 +176,27 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     cycle_count delta_t = initialCycleCount;
     const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
 
+    short *secondBuffer = nullptr;
     if (secondSidAddr) {
-        short secondBuffer[len];
+        secondBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
         secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
-        for (int i = 0; i < len; i++) {
+    }
+
+    for (int i = 0; i < len; i++) {
+        if (secondSidAddr) {
             buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
-            visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
-            if (currentVisualizationBufferOffset == FFT_SAMPLES) {
-                currentVisualizationBufferOffset = 0;
-            }
-            if (buffer[i]) {
-                buffer[i] = static_cast<int16_t>(static_cast<float>(buffer[i]) * volumeFactor);
-            }
+        }
+        visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
+        if (currentVisualizationBufferOffset == FFT_SAMPLES) {
+            currentVisualizationBufferOffset = 0;
+        }
+        if (buffer[i]) {
+            buffer[i] = static_cast<int16_t>(static_cast<float>(buffer[i]) * volumeFactor);
         }
     }
+
+    delete[] secondBuffer;
     return sampleCount;
 }
 
@@ -759,8 +765,8 @@ bool C64::cpuJSRWithWatchdog(unsigned short npc, unsigned char na) {
 void C64::c64Init() {
     synth_init();
     memset(memory, 0, sizeof(memory));
-    //memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
-    //copyPoweronPattern();
+    memcpy(&memory[0xe000], rom_kernal, rom_kernal_len);
+    copyPoweronPattern();
     cpuReset();
 }
 
