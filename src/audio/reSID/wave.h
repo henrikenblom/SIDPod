@@ -397,18 +397,21 @@ reg12 WaveformGenerator::outputN___()
 RESID_INLINE
 reg12 WaveformGenerator::output__ST()
 {
-  int i = 0;
+  //TODO: Don't hardcode the table size here. Set it in the set_chip_model function.
   reg12 output = output__S_();
-  bool foundSegment = false;
-  for (; i < 85; i++) {
-    if (output >= wave8580__ST_index[i] && output <= wave8580__ST_index[i] + 8) {
-      foundSegment = true;
-      break;
+  if (output && output >= wave__ST_index[0] && output <= wave__ST_index[85] + 8) {
+    int i = 0;
+    bool foundSegment = false;
+    for (; i < 85; i++) {
+      if (output >= wave__ST_index[i] && output <= wave__ST_index[i] + 8) {
+        foundSegment = true;
+        break;
+      }
+      i++;
     }
-    i++;
-  }
-  if (foundSegment) {
-    return wave__ST_segments[i * 8 + (output - wave8580__ST_index[i])] << 4;
+    if (foundSegment) {
+      return  wave__ST_segments[i * 8 + (output - wave__ST_index[i])] << 4;
+    }
   }
   return 0;
 }
