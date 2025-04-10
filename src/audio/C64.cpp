@@ -769,8 +769,10 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     float cpuFrequency = PAL_CPU_FREQUENCY;
 
     if (useCIA()) {
-        uint_least64_t cia1TimerAValue = endian_big16(&memory[0xdc04]);
-        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 65535;
+        uint_least64_t cia1TimerAValue = endian_little16(&memory[0xdc04]);
+        printf("CIA1 Timer A: %llu\n", cia1TimerAValue);
+        // TODO: This is a bit arbitrary. Figure out how to calculate this properly.
+        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 26000;
     } else if (info.isPAL) {
         sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
     } else {
