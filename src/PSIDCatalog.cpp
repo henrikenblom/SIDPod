@@ -89,7 +89,6 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
             entry.unplayable = false;
             strcpy(entry.fileName, fileInfo->altname);
             strcpy(entry.title, reinterpret_cast<const char *>(&pHeader[0x16]));
-            entry.rsid = isRsid;
             catalog.push_back(entry);
         }
     }
