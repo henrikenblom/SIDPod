@@ -20,7 +20,7 @@
 #include "wave.h"
 
 RESID_NAMESPACE_START
-
+// TODO: Use the same principle as for wave8580__ST_segments.
 reg8 WaveformGenerator::wave8580_PST[] =
 //const reg8 wave8580_PST[] =
 {

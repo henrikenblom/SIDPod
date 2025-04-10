@@ -51,7 +51,6 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/wave6581_P_T.cc
         src/audio/reSID/wave6581_PS_.cc
         src/audio/reSID/wave8580_PST.cc
-        src/audio/reSID/wave8580__ST.cc
         src/audio/reSID/wave6581_PST.cc
         src/audio/reSID/wave8580_PS_.cc
         src/audio/reSID/wave6581__ST.cc
@@ -72,6 +71,7 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
         src/audio/roms.cpp
+        src/audio/reSID/wave8580__ST_optimized.cc
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)

@@ -21,6 +21,7 @@
 
 RESID_NAMESPACE_START
 
+// TODO: Use the same principle as for wave8580__ST_segments.
 reg8 WaveformGenerator::wave8580_PS_[] =
 //const reg8 wave8580_PS_[] =
 {

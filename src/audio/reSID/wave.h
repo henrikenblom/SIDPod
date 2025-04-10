@@ -20,6 +20,8 @@
 #ifndef __WAVE_H__
 #define __WAVE_H__
 
+#include <cstdio>
+
 #include "siddefs.h"
 
 RESID_NAMESPACE_START
@@ -105,10 +107,12 @@ protected:
   static reg8 wave6581_PS_[];
   static reg8 wave6581_PST[];
 
-  static reg8 wave8580__ST[];
   static reg8 wave8580_P_T[];
   static reg8 wave8580_PS_[];
   static reg8 wave8580_PST[];
+  static reg8 wave8580__ST_segments[];
+  static reg12 wave8580__ST_index[];
+
   /*
   reg8* wave__ST;
   reg8* wave_P_T;
@@ -120,6 +124,9 @@ protected:
   const reg8* wave_P_T;
   const reg8* wave_PS_;
   const reg8* wave_PST;
+
+  const reg8* wave__ST_segments;
+  const reg12* wave__ST_index;
 
 
 friend class Voice;
@@ -337,7 +344,7 @@ reg12 WaveformGenerator::outputN___()
 // in the output. The reason for this has not been determined.
 //
 // Example:
-// 
+//
 //             1 1
 // Bit #       1 0 9 8 7 6 5 4 3 2 1 0
 //             -----------------------
@@ -371,14 +378,14 @@ reg12 WaveformGenerator::outputN___()
 //
 // Sawtooth+Triangle:
 // The sawtooth output is used to look up an OSC3 sample.
-// 
+//
 // Pulse+Triangle:
 // The triangle output is right-shifted and used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
 // The reason for using the triangle output as the index is to handle ring
 // modulation. Only the first half of the sample is used, which should be OK
 // since the triangle waveform has half the resolution of the accumulator.
-// 
+//
 // Pulse+Sawtooth:
 // The sawtooth output is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
@@ -386,11 +393,24 @@ reg12 WaveformGenerator::outputN___()
 // Pulse+Sawtooth+Triangle:
 // The sawtooth output is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
-// 
+//
 RESID_INLINE
 reg12 WaveformGenerator::output__ST()
 {
-  return wave__ST[output__S_()] << 4;
+  int i = 0;
+  reg12 output = output__S_();
+  bool foundSegment = false;
+  for (; i < 85; i++) {
+    if (output >= wave8580__ST_index[i] && output <= wave8580__ST_index[i] + 8) {
+      foundSegment = true;
+      break;
+    }
+    i++;
+  }
+  if (foundSegment) {
+    return wave__ST_segments[i * 8 + (output - wave8580__ST_index[i])] << 4;
+  }
+  return 0;
 }
 
 RESID_INLINE

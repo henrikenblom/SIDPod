@@ -58,10 +58,11 @@ void WaveformGenerator::set_chip_model(chip_model model)
     wave_PST = &wave6581_PST[0];
   } 
   else {
-    wave__ST = &wave8580__ST[0];
     wave_P_T = &wave8580_P_T[0];
     wave_PS_ = &wave8580_PS_[0];
     wave_PST = &wave8580_PST[0];
+    wave__ST_segments = &wave8580__ST_segments[0];
+    wave__ST_index = &wave8580__ST_index[0];
   }
 }
 
