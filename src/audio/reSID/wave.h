@@ -92,6 +92,9 @@ protected:
   RESID_INLINE reg12 output_PS_();
   RESID_INLINE reg12 output_PST();
   RESID_INLINE reg12 outputN___();
+
+  static reg12 resolveWaveCombo(reg12 output, const reg8 *segments, const reg12 *index);
+
   RESID_INLINE reg12 outputN__T();
   RESID_INLINE reg12 outputN_S_();
   RESID_INLINE reg12 outputN_ST();
@@ -394,26 +397,34 @@ reg12 WaveformGenerator::outputN___()
 // The sawtooth output is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
 //
+
+//TODO: Don't hardcode the table size here. Set it in the set_chip_model function.
 RESID_INLINE
-reg12 WaveformGenerator::output__ST()
-{
-  //TODO: Don't hardcode the table size here. Set it in the set_chip_model function.
-  reg12 output = output__S_();
-  if (output && output >= wave__ST_index[0] && output <= wave__ST_index[85] + 8) {
+reg12 WaveformGenerator::resolveWaveCombo(reg12 output, const reg8* segments, const reg12* index) {
+  int indexSize = 85;
+  if (output && output >= index[0] && output <= index[indexSize] + 8) {
+    bool fromStart = true;
     int i = 0;
+    int indexKey = 0;
     bool foundSegment = false;
-    for (; i < 85; i++) {
-      if (output >= wave__ST_index[i] && output <= wave__ST_index[i] + 8) {
+    while (!foundSegment && i < indexSize) {
+      indexKey = fromStart ? i++ : indexSize - 1;
+      if (output >= index[indexKey] && output <= index[indexKey] + 8) {
         foundSegment = true;
-        break;
       }
-      i++;
+      fromStart = !fromStart;
     }
     if (foundSegment) {
-      return  wave__ST_segments[i * 8 + (output - wave__ST_index[i])] << 4;
+      return  segments[indexKey * 8 + (output - index[indexKey])];
     }
   }
   return 0;
+}
+
+RESID_INLINE
+reg12 WaveformGenerator::output__ST()
+{
+  return resolveWaveCombo(output__S_(), wave__ST_segments, wave__ST_index) << 4;
 }
 
 RESID_INLINE
