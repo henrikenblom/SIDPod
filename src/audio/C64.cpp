@@ -102,9 +102,9 @@ static constexpr int modes[256] ICONST_ATTR = {
 };
 
 SidInfo info;
-SID *firstSID = new SID;
-SID *secondSID = new SID;
-SID *thirdSID = new SID;
+SID *SID1 = new SID;
+SID *SID2 = new SID;
+SID *SID3 = new SID;
 unsigned short firstSidAddr = 0xd400;
 unsigned short secondSidAddr = 0;
 unsigned short thirdSidAddr = 0;
@@ -117,37 +117,37 @@ cycle_count initialCycleCount = 0;
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
 void C64::synth_init() {
-    firstSID->reset();
-    firstSID->enable_filter(true);
-    firstSID->enable_external_filter(true);
+    SID1->reset();
+    SID1->enable_filter(true);
+    SID1->enable_external_filter(true);
 
-    secondSID->reset();
-    secondSID->enable_filter(true);
-    secondSID->enable_external_filter(true);
+    SID2->reset();
+    SID2->enable_filter(true);
+    SID2->enable_external_filter(true);
 
-    thirdSID->reset();
-    thirdSID->enable_filter(true);
-    thirdSID->enable_external_filter(true);
+    SID3->reset();
+    SID3->enable_filter(true);
+    SID3->enable_external_filter(true);
 }
 
 // TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
 // TODO: Explore using stereo mixing for dual SIDs
 int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     cycle_count delta_t = initialCycleCount;
-    const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
+    const int sampleCount = SID1->clock(delta_t, buffer, static_cast<int>(len));
 
     short *secondBuffer = nullptr;
     short *thirdBuffer = nullptr;
     if (secondSidAddr) {
         secondBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
-        secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
+        SID2->clock(delta_t, secondBuffer, static_cast<int>(len));
     }
 
     if (thirdSidAddr) {
         thirdBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
-        thirdSID->clock(delta_t, thirdBuffer, static_cast<int>(len));
+        SID3->clock(delta_t, thirdBuffer, static_cast<int>(len));
     }
 
     for (int i = 0; i < len; i++) {
@@ -197,20 +197,20 @@ static void setmem(unsigned short addr, unsigned char value) {
 void C64::sidPoke(int reg, unsigned char val, int8_t sid) {
     switch (sid) {
         case 0:
-            firstSID->write(reg, val);
+            SID1->write(reg, val);
             break;
         case 1:
-            secondSID->write(reg, val);
+            SID2->write(reg, val);
             break;
         case 2:
-            thirdSID->write(reg, val);
+            SID3->write(reg, val);
         default:
             break;
     }
 }
 
 reg8 C64::sidPeek(unsigned short reg) {
-    return firstSID->read(reg);
+    return SID1->read(reg);
 }
 
 static inline unsigned char getaddr(int mode) {
@@ -755,8 +755,9 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     secondSidAddr = (info.sidChipBase2) ? (info.sidChipBase2 * 0x10) + 0xD000 : 0;
     thirdSidAddr = (info.sidChipBase3) ? (info.sidChipBase3 * 0x10) + 0xD000 : 0;
 
-    firstSID->set_chip_model(info.sid1is8580 ? MOS8580 : MOS6581);
-    secondSID->set_chip_model(info.sid2is8580 ? MOS8580 : MOS6581);
+    SID1->set_chip_model(info.sid1is8580 ? MOS8580 : MOS6581);
+    SID2->set_chip_model(info.sid2is8580 ? MOS8580 : MOS6581);
+    SID3->set_chip_model(info.sid3is8580 ? MOS8580 : MOS6581);
 
     if (info.play == 0) {
         if (!cpuJSRWithWatchdog(info.init, 0)) return false;
@@ -780,12 +781,12 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
         cpuFrequency = NTSC_CPU_FREQUENCY;
     }
 
-    firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    SID1->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
     if (secondSidAddr) {
-        secondSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+        SID2->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
     }
     if (thirdSidAddr) {
-        thirdSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+        SID3->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
     }
     initialCycleCount = static_cast<cycle_count>(cpuFrequency) / (
                             static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));

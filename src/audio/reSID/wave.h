@@ -80,6 +80,7 @@ protected:
   reg8 test;
   reg8 ring_mod;
   reg8 sync;
+  static int wave8580__ST_index_size;
   // The gate bit is handled by the EnvelopeGenerator.
 
   // 16 possible combinations of waveforms.
@@ -93,7 +94,7 @@ protected:
   RESID_INLINE reg12 output_PST();
   RESID_INLINE reg12 outputN___();
 
-  static reg12 resolveWaveCombo(reg12 output, const reg8 *segments, const reg12 *index);
+  static reg12 resolveWaveCombo(reg12 output, const reg8 *segments, const reg12 *index, int indexSize);
 
   RESID_INLINE reg12 outputN__T();
   RESID_INLINE reg12 outputN_S_();
@@ -130,6 +131,7 @@ protected:
 
   const reg8* wave__ST_segments;
   const reg12* wave__ST_index;
+  int wave__ST_index_size;
 
 
 friend class Voice;
@@ -400,8 +402,7 @@ reg12 WaveformGenerator::outputN___()
 
 //TODO: Don't hardcode the table size here. Set it in the set_chip_model function.
 RESID_INLINE
-reg12 WaveformGenerator::resolveWaveCombo(reg12 output, const reg8* segments, const reg12* index) {
-  int indexSize = 85;
+reg12 WaveformGenerator::resolveWaveCombo(reg12 output, const reg8* segments, const reg12* index, const int indexSize) {
   if (output && output >= index[0] && output <= index[indexSize] + 8) {
     bool fromStart = true;
     int i = 0;
@@ -424,7 +425,7 @@ reg12 WaveformGenerator::resolveWaveCombo(reg12 output, const reg8* segments, co
 RESID_INLINE
 reg12 WaveformGenerator::output__ST()
 {
-  return resolveWaveCombo(output__S_(), wave__ST_segments, wave__ST_index) << 4;
+  return resolveWaveCombo(output__S_(), wave__ST_segments, wave__ST_index, wave__ST_index_size) << 4;
 }
 
 RESID_INLINE

@@ -112,6 +112,8 @@ reg8 WaveformGenerator::wave8580__ST_segments[] =
 /* 85 0xff8: */  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 };
 
+int WaveformGenerator::wave8580__ST_index_size = 85;
+
 reg12 WaveformGenerator::wave8580__ST_index[] =
 //const reg8 wave8580__ST[] =
 {
