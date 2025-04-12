@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
 #set(PICO_BOARD solderparty_rp2040_stamp)
-#set(PICO_BOARD pico)
-set(PICO_BOARD pico_w)
+set(PICO_BOARD pico)
+#set(PICO_BOARD pico_w)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 

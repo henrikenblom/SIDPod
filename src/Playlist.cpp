@@ -7,7 +7,7 @@
 
 #include "platform_config.h"
 
-std::vector<PlaylistEntry> entries(50);
+std::vector<PlaylistEntry> entries(40);
 std::vector<PlaylistEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
@@ -22,7 +22,7 @@ void Playlist::refresh() {
     dp = new DIR;
     entries.clear();
     f_opendir(dp, dirName);
-    while (true) {
+    while (entries.size() < 40) {
         fr = f_readdir(dp, &fno);
         if (fr != FR_OK || fno.fname[0] == 0) break;
         if (isRegularFile(&fno)) {

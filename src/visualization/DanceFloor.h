@@ -123,7 +123,7 @@ namespace Visualization {
 
         SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
         RoundSprite roundSprites[DISPLAY_WIDTH / 2]{};
-        StarFieldSprite starFieldSprites[DISPLAY_WIDTH]{};
+        StarFieldSprite starFieldSprites[STARFIELD_SPRITE_COUNT]{};
         StarSprite starSprites[24] = {
             {6, 4},
             {14, 0},

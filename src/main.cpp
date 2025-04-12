@@ -41,7 +41,7 @@ int main() {
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
-        Catalog::refresh();
+        //Catalog::refresh();
         Playlist::refresh();
         UI::start();
         SIDPlayer::initAudio();

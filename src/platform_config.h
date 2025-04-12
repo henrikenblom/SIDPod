@@ -14,7 +14,7 @@
 #define REFERENCE_CLOCK_SPEED_KHZ           125000
 
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
-#define CLOCK_SPEED_KHZ                     200000
+#define CLOCK_SPEED_KHZ                     240000
 #else
 #define CLOCK_SPEED_KHZ                     180000
 #endif
@@ -46,9 +46,9 @@
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
-#define MAX_SAMPLES_PER_BUFFER              1136
-#define PAL_SPEED_FACTOR                    0.776f
-#define NTSC_SPEED_FACTOR                   0.64f
+#define MAX_SAMPLES_PER_BUFFER              880
+#define PAL_SPEED_FACTOR                    1.0f
+#define NTSC_SPEED_FACTOR                   0.824f
 #define NTSC_CPU_FREQUENCY                  1022730
 #define PAL_CPU_FREQUENCY                   985248
 
@@ -77,8 +77,9 @@
 #define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.00004)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000003)
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
-#define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH)
+#define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 10)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
+#define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 1.5))
 #define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
