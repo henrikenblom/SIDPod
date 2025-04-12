@@ -21,9 +21,6 @@
 #define __FILTER_H__
 
 #include "siddefs.h"
-//#include "spline.h"
-#include "filter6581.h"
-#include "filter8580.h"
 
 RESID_NAMESPACE_START
 
@@ -202,7 +199,7 @@ protected:
     //sound_sample f0_8580[2048];
     //sound_sample* f0;
     //const sound_sample* f0 = filter6581;
-    const short *f0 = filter8580;
+    const short *f0;
     //const static fc_point f0_points_6581[];
 
     //const static fc_point f0_points_8580[];

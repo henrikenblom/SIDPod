@@ -20,6 +20,9 @@
 #define __FILTER_CC__
 #include "filter.h"
 
+#include "filter6581.h"
+#include "filter8580.h"
+
 RESID_NAMESPACE_START
 
 // Maximum cutoff frequency is specified as
