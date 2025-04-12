@@ -22,7 +22,6 @@ void Playlist::refresh() {
     dp = new DIR;
     entries.clear();
     f_opendir(dp, dirName);
-
     while (true) {
         fr = f_readdir(dp, &fno);
         if (fr != FR_OK || fno.fname[0] == 0) break;

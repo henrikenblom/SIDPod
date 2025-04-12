@@ -9,16 +9,16 @@
 
 
 class Catalog {
-
-    static  bool isValidDirectory(FILINFO *fileInfo) {
-        return fileInfo->fattrib == 16;
-    }
-
 public:
     static void refresh();
 
-};
+private:
+    static bool isValidDirectory(FILINFO *fileInfo) {
+        return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46;
+    }
 
+    static bool containsSIDs(TCHAR *path);
+};
 
 
 #endif //CATALOG_H
