@@ -43,18 +43,10 @@ add_executable(${PROJECT_NAME}
         src/visualization/DanceFloor.cpp
         src/System.cpp
         src/audio/reSID/envelope.cc
-        src/audio/reSID/wave8580_P_T.cc
         src/audio/reSID/pot.cc
         src/audio/reSID/voice.cc
         src/audio/reSID/sid.cc
         src/audio/reSID/filter.cc
-        src/audio/reSID/wave6581_P_T.cc
-        src/audio/reSID/wave6581_PS_.cc
-        src/audio/reSID/wave8580_PST.cc
-        src/audio/reSID/wave8580__ST.cc
-        src/audio/reSID/wave6581_PST.cc
-        src/audio/reSID/wave8580_PS_.cc
-        src/audio/reSID/wave6581__ST.cc
         src/audio/reSID/extfilt.cc
         src/audio/reSID/wave.cc
         src/audio/reSID/version.cc
