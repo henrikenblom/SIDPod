@@ -72,6 +72,7 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
         src/audio/roms.cpp
+        src/Catalog.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
