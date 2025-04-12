@@ -28,10 +28,11 @@ public:
 
     static void markCurrentEntryAsUnplayable();
 
+    static bool isRegularFile(FILINFO *fileInfo);
+
 private:
     static void tryToAddAsPsid(FILINFO *fileInfo);
 
-    static bool isRegularFile(FILINFO *fileInfo);
 
     static void resetAccessors();
 

@@ -7,21 +7,22 @@
 
 #include "platform_config.h"
 
-FATFS *fs = new FATFS;
-std::vector<PlaylistEntry> catalog(50);
+std::vector<PlaylistEntry> entries(50);
 std::vector<PlaylistEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = CATALOG_WINDOW_SIZE;
+TCHAR dirName[FF_SFN_BUF + 1];
+TCHAR name[FF_LFN_BUF + 1];
 
 void Playlist::refresh() {
     DIR *dp;
     FILINFO fno;
     FRESULT fr;
     dp = new DIR;
-    catalog.clear();
-    f_mount(fs, "", FA_READ);
-    f_opendir(dp, "");
+    entries.clear();
+    f_opendir(dp, dirName);
+
     while (true) {
         fr = f_readdir(dp, &fno);
         if (fr != FR_OK || fno.fname[0] == 0) break;
@@ -31,18 +32,18 @@ void Playlist::refresh() {
     }
     f_closedir(dp);
     delete dp;
-    std::sort(catalog.begin(), catalog.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
+    std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });
     resetAccessors();
 }
 
 PlaylistEntry *Playlist::getCurrentEntry() {
-    return &catalog.at(selectedPosition);
+    return &entries.at(selectedPosition);
 }
 
 size_t Playlist::getSize() {
-    return catalog.size();
+    return entries.size();
 }
 
 std::vector<PlaylistEntry *> Playlist::getWindow() {
@@ -89,7 +90,7 @@ void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
             entry.unplayable = false;
             strcpy(entry.fileName, fileInfo->altname);
             strcpy(entry.title, reinterpret_cast<const char *>(&pHeader[0x16]));
-            catalog.push_back(entry);
+            entries.push_back(entry);
         }
     }
     f_close(&pFile);
@@ -112,7 +113,7 @@ void Playlist::updateWindow() {
     if (getSize()) {
         window.clear();
         for (int i = 0; i < std::min(windowSize, (uint8_t) getSize()); i++) {
-            auto entry = &catalog.at(windowPosition + i);
+            auto entry = &entries.at(windowPosition + i);
             entry->selected = windowPosition + i == selectedPosition;
             window.push_back(entry);
         }

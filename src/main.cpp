@@ -7,6 +7,7 @@
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include "System.h"
+#include "Catalog.h"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ int main() {
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
+        Catalog::refresh();
         Playlist::refresh();
         UI::start();
         SIDPlayer::initAudio();
