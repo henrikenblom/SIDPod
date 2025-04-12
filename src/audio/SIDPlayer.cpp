@@ -21,7 +21,7 @@ short visualizationBuffer[FFT_SAMPLES];
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
-CatalogEntry *lastCatalogEntry = {};
+PlaylistEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
     .sample_freq = SAMPLE_RATE,
     .format = AUDIO_BUFFER_FORMAT_PCM_S16,
@@ -98,7 +98,7 @@ uint8_t SIDPlayer::getVolume() {
     return volume;
 }
 
-CatalogEntry *SIDPlayer::getCurrentlyLoaded() {
+PlaylistEntry *SIDPlayer::getCurrentlyLoaded() {
     return lastCatalogEntry;
 }
 
@@ -138,7 +138,7 @@ volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
     return true;
 }
 
-volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
+volatile bool SIDPlayer::loadPSID(PlaylistEntry *sidFile) {
     return C64::sid_load_from_file(sidFile->fileName);
 }
 
@@ -152,10 +152,10 @@ volatile bool SIDPlayer::loadPSID(CatalogEntry *sidFile) {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
+            PlaylistEntry *currentCatalogEntry = Playlist::getCurrentEntry();
             if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
                 resetState();
-                if (loadPSID(PSIDCatalog::getCurrentEntry())) {
+                if (loadPSID(Playlist::getCurrentEntry())) {
                     loadingSuccessful = true;
                     rendering = true;
                     ampOn();

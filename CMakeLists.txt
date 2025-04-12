@@ -37,7 +37,7 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
-        src/PSIDCatalog.cpp
+        src/Playlist.cpp
         src/audio/SIDPlayer.cpp
         src/UI.cpp
         src/visualization/DanceFloor.cpp

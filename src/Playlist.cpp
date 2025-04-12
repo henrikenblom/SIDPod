@@ -1,20 +1,20 @@
 #include <cstring>
 #include <vector>
 #include <cstdio>
-#include "PSIDCatalog.h"
+#include "Playlist.h"
 
 #include <algorithm>
 
 #include "platform_config.h"
 
 FATFS *fs = new FATFS;
-std::vector<CatalogEntry> catalog;
-std::vector<CatalogEntry *> window;
+std::vector<PlaylistEntry> catalog(50);
+std::vector<PlaylistEntry *> window;
 uint8_t windowPosition = 0;
 uint8_t selectedPosition = 0;
 uint8_t windowSize = CATALOG_WINDOW_SIZE;
 
-void PSIDCatalog::refresh() {
+void Playlist::refresh() {
     DIR *dp;
     FILINFO fno;
     FRESULT fr;
@@ -31,25 +31,25 @@ void PSIDCatalog::refresh() {
     }
     f_closedir(dp);
     delete dp;
-    std::sort(catalog.begin(), catalog.end(), [](const CatalogEntry &a, const CatalogEntry &b) -> bool {
+    std::sort(catalog.begin(), catalog.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });
     resetAccessors();
 }
 
-CatalogEntry *PSIDCatalog::getCurrentEntry() {
+PlaylistEntry *Playlist::getCurrentEntry() {
     return &catalog.at(selectedPosition);
 }
 
-size_t PSIDCatalog::getSize() {
+size_t Playlist::getSize() {
     return catalog.size();
 }
 
-std::vector<CatalogEntry *> PSIDCatalog::getWindow() {
+std::vector<PlaylistEntry *> Playlist::getWindow() {
     return window;
 }
 
-void PSIDCatalog::selectNext() {
+void Playlist::selectNext() {
     if (selectedPosition < getSize() - 1) {
         selectedPosition++;
         slideDown();
@@ -57,7 +57,7 @@ void PSIDCatalog::selectNext() {
     }
 }
 
-void PSIDCatalog::selectPrevious() {
+void Playlist::selectPrevious() {
     if (selectedPosition > 0) {
         selectedPosition--;
         slideUp();
@@ -65,7 +65,7 @@ void PSIDCatalog::selectPrevious() {
     }
 }
 
-void PSIDCatalog::resetAccessors() {
+void Playlist::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
     if (getSize() > 0) {
@@ -74,7 +74,7 @@ void PSIDCatalog::resetAccessors() {
 }
 
 //TODO: Use the load routine from C64.cpp to validate the playability of the file
-void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
+void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[SID_MINIMAL_HEADER_SIZE];
     UINT bytesRead;
@@ -85,7 +85,7 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
         bool isRsid = magic == RSID_ID;
         if (magic == PSID_ID || isRsid) {
             auto *pHeader = static_cast<unsigned char *>(header);
-            CatalogEntry entry{};
+            PlaylistEntry entry{};
             entry.unplayable = false;
             strcpy(entry.fileName, fileInfo->altname);
             strcpy(entry.title, reinterpret_cast<const char *>(&pHeader[0x16]));
@@ -96,19 +96,19 @@ void PSIDCatalog::tryToAddAsPsid(FILINFO *fileInfo) {
 }
 
 
-void PSIDCatalog::slideDown() {
+void Playlist::slideDown() {
     if (windowSize + windowPosition < getSize()) {
         windowPosition++;
     }
 }
 
-void PSIDCatalog::slideUp() {
+void Playlist::slideUp() {
     if (windowPosition > 0) {
         windowPosition--;
     }
 }
 
-void PSIDCatalog::updateWindow() {
+void Playlist::updateWindow() {
     if (getSize()) {
         window.clear();
         for (int i = 0; i < std::min(windowSize, (uint8_t) getSize()); i++) {
@@ -119,10 +119,10 @@ void PSIDCatalog::updateWindow() {
     }
 }
 
-bool PSIDCatalog::isRegularFile(FILINFO *fileInfo) {
+bool Playlist::isRegularFile(FILINFO *fileInfo) {
     return fileInfo->fattrib == 32 && fileInfo->fname[0] != 46;
 }
 
-void PSIDCatalog::markCurrentEntryAsUnplayable() {
+void Playlist::markCurrentEntryAsUnplayable() {
     getCurrentEntry()->unplayable = true;
 }
