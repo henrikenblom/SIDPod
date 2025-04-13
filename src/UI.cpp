@@ -122,7 +122,8 @@ void UI::showSongSelector() {
             } else {
                 ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
             }
-            if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
+            if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
+                                                                       SIDPlayer::getCurrentlyLoaded()->fileName) == 0
                 && SIDPlayer::loadingWasSuccessful()) {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
@@ -139,7 +140,6 @@ void UI::showPlaylistSelector() {
     ssd1306_clear(&disp);
     uint8_t y = 0;
     for (const std::string &entry: *Catalog::getEntries()) {
-        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
         bool selected = entry == Catalog::getSelected();
         bool playing = entry == Catalog::getPlaying();
         if (selected && entry.length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
@@ -333,17 +333,17 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 currentState = song_selector;
                 break;
             default:
-                if (Catalog::playlistIsOpen()) {
-                    if (Catalog::getCurrentPlaylist()->isAtReturnEntry()) {
-                        Catalog::closeSelected();
-                        currentState = playlist_selector;
-                    } else if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                                      Catalog::getCurrentPlaylist()->getCurrentEntry()
-                                      ->fileName) != 0) {
-                        SIDPlayer::togglePlayPause();
-                        currentState = visualization;
-                    }
+                if (Catalog::getCurrentPlaylist()->isAtReturnEntry()) {
+                    Catalog::closeSelected();
+                    currentState = playlist_selector;
+                    break;
                 }
+                if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                           Catalog::getCurrentPlaylist()->getCurrentEntry()
+                           ->fileName) != 0) {
+                    SIDPlayer::togglePlayPause();
+                }
+                currentState = visualization;
         }
     }
     return 0;

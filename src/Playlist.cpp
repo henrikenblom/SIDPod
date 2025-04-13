@@ -13,7 +13,6 @@ void Playlist::refresh() {
     FRESULT fr;
     dp = new DIR;
     entries.clear();
-    addReturnEntry();
     f_opendir(dp, name);
     while (entries.size() < MAX_PLAYLIST_ENTRIES) {
         fr = f_readdir(dp, &fno);
@@ -27,6 +26,7 @@ void Playlist::refresh() {
     std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });
+    addReturnEntry();
     resetAccessors();
 }
 
@@ -42,7 +42,7 @@ void Playlist::addReturnEntry() {
     PlaylistEntry entry{};
     entry.unplayable = false;
     strcpy(entry.title, "<< Return");
-    entries.push_back(entry);
+    entries.emplace(entries.begin(), entry);
 }
 
 PlaylistEntry *Playlist::getCurrentEntry() {
