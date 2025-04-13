@@ -4,7 +4,7 @@
 #include "../display/include/ssd1306.h"
 #include "../platform_config.h"
 #include "kiss_fft.h"
-#include "../PSIDCatalog.h"
+#include "../Playlist.h"
 #include "kiss_fftr.h"
 
 namespace Visualization {
@@ -12,7 +12,7 @@ namespace Visualization {
     public:
         explicit DanceFloor(ssd1306_t *disp);
 
-        void start(CatalogEntry *_selectedEntry);
+        void start(PlaylistEntry *_selectedEntry);
 
         void stop();
 
@@ -112,7 +112,7 @@ namespace Visualization {
         volatile bool showScroller = false;
         kiss_fftr_cfg fft_cfg{};
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
-        CatalogEntry *selectedEntry{};
+        PlaylistEntry *selectedEntry{};
         bool alternativeScene = false;
         bool starFieldVisible = false;
         Transition transition = NO_TRANSITION;
@@ -123,7 +123,7 @@ namespace Visualization {
 
         SoundSprite soundSprites[SOUND_SPRITE_COUNT]{};
         RoundSprite roundSprites[DISPLAY_WIDTH / 2]{};
-        StarFieldSprite starFieldSprites[DISPLAY_WIDTH]{};
+        StarFieldSprite starFieldSprites[STARFIELD_SPRITE_COUNT]{};
         StarSprite starSprites[24] = {
             {6, 4},
             {14, 0},

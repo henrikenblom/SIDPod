@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
 #set(PICO_BOARD solderparty_rp2040_stamp)
-#set(PICO_BOARD pico)
-set(PICO_BOARD pico_w)
+set(PICO_BOARD pico)
+#set(PICO_BOARD pico_w)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 
@@ -37,24 +37,16 @@ add_executable(${PROJECT_NAME}
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
-        src/PSIDCatalog.cpp
+        src/Playlist.cpp
         src/audio/SIDPlayer.cpp
         src/UI.cpp
         src/visualization/DanceFloor.cpp
         src/System.cpp
         src/audio/reSID/envelope.cc
-        src/audio/reSID/wave8580_P_T.cc
         src/audio/reSID/pot.cc
         src/audio/reSID/voice.cc
         src/audio/reSID/sid.cc
         src/audio/reSID/filter.cc
-        src/audio/reSID/wave6581_P_T.cc
-        src/audio/reSID/wave6581_PS_.cc
-        src/audio/reSID/wave8580_PST.cc
-        src/audio/reSID/wave8580__ST.cc
-        src/audio/reSID/wave6581_PST.cc
-        src/audio/reSID/wave8580_PS_.cc
-        src/audio/reSID/wave6581__ST.cc
         src/audio/reSID/extfilt.cc
         src/audio/reSID/wave.cc
         src/audio/reSID/version.cc
@@ -72,6 +64,7 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
         src/audio/roms.cpp
+        src/Catalog.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -85,6 +78,7 @@ target_link_libraries(${PROJECT_NAME}
         hardware_i2c
         hardware_clocks
         hardware_sleep
+        hardware_interp
         pico_stdlib
         pico_audio_i2s
         pico_multicore

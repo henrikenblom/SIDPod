@@ -354,7 +354,7 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::start(CatalogEntry *_selectedEntry) {
+    void DanceFloor::start(PlaylistEntry *_selectedEntry) {
         running = true;
         freeze = false;
         for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {

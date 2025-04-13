@@ -3,10 +3,11 @@
 #include <device/usbd.h>
 #include <hardware/watchdog.h>
 #include "platform_config.h"
-#include "PSIDCatalog.h"
+#include "Playlist.h"
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include "System.h"
+#include "Catalog.h"
 
 using namespace std;
 
@@ -40,7 +41,8 @@ int main() {
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
-        PSIDCatalog::refresh();
+        //Catalog::refresh();
+        Playlist::refresh();
         UI::start();
         SIDPlayer::initAudio();
     }

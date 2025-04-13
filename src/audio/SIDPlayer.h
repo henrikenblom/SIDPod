@@ -4,7 +4,7 @@
 #include <pico/audio.h>
 
 #include "C64.h"
-#include "../PSIDCatalog.h"
+#include "../Playlist.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
 
@@ -14,9 +14,9 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static volatile bool loadPSID(CatalogEntry *sidFile);
+    static volatile bool loadPSID(PlaylistEntry *sidFile);
 
-    static CatalogEntry *getCurrentlyLoaded();
+    static PlaylistEntry *getCurrentlyLoaded();
 
     static void togglePlayPause();
 

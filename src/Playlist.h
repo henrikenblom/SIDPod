@@ -1,26 +1,26 @@
-#ifndef SIDPOD_PSIDCATALOG_H
-#define SIDPOD_PSIDCATALOG_H
+#ifndef SIDPOD_PLAYLIST_H
+#define SIDPOD_PLAYLIST_H
 
 #include <vector>
 #include "ff.h"
 
-struct CatalogEntry {
+struct PlaylistEntry {
     bool unplayable;
     TCHAR fileName[FF_SFN_BUF + 1];
     char title[32];
     bool selected;
 };
 
-class PSIDCatalog {
+class Playlist {
 
 public:
     static void refresh();
 
-    static CatalogEntry *getCurrentEntry();
+    static PlaylistEntry *getCurrentEntry();
 
     static size_t getSize();
 
-    static std::vector<CatalogEntry *> getWindow();
+    static std::vector<PlaylistEntry *> getWindow();
 
     static void selectNext();
 
@@ -28,10 +28,11 @@ public:
 
     static void markCurrentEntryAsUnplayable();
 
+    static bool isRegularFile(FILINFO *fileInfo);
+
 private:
     static void tryToAddAsPsid(FILINFO *fileInfo);
 
-    static bool isRegularFile(FILINFO *fileInfo);
 
     static void resetAccessors();
 
@@ -42,4 +43,4 @@ private:
     static void slideUp();
 };
 
-#endif //SIDPOD_PSIDCATALOG_H
+#endif //SIDPOD_PLAYLIST_H

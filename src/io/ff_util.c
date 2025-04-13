@@ -10,8 +10,8 @@
 MP_WEAK DWORD get_fattime(void) {
     datetime_t t;
     rtc_get_datetime(&t);
-    return ((t.year - 1980) << 25) | ((t.month) << 21) | ((t.day) << 16) | ((t.hour) << 11) | ((t.min) << 5) |
-           (t.sec / 2);
+    return t.year - 1980 << 25 | t.month << 21 | t.day << 16 | t.hour << 11 | t.min << 5 |
+           t.sec / 2;
 }
 
 void filesystem_init() {
@@ -22,8 +22,6 @@ void filesystem_init() {
         MKFS_PARM opt = {.n_root=2048, .n_fat=2, .fmt=FM_FAT};
         f_mkfs("", &opt, work, FLASH_SECTOR_SIZE);
         f_setlabel(FS_LABEL);
-    } else {
-        f_unmount("");
+        f_mount(fs, "", FA_READ);
     }
-    free(fs);
 }

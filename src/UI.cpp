@@ -7,7 +7,7 @@
 
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
-#include "PSIDCatalog.h"
+#include "Playlist.h"
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"
 #include "visualization/DanceFloor.h"
@@ -73,7 +73,7 @@ void UI::showSplash() {
 void UI::updateUI() {
     switch (currentState) {
         case visualization:
-            danceFloor->start(PSIDCatalog::getCurrentEntry());
+            danceFloor->start(Playlist::getCurrentEntry());
             break;
         case volume_control:
             showVolumeControl();
@@ -98,16 +98,16 @@ void UI::updateUI() {
 }
 
 void UI::showSongSelector() {
-    if (PSIDCatalog::getSize()) {
-        if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+    if (Playlist::getSize()) {
+        if (strcmp(Playlist::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
             && !SIDPlayer::loadingWasSuccessful()) {
-            PSIDCatalog::markCurrentEntryAsUnplayable();
+            Playlist::markCurrentEntryAsUnplayable();
             // TODO: this seems to be broken for some files (Immigrant song)
             SIDPlayer::resetState();
         }
         ssd1306_clear(&disp);
         uint8_t y = 0;
-        for (const auto entry: PSIDCatalog::getWindow()) {
+        for (const auto entry: Playlist::getWindow()) {
             if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
                 animateLongTitle(entry->title, y);
             } else {
@@ -242,7 +242,7 @@ volatile void UI::pollEncoder() {
                 if (currentState == volume_control) {
                     SIDPlayer::volumeUp();
                 } else {
-                    PSIDCatalog::selectNext();
+                    Playlist::selectNext();
                     longTitleScrollOffset = 0;
                 }
             }
@@ -251,7 +251,7 @@ volatile void UI::pollEncoder() {
                 if (currentState == volume_control) {
                     SIDPlayer::volumeDown();
                 } else {
-                    PSIDCatalog::selectPrevious();
+                    Playlist::selectPrevious();
                     longTitleScrollOffset = 0;
                 }
             }
@@ -303,7 +303,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 break;
             default:
                 if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                           PSIDCatalog::getCurrentEntry()->fileName) != 0) {
+                           Playlist::getCurrentEntry()->fileName) != 0) {
                     SIDPlayer::togglePlayPause();
                 }
                 currentState = UI::visualization;
