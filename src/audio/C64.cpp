@@ -157,13 +157,13 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
 
     for (int i = 0; i < sampleCount; i++) {
         if (secondBuffer != nullptr) {
-            interp0->base[0] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
-            interp0->base[1] = static_cast<short>(static_cast<float>(secondBuffer[i]) * volumeFactor);
+            interp0->base[0] = buffer[i];
+            interp0->base[1] = secondBuffer[i];
             interp0->accum[1] = 127;
             buffer[i] = static_cast<short>(interp0->pop[1]);
             if (thirdBuffer != nullptr) {
                 interp0->base[0] = buffer[i];
-                interp0->base[1] = static_cast<short>(static_cast<float>(thirdBuffer[i]) * volumeFactor);
+                interp0->base[1] = thirdBuffer[i];
                 interp0->accum[1] = 127;
                 buffer[i] = static_cast<short>(interp0->pop[1]);
             }
@@ -172,6 +172,7 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
         if (currentVisualizationBufferOffset == FFT_SAMPLES) {
             currentVisualizationBufferOffset = 0;
         }
+        buffer[i] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
     }
 
     delete[] secondBuffer;
