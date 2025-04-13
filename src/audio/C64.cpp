@@ -12,7 +12,6 @@
 #include <cstdio>
 #include <cstring>
 #include <hardware/pio.h>
-#include "hardware/interp.h"
 
 #include "../platform_config.h"
 #include "reSID/sid.h"
@@ -129,45 +128,23 @@ void C64::synth_init() {
     thirdSID->reset();
     thirdSID->enable_filter(true);
     thirdSID->enable_external_filter(true);
-
-    interp_config cfg = interp_default_config();
-    interp_config_set_blend(&cfg, true);
-    interp_config_set_signed(&cfg, true);
-    interp_set_config(interp0, 0, &cfg);
-    interp_set_config(interp0, 1, &cfg);
 }
 
-int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
+inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     cycle_count delta_t = initialCycleCount;
     const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
 
-    short *secondBuffer = nullptr;
-    short *thirdBuffer = nullptr;
     if (secondSidAddr) {
-        secondBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
-        secondSID->clock(delta_t, secondBuffer, static_cast<int>(len));
+        secondSID->clock_and_mix(delta_t, buffer, static_cast<int>(len));
     }
 
     if (thirdSidAddr) {
-        thirdBuffer = new short[sampleCount];
         delta_t = initialCycleCount;
-        thirdSID->clock(delta_t, thirdBuffer, static_cast<int>(len));
+        thirdSID->clock_and_mix(delta_t, buffer, static_cast<int>(len));
     }
 
     for (int i = 0; i < sampleCount; i++) {
-        if (secondBuffer != nullptr) {
-            interp0->base[0] = buffer[i];
-            interp0->base[1] = secondBuffer[i];
-            interp0->accum[1] = 127;
-            buffer[i] = static_cast<short>(interp0->pop[1]);
-            if (thirdBuffer != nullptr) {
-                interp0->base[0] = buffer[i];
-                interp0->base[1] = thirdBuffer[i];
-                interp0->accum[1] = 127;
-                buffer[i] = static_cast<short>(interp0->pop[1]);
-            }
-        }
         visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
         if (currentVisualizationBufferOffset == FFT_SAMPLES) {
             currentVisualizationBufferOffset = 0;
@@ -175,8 +152,6 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
         buffer[i] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
     }
 
-    delete[] secondBuffer;
-    delete[] thirdBuffer;
     return sampleCount;
 }
 

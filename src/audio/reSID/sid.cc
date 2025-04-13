@@ -19,6 +19,8 @@
 
 #include "sid.h"
 #include <math.h>
+#include <hardware/interp.h>
+
 #include "../platform_config.h"
 
 RESID_NAMESPACE_START
@@ -54,6 +56,14 @@ SID::SID() {
     bus_value_ttl = 0;
 
     ext_in = 0;
+
+    interp_config cfg = interp_default_config();
+    interp_config_set_blend(&cfg, true);
+    interp_config_set_signed(&cfg, true);
+    interp_set_config(interp0, 0, &cfg);
+
+    cfg = interp_default_config();
+    interp_set_config(interp0, 1, &cfg);
 }
 
 /*
@@ -658,6 +668,37 @@ int SID::clock(cycle_count &delta_t, short *buf, int n) {
             // TODO: Explore if the hardware interpolation can be used
             return clock_interpolate(delta_t, buf, n);
     }
+}
+
+int SID::clock_and_mix(cycle_count &delta_t, short *buf, int n) {
+    return clock_and_mix_fast(delta_t, buf, n);
+}
+
+RESID_INLINE int SID::clock_and_mix_fast(cycle_count &delta_t, short *buf, int n) {
+    int s = 0;
+
+    for (;;) {
+        cycle_count next_sample_offset = sample_offset + cycles_per_sample + (1 << (FIXP_SHIFT - 1));
+        cycle_count delta_t_sample = next_sample_offset >> FIXP_SHIFT;
+        if (delta_t_sample > delta_t) {
+            break;
+        }
+        if (s >= n) {
+            return s;
+        }
+        clock(delta_t_sample);
+        delta_t -= delta_t_sample;
+        sample_offset = (next_sample_offset & FIXP_MASK) - (1 << (FIXP_SHIFT - 1));
+        interp0->base[0] = buf[s];
+        interp0->base[1] = output();
+        interp0->accum[1] = 127;
+        buf[s++] = static_cast<short>(interp0->pop[1]);
+    }
+
+    clock(delta_t);
+    sample_offset -= delta_t << FIXP_SHIFT;
+    delta_t = 0;
+    return s;
 }
 
 // ----------------------------------------------------------------------------
