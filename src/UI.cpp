@@ -246,7 +246,10 @@ void UI::stop() {
     danceFloor->stop();
 }
 
-void UI::start() {
+void UI::start(bool quickStart) {
+    if (quickStart) {
+        showSplashCycles = SPLASH_DISPLAY_DURATION;
+    }
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
@@ -257,7 +260,7 @@ inline void UI::showRasterBars() {
     ssd1306_show_unacked(&disp);
 }
 
-bool UI::pollUserControls(struct repeating_timer *t) {
+bool UI::pollUserControls(repeating_timer *t) {
     (void) t;
     pollSwitch();
     pollEncoder();

@@ -3,7 +3,6 @@
 #include <device/usbd.h>
 #include <hardware/watchdog.h>
 #include "platform_config.h"
-#include "Playlist.h"
 #include "audio/SIDPlayer.h"
 #include "UI.h"
 #include "System.h"
@@ -25,6 +24,14 @@ void runPossibleSecondWakeUp() {
     }
 }
 
+bool awaitButtonRelease() {
+    int c = 0;
+    while (!gpio_get(ENC_SW_PIN)) {
+        busy_wait_ms(1);
+        c++;
+    }
+    return c >= LONG_PRESS_DURATION_MS;
+}
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
@@ -35,13 +42,12 @@ int main() {
     runPossibleSecondWakeUp();
     UI::screenOn();
     UI::showSplash();
-    while (!gpio_get(ENC_SW_PIN)) {
-    }
+    bool quickStart = awaitButtonRelease();
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
         Catalog::refresh();
-        UI::start();
+        UI::start(quickStart);
         SIDPlayer::initAudio();
     }
     while (true) {

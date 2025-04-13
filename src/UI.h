@@ -13,7 +13,7 @@ public:
 
     static void drawHeader(const char *title);
 
-    static void start();
+    static void start(bool quickStart);
 
     static void stop();
 
