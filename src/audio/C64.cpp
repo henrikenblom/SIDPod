@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include <hardware/pio.h>
+#include "hardware/interp.h"
 
 #include "../platform_config.h"
 #include "reSID/sid.h"
@@ -128,10 +129,14 @@ void C64::synth_init() {
     thirdSID->reset();
     thirdSID->enable_filter(true);
     thirdSID->enable_external_filter(true);
+
+    interp_config cfg = interp_default_config();
+    interp_config_set_blend(&cfg, true);
+    interp_config_set_signed(&cfg, true);
+    interp_set_config(interp0, 0, &cfg);
+    interp_set_config(interp0, 1, &cfg);
 }
 
-// TODO: Improve mixer. Perhaps something like this: https://cplusplus.com/forum/general/77577/
-// TODO: Explore using stereo mixing for dual SIDs
 int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     cycle_count delta_t = initialCycleCount;
     const int sampleCount = firstSID->clock(delta_t, buffer, static_cast<int>(len));
@@ -150,19 +155,22 @@ int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
         thirdSID->clock(delta_t, thirdBuffer, static_cast<int>(len));
     }
 
-    for (int i = 0; i < len; i++) {
-        if (secondSidAddr) {
-            buffer[i] = (buffer[i] >> 1) + (secondBuffer[i] >> 1);
-        }
-        if (thirdSidAddr) {
-            buffer[i] = (buffer[i] >> 1) + (thirdBuffer[i] >> 1);
+    for (int i = 0; i < sampleCount; i++) {
+        if (secondBuffer != nullptr) {
+            interp0->base[0] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
+            interp0->base[1] = static_cast<short>(static_cast<float>(secondBuffer[i]) * volumeFactor);
+            interp0->accum[1] = 127;
+            buffer[i] = static_cast<short>(interp0->pop[1]);
+            if (thirdBuffer != nullptr) {
+                interp0->base[0] = buffer[i];
+                interp0->base[1] = static_cast<short>(static_cast<float>(thirdBuffer[i]) * volumeFactor);
+                interp0->accum[1] = 127;
+                buffer[i] = static_cast<short>(interp0->pop[1]);
+            }
         }
         visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
         if (currentVisualizationBufferOffset == FFT_SAMPLES) {
             currentVisualizationBufferOffset = 0;
-        }
-        if (buffer[i]) {
-            buffer[i] = static_cast<int16_t>(static_cast<float>(buffer[i]) * volumeFactor);
         }
     }
 

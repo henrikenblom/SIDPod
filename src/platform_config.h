@@ -14,7 +14,7 @@
 #define REFERENCE_CLOCK_SPEED_KHZ           125000
 
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
-#define CLOCK_SPEED_KHZ                     240000
+#define CLOCK_SPEED_KHZ                     250000
 #else
 #define CLOCK_SPEED_KHZ                     180000
 #endif
