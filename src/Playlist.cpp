@@ -7,22 +7,14 @@
 
 #include "platform_config.h"
 
-std::vector<PlaylistEntry> entries(40);
-std::vector<PlaylistEntry *> window;
-uint8_t windowPosition = 0;
-uint8_t selectedPosition = 0;
-uint8_t windowSize = CATALOG_WINDOW_SIZE;
-TCHAR dirName[FF_SFN_BUF + 1];
-TCHAR name[FF_LFN_BUF + 1];
-
 void Playlist::refresh() {
     DIR *dp;
     FILINFO fno;
     FRESULT fr;
     dp = new DIR;
     entries.clear();
-    f_opendir(dp, dirName);
-    while (entries.size() < 40) {
+    f_opendir(dp, name);
+    while (entries.size() < MAX_PLAYLIST_ENTRIES) {
         fr = f_readdir(dp, &fno);
         if (fr != FR_OK || fno.fname[0] == 0) break;
         if (isRegularFile(&fno)) {
@@ -34,7 +26,23 @@ void Playlist::refresh() {
     std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });
+    addReturnEntry();
     resetAccessors();
+}
+
+TCHAR *Playlist::getName() const {
+    return name;
+}
+
+bool Playlist::isAtReturnEntry() const {
+    return selectedPosition == 0;
+}
+
+void Playlist::addReturnEntry() {
+    PlaylistEntry entry{};
+    entry.unplayable = false;
+    strcpy(entry.title, "<< Return");
+    entries.emplace(entries.begin(), entry);
 }
 
 PlaylistEntry *Playlist::getCurrentEntry() {
@@ -68,9 +76,14 @@ void Playlist::selectPrevious() {
 void Playlist::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
+    ready = true;
     if (getSize() > 0) {
         updateWindow();
     }
+}
+
+void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath) {
+    snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, entries.at(selectedPosition).fileName);
 }
 
 //TODO: Use the load routine from C64.cpp to validate the playability of the file
@@ -78,7 +91,9 @@ void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[SID_MINIMAL_HEADER_SIZE];
     UINT bytesRead;
-    f_open(&pFile, fileInfo->altname, FA_READ);
+    TCHAR fullPath[FF_LFN_BUF + 1];
+    snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, fileInfo->fname);
+    f_open(&pFile, fullPath, FA_READ);
     f_read(&pFile, &header, SID_MINIMAL_HEADER_SIZE, &bytesRead);
     if (bytesRead == SID_MINIMAL_HEADER_SIZE) {
         uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;

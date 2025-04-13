@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "ff.h"
+#include "platform_config.h"
 
 struct PlaylistEntry {
     bool unplayable;
@@ -12,35 +13,64 @@ struct PlaylistEntry {
 };
 
 class Playlist {
-
 public:
-    static void refresh();
+    explicit Playlist(TCHAR *name) {
+        this->entries = std::vector<PlaylistEntry>(20);
+        this->name = name;
+        refresh();
+    }
 
-    static PlaylistEntry *getCurrentEntry();
+    ~Playlist() {
+        entries.clear();
+        window.clear();
+    }
 
-    static size_t getSize();
+    PlaylistEntry *getCurrentEntry();
 
-    static std::vector<PlaylistEntry *> getWindow();
+    size_t getSize();
 
-    static void selectNext();
+    std::vector<PlaylistEntry *> getWindow();
 
-    static void selectPrevious();
+    void selectNext();
 
-    static void markCurrentEntryAsUnplayable();
+    void selectPrevious();
 
-    static bool isRegularFile(FILINFO *fileInfo);
+    void markCurrentEntryAsUnplayable();
+
+    [[nodiscard]] bool isReady() const {
+        return ready;
+    }
+
+    void refresh();
+
+    TCHAR *getName() const;
+
+    bool isAtReturnEntry() const;
+
+    void addReturnEntry();
+
+    void getFullPathForSelectedEntry(TCHAR *fullPath);
 
 private:
-    static void tryToAddAsPsid(FILINFO *fileInfo);
+    std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_PLAYLIST_ENTRIES);
+    std::vector<PlaylistEntry *> window;
+    uint8_t windowPosition = 0;
+    uint8_t selectedPosition = 0;
+    uint8_t windowSize = CATALOG_WINDOW_SIZE;
+    TCHAR *name;
+    bool ready = false;
 
+    void tryToAddAsPsid(FILINFO *fileInfo);
 
-    static void resetAccessors();
+    bool isRegularFile(FILINFO *fileInfo);
 
-    static void updateWindow();
+    void resetAccessors();
 
-    static void slideDown();
+    void updateWindow();
 
-    static void slideUp();
+    void slideDown();
+
+    void slideUp();
 };
 
 #endif //SIDPOD_PLAYLIST_H
