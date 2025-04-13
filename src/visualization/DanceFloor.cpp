@@ -317,10 +317,18 @@ namespace Visualization {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
+                char extraText[50];
+                if (entry->sidChipBase3) {
+                    sprintf(extraText, "Did you know that this song uses three SID chips?");
+                } else if (entry->sidChipBase2) {
+                    sprintf(extraText, "Fun fact: This song uses two SID chips!");
+                }
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod v2.",
+                         "This is %s by %s (%s) and you are %s %s on a SIDPod. %s %s",
                          entry->name, entry->author, entry->released, experience,
-                         entry->isPSID ? "it" : "this RSID");
+                         entry->isPSID ? "it" : "this RSID",
+                         extraText,
+                         random() % 4 == 1 ? "Enjoy!" : "");
                 showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;

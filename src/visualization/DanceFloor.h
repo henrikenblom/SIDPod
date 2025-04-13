@@ -100,7 +100,7 @@ namespace Visualization {
         float starShipY = DISPLAY_HEIGHT / 2 - 8;
         float starShipVelocity = 0.3;
         bool letStarShipRoam = false;
-        char scrollText[160]{};
+        char scrollText[200]{};
         char pausedLabel[7] = "PAUSED";
         char failedLabel[7] = "FAILED";
         uint8_t horizontalLineDitherOffset = 0;
