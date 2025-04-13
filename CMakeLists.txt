@@ -78,6 +78,7 @@ target_link_libraries(${PROJECT_NAME}
         hardware_i2c
         hardware_clocks
         hardware_sleep
+        hardware_interp
         pico_stdlib
         pico_audio_i2s
         pico_multicore
