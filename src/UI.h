@@ -11,6 +11,8 @@ public:
 
     static void updateUI();
 
+    static void drawHeader(const char *title);
+
     static void start();
 
     static void stop();
@@ -38,7 +40,7 @@ private:
 
     static void crossOutLine(int32_t y);
 
-    static void animateLongTitle(const char *title, int32_t y);
+    static void animateLongTitle(const char *title, int32_t y, int32_t xMargin, float *offsetCounter);
 
     static void drawRSIDSymbol(int32_t y);
 

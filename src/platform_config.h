@@ -70,7 +70,7 @@
 #define DISPLAY_STATE_CHANGE_DELAY_MS       500
 #define FONT_WIDTH                          6
 #define FONT_HEIGHT                         8
-#define CATALOG_WINDOW_SIZE                 (DISPLAY_HEIGHT / FONT_HEIGHT)
+#define CATALOG_WINDOW_SIZE                 ((DISPLAY_HEIGHT / FONT_HEIGHT) - 1)
 #define MAX_PLAYLIST_ENTRIES                64
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5

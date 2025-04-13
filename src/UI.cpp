@@ -25,7 +25,7 @@ auto goingDormantLabel = "Shutting down...";
 auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
 auto noLabel = "No";
-float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
+float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
@@ -105,6 +105,24 @@ void UI::updateUI() {
     }
 }
 
+void UI::drawHeader(const char *title) {
+    const size_t stringWidth = strlen(title) * FONT_WIDTH;
+    if (stringWidth > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+        animateLongTitle(title, 0, 12, &headerScrollOffset);
+        ssd1306_draw_line(&disp, 0, 0, 8, 0);
+        ssd1306_draw_line(&disp, 0, 2, 8, 2);
+        ssd1306_draw_line(&disp, 0, 4, 8, 4);
+        ssd1306_draw_line(&disp, 0, 6, 8, 6);
+    } else {
+        ssd1306_draw_line(&disp, 0, 0, DISPLAY_WIDTH, 0);
+        ssd1306_draw_line(&disp, 0, 2, DISPLAY_WIDTH, 2);
+        ssd1306_draw_line(&disp, 0, 4, DISPLAY_WIDTH, 4);
+        ssd1306_draw_line(&disp, 0, 6, DISPLAY_WIDTH, 6);
+        ssd1306_clear_square(&disp, 8, 0, stringWidth + FONT_WIDTH, FONT_HEIGHT);
+        ssd1306_draw_string(&disp, 12, 0, 1, title);
+    }
+}
+
 void UI::showSongSelector() {
     Playlist *playlist = Catalog::getCurrentPlaylist();
     if (playlist->getSize()) {
@@ -115,10 +133,11 @@ void UI::showSongSelector() {
             SIDPlayer::resetState();
         }
         ssd1306_clear(&disp);
-        uint8_t y = 0;
+        drawHeader(Catalog::getSelected().c_str());
+        uint8_t y = 8;
         for (const auto entry: playlist->getWindow()) {
             if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                animateLongTitle(entry->title, y);
+                animateLongTitle(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
             } else {
                 ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
             }
@@ -138,12 +157,13 @@ void UI::showSongSelector() {
 
 void UI::showPlaylistSelector() {
     ssd1306_clear(&disp);
-    uint8_t y = 0;
+    drawHeader("PLAYLISTS");
+    uint8_t y = FONT_HEIGHT;
     for (const std::string &entry: *Catalog::getEntries()) {
         bool selected = entry == Catalog::getSelected();
         bool playing = entry == Catalog::getPlaying();
         if (selected && entry.length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-            animateLongTitle(entry.c_str(), y);
+            animateLongTitle(entry.c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
         } else {
             ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
         }
@@ -158,16 +178,16 @@ void UI::showPlaylistSelector() {
 }
 
 
-void UI::animateLongTitle(const char *title, int32_t y) {
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - static_cast<int32_t>(longTitleScrollOffset), y, 1, title);
-    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
+void UI::animateLongTitle(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) {
+    ssd1306_draw_string(&disp, xMargin - static_cast<int32_t>(*offsetCounter), y, 1, title);
+    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
     float advancement =
-            longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
+            *offsetCounter > 1 && (int) *offsetCounter < scrollRange
                 ? 0.4
                 : 0.02;
-    if (static_cast<int>(longTitleScrollOffset += advancement) > scrollRange)
-        longTitleScrollOffset = 0;
-    ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
+    if (static_cast<int>(*offsetCounter += advancement) > scrollRange)
+        *offsetCounter = 0;
+    ssd1306_clear_square(&disp, 0, y, xMargin - 1, y + FONT_HEIGHT);
 }
 
 void UI::drawOpenSymbol(int32_t y) {

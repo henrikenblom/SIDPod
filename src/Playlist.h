@@ -15,7 +15,6 @@ struct PlaylistEntry {
 class Playlist {
 public:
     explicit Playlist(TCHAR *name) {
-        this->entries = std::vector<PlaylistEntry>(20);
         this->name = name;
         refresh();
     }

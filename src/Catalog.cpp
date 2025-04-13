@@ -5,8 +5,6 @@
 #include "Catalog.h"
 #include <cstring>
 #include <vector>
-#include <cstdio>
-#include <list>
 #include <string>
 
 #include "platform_config.h"
@@ -79,7 +77,7 @@ void Catalog::openSelected() {
 }
 
 void Catalog::slideDown() {
-    if (topItem <= entries.size() - CATALOG_WINDOW_SIZE + 1) {
+    if (topItem <= entries.size() - CATALOG_WINDOW_SIZE + 2) {
         topItem++;
     }
     refresh();
