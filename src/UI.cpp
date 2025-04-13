@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include "Catalog.h"
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
 #include "Playlist.h"
@@ -24,7 +25,6 @@ auto goingDormantLabel = "Shutting down...";
 auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
 auto noLabel = "No";
-auto emptyFlashMsg = {"No playable SIDs.", "Use USB to transfer", "SIDs to the root", "of the SIDPod."};
 float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 UI::State currentState = UI::splash;
@@ -73,7 +73,12 @@ void UI::showSplash() {
 void UI::updateUI() {
     switch (currentState) {
         case visualization:
-            danceFloor->start(Playlist::getCurrentEntry());
+            if (Catalog::playlistIsOpen()) {
+                Playlist *playlist = Catalog::getCurrentPlaylist();
+                if (playlist->isReady()) {
+                    danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
+                }
+            }
             break;
         case volume_control:
             showVolumeControl();
@@ -87,10 +92,13 @@ void UI::updateUI() {
             }
             if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
                 showSplashCycles = 0;
-                currentState = song_selector;
+                currentState = playlist_selector;
             } else {
                 sleep_ms(1);
             }
+            break;
+        case playlist_selector:
+            showPlaylistSelector();
             break;
         default:
             showSongSelector();
@@ -98,37 +106,59 @@ void UI::updateUI() {
 }
 
 void UI::showSongSelector() {
-    if (Playlist::getSize()) {
-        if (strcmp(Playlist::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+    Playlist *playlist = Catalog::getCurrentPlaylist();
+    if (playlist->getSize()) {
+        if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
             && !SIDPlayer::loadingWasSuccessful()) {
-            Playlist::markCurrentEntryAsUnplayable();
+            playlist->markCurrentEntryAsUnplayable();
             // TODO: this seems to be broken for some files (Immigrant song)
             SIDPlayer::resetState();
         }
         ssd1306_clear(&disp);
         uint8_t y = 0;
-        for (const auto entry: Playlist::getWindow()) {
+        for (const auto entry: playlist->getWindow()) {
             if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
                 animateLongTitle(entry->title, y);
             } else {
                 ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
             }
-            if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
+            if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
                 && SIDPlayer::loadingWasSuccessful()) {
                 drawNowPlayingSymbol(y);
             } else if (entry->selected) {
-                drawPlaySymbol(y);
+                drawOpenSymbol(y);
             }
             if (entry->unplayable) crossOutLine(y);
             y += 8;
         }
         ssd1306_show(&disp);
-    } else {
-        showFlashEmptyScreen();
     }
 }
 
-void UI::animateLongTitle(char *title, int32_t y) {
+void UI::showPlaylistSelector() {
+    ssd1306_clear(&disp);
+    uint8_t y = 0;
+    for (const std::string &entry: *Catalog::getEntries()) {
+        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
+        bool selected = entry == Catalog::getSelected();
+        bool playing = entry == Catalog::getPlaying();
+        if (selected && entry.length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+            animateLongTitle(entry.c_str(), y);
+        } else {
+            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
+        }
+        if (selected) {
+            drawOpenSymbol(y);
+        } else if (playing && SIDPlayer::loadingWasSuccessful()) {
+            drawNowPlayingSymbol(y);
+        }
+        y += 8;
+    }
+    ssd1306_show(&disp);
+}
+
+
+void UI::animateLongTitle(const char *title, int32_t y) {
     ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - static_cast<int32_t>(longTitleScrollOffset), y, 1, title);
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
     float advancement =
@@ -140,7 +170,7 @@ void UI::animateLongTitle(char *title, int32_t y) {
     ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
 }
 
-void UI::drawPlaySymbol(int32_t y) {
+void UI::drawOpenSymbol(int32_t y) {
     ssd1306_draw_pixel(&disp, 0, y + 2);
     ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
     ssd1306_draw_pixel(&disp, 0, y + 4);
@@ -169,17 +199,6 @@ void UI::drawNowPlayingSymbol(int32_t y) {
 
 void UI::crossOutLine(int32_t y) {
     ssd1306_draw_line(&disp, SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
-}
-
-void UI::showFlashEmptyScreen() {
-    ssd1306_clear(&disp);
-    int x = (DISPLAY_WIDTH / 2) - FONT_WIDTH * 10;
-    int y = 0;
-    for (auto msgLine: emptyFlashMsg) {
-        ssd1306_draw_string(&disp, x, y, 1, msgLine);
-        y += FONT_HEIGHT;
-    }
-    ssd1306_show(&disp);
 }
 
 void UI::drawDialog(const char *text) {
@@ -242,7 +261,11 @@ volatile void UI::pollEncoder() {
                 if (currentState == volume_control) {
                     SIDPlayer::volumeUp();
                 } else {
-                    Playlist::selectNext();
+                    if (Catalog::playlistIsOpen()) {
+                        Catalog::getCurrentPlaylist()->selectNext();
+                    } else {
+                        Catalog::selectNext();
+                    }
                     longTitleScrollOffset = 0;
                 }
             }
@@ -251,7 +274,11 @@ volatile void UI::pollEncoder() {
                 if (currentState == volume_control) {
                     SIDPlayer::volumeDown();
                 } else {
-                    Playlist::selectPrevious();
+                    if (Catalog::playlistIsOpen()) {
+                        Catalog::getCurrentPlaylist()->selectPrevious();
+                    } else {
+                        Catalog::selectPrevious();
+                    }
                     longTitleScrollOffset = 0;
                 }
             }
@@ -291,22 +318,32 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) id;
     (void) user_data;
     endDoubleClickSession();
-    if (!inLongPressSession && currentState != UI::sleeping) {
+    if (!inLongPressSession && currentState != sleeping) {
         switch (currentState) {
-            case UI::visualization:
-                currentState = UI::song_selector;
+            case visualization:
+                currentState = song_selector;
                 danceFloor->stop();
                 break;
-            case UI::volume_control:
+            case volume_control:
                 SIDPlayer::toggleLineLevel();
                 resetVolumeControlSessionTimer();
                 break;
+            case playlist_selector:
+                Catalog::openSelected();
+                currentState = song_selector;
+                break;
             default:
-                if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                           Playlist::getCurrentEntry()->fileName) != 0) {
-                    SIDPlayer::togglePlayPause();
+                if (Catalog::playlistIsOpen()) {
+                    if (Catalog::getCurrentPlaylist()->isAtReturnEntry()) {
+                        Catalog::closeSelected();
+                        currentState = playlist_selector;
+                    } else if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                                      Catalog::getCurrentPlaylist()->getCurrentEntry()
+                                      ->fileName) != 0) {
+                        SIDPlayer::togglePlayPause();
+                        currentState = visualization;
+                    }
                 }
-                currentState = UI::visualization;
         }
     }
     return 0;

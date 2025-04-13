@@ -33,7 +33,6 @@ int main() {
     stdio_init_all();
     UI::initUI();
     runPossibleSecondWakeUp();
-    SIDPlayer::ampOn();
     UI::screenOn();
     UI::showSplash();
     while (!gpio_get(ENC_SW_PIN)) {
@@ -41,8 +40,7 @@ int main() {
     filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
-        //Catalog::refresh();
-        Playlist::refresh();
+        Catalog::refresh();
         UI::start();
         SIDPlayer::initAudio();
     }

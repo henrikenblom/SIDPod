@@ -11,6 +11,7 @@
 
 #include "../platform_config.h"
 #include "C64.h"
+#include "../Catalog.h"
 
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
@@ -138,8 +139,8 @@ volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
     return true;
 }
 
-volatile bool SIDPlayer::loadPSID(PlaylistEntry *sidFile) {
-    return C64::sid_load_from_file(sidFile->fileName);
+volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
+    return C64::sid_load_from_file(fullPath);
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
@@ -152,26 +153,32 @@ volatile bool SIDPlayer::loadPSID(PlaylistEntry *sidFile) {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            PlaylistEntry *currentCatalogEntry = Playlist::getCurrentEntry();
-            if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
-                resetState();
-                if (loadPSID(Playlist::getCurrentEntry())) {
-                    loadingSuccessful = true;
+            if (Catalog::getCurrentPlaylist() != nullptr) {
+                Playlist *playlist = Catalog::getCurrentPlaylist();
+                PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
+                if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
+                    resetState();
+                    TCHAR fullPath[FF_LFN_BUF + 1];
+                    playlist->getFullPathForSelectedEntry(fullPath);
+                    if (loadPSID(fullPath)) {
+                        Catalog::setPlaying(playlist->getName());
+                        loadingSuccessful = true;
+                        rendering = true;
+                        ampOn();
+                    } else {
+                        loadingSuccessful = false;
+                    }
+                    lastCatalogEntry = currentCatalogEntry;
+                } else if (rendering) {
+                    memset(visualizationBuffer, 0, sizeof(visualizationBuffer));
+                    rendering = false;
+                    ampOff();
+                } else {
                     rendering = true;
                     ampOn();
-                } else {
-                    loadingSuccessful = false;
                 }
-                lastCatalogEntry = currentCatalogEntry;
-            } else if (rendering) {
-                memset(visualizationBuffer, 0, sizeof(visualizationBuffer));
-                rendering = false;
-                ampOff();
-            } else {
-                rendering = true;
-                ampOn();
+                playPauseQueued = false;
             }
-            playPauseQueued = false;
         }
 
         if (rendering) {

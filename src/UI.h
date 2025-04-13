@@ -24,23 +24,23 @@ public:
     static void drawDialog(const char *text);
 
     enum State {
-        song_selector, splash, raster_bars, visualization, volume_control, sleeping
+        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector
     };
 
 private:
     static void showSongSelector();
 
-    static void drawPlaySymbol(int32_t y);
+    static void showPlaylistSelector();
+
+    static void drawOpenSymbol(int32_t y);
 
     static void drawNowPlayingSymbol(int32_t y);
 
     static void crossOutLine(int32_t y);
 
-    static void animateLongTitle(char title[32], int32_t y);
+    static void animateLongTitle(const char *title, int32_t y);
 
     static void drawRSIDSymbol(int32_t y);
-
-    static void showFlashEmptyScreen();
 
     static void showVolumeControl();
 

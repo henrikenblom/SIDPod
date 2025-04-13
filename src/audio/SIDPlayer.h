@@ -14,7 +14,7 @@ class SIDPlayer {
 public:
     static void initAudio();
 
-    static volatile bool loadPSID(PlaylistEntry *sidFile);
+    static volatile bool loadPSID(TCHAR *fullPath);
 
     static PlaylistEntry *getCurrentlyLoaded();
 
