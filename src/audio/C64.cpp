@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <hardware/interp.h>
 #include <hardware/pio.h>
 
 #include "../platform_config.h"
@@ -128,6 +129,14 @@ void C64::synth_init() {
     thirdSID->reset();
     thirdSID->enable_filter(true);
     thirdSID->enable_external_filter(true);
+
+    interp_config cfg = interp_default_config();
+    interp_config_set_blend(&cfg, true);
+    interp_config_set_signed(&cfg, true);
+    interp_set_config(interp0, 0, &cfg);
+
+    cfg = interp_default_config();
+    interp_set_config(interp0, 1, &cfg);
 }
 
 inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
@@ -145,10 +154,12 @@ inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     }
 
     for (int i = 0; i < sampleCount; i++) {
+        // TODO: Can a DMA transfer be used here?
         visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
         if (currentVisualizationBufferOffset == FFT_SAMPLES) {
             currentVisualizationBufferOffset = 0;
         }
+        // TODO: Can bit shifting or integer division be used here?
         buffer[i] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
     }
 

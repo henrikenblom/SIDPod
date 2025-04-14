@@ -56,14 +56,6 @@ SID::SID() {
     bus_value_ttl = 0;
 
     ext_in = 0;
-
-    interp_config cfg = interp_default_config();
-    interp_config_set_blend(&cfg, true);
-    interp_config_set_signed(&cfg, true);
-    interp_set_config(interp0, 0, &cfg);
-
-    cfg = interp_default_config();
-    interp_set_config(interp0, 1, &cfg);
 }
 
 /*
