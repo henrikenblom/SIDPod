@@ -32,8 +32,6 @@ add_executable(${PROJECT_NAME}
         src/io/ff_util.c
         src/io/ffunicode.c
         src/io/ff.c
-        src/audio/c64.cpp
-        src/audio/c64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
@@ -65,6 +63,20 @@ add_executable(${PROJECT_NAME}
         src/audio/sidendian.h
         src/audio/roms.cpp
         src/Catalog.cpp
+        src/audio/c64/VIC_II/mos656x.cpp
+        src/audio/c64/CPU/mos6510.cpp
+        src/audio/c64/CPU/mos6510debug.cpp
+        src/audio/c64/c64.cpp
+        src/audio/c64/mmu.cpp
+        src/audio/c64/CIA/mos652x.cpp
+        src/audio/c64/CIA/tod.cpp
+        src/audio/c64/CIA/SerialPort.cpp
+        src/audio/c64/CIA/interrupt.cpp
+        src/audio/c64/CIA/timer.cpp
+        src/audio/psiddrv.cpp
+        src/audio/TuneInfo.cpp
+        src/audio/EventScheduler.cpp
+        src/audio/reloc65.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -88,6 +100,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/src/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/

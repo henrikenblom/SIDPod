@@ -3,7 +3,6 @@
 #include "kiss_fftr.h"
 #include "../System.h"
 #include "../audio/SIDPlayer.h"
-#include "../audio/C64.h"
 #include "../UI.h"
 
 char experience[20];
@@ -315,7 +314,7 @@ namespace Visualization {
     void DanceFloor::visualize() {
         while (running) {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
-                SidInfo *entry = SIDPlayer::getSidInfo();
+                TuneInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 char extraText[50];
                 if (entry->sidChipBase3) {
@@ -326,7 +325,7 @@ namespace Visualization {
                 snprintf(scrollText, sizeof(scrollText),
                          "This is %s by %s (%s) and you are %s %s on a SIDPod. %s %s",
                          entry->name, entry->author, entry->released, experience,
-                         entry->isPSID ? "it" : "this RSID",
+                         "it",
                          extraText,
                          random() % 4 == 1 ? "Enjoy!" : "");
                 showScroller = true;

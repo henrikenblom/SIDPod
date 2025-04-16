@@ -1,9 +1,10 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
+#include <TuneInfo.h>
+#include <c64/c64.h>
 #include <pico/audio.h>
 
-#include "C64.h"
 #include "../Playlist.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
@@ -36,7 +37,7 @@ public:
 
     static bool lineLevelOn();
 
-    static SidInfo *getSidInfo();
+    static TuneInfo *getSidInfo();
 
     static bool loadingWasSuccessful();
 
@@ -52,6 +53,18 @@ private:
     [[noreturn]] static void core1Main();
 
     static volatile bool reapCommand(struct repeating_timer *t);
+
+    libsidplayfp::c64::model_t c64model();
+
+    static void readHeader(BYTE *buffer, TuneInfo &info);
+
+    static void print_sid_info();
+
+    static bool initialiseC64();
+
+    static void placeSidTuneInC64mem(libsidplayfp::sidmemory &mem, FIL pFile);
+
+    static void run(unsigned int events);
 };
 
 #endif //SIDPOD_SIDPLAYER_H
