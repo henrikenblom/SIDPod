@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <hardware/dma.h>
 #include <hardware/interp.h>
 #include <hardware/pio.h>
 
@@ -112,8 +113,9 @@ unsigned short thirdSidAddr = 0;
 bool firstBuffer = true;
 uint16_t currentSong;
 int sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
-int currentVisualizationBufferOffset = 0;
 cycle_count initialCycleCount = 0;
+int visDMAChan = 0;
+dma_channel_config visDMACfg;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -137,6 +139,13 @@ void C64::synth_init() {
 
     cfg = interp_default_config();
     interp_set_config(interp0, 1, &cfg);
+
+    visDMAChan = dma_claim_unused_channel(true);
+    visDMACfg = dma_channel_get_default_config(visDMAChan);
+    channel_config_set_transfer_data_size(&visDMACfg, DMA_SIZE_16);
+    channel_config_set_read_increment(&visDMACfg, true);
+    channel_config_set_write_increment(&visDMACfg, true);
+    channel_config_set_ring(&visDMACfg, true, 0);
 }
 
 inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
@@ -153,12 +162,16 @@ inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
         thirdSID->clock_and_mix(delta_t, buffer, static_cast<int>(len));
     }
 
+    dma_channel_configure(
+        visDMAChan,
+        &visDMACfg,
+        visualizationBuffer,
+        buffer,
+        sampleCount,
+        true
+    );
+
     for (int i = 0; i < sampleCount; i++) {
-        // TODO: Can a DMA transfer be used here?
-        visualizationBuffer[currentVisualizationBufferOffset++] = buffer[i];
-        if (currentVisualizationBufferOffset == FFT_SAMPLES) {
-            currentVisualizationBufferOffset = 0;
-        }
         // TODO: Can bit shifting or integer division be used here?
         buffer[i] = static_cast<short>(static_cast<float>(buffer[i]) * volumeFactor);
     }
