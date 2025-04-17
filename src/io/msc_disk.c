@@ -1,5 +1,4 @@
 #include "tusb.h"
-#include "../platform_config.h"
 #include "diskio.h"
 #include "msc_control.h"
 
@@ -12,8 +11,8 @@ void set_msc_ready_to_attach() {
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4]) {
     (void) lun;
     const char vid[] = "Enblom";
-    const char pid[] = "Mass Storage";
-    const char rev[] = "1.0";
+    const char pid[] = "SIDPod";
+    const char rev[] = "2.0";
 
     strncpy((char *) vendor_id, vid, 8);
     strncpy((char *) product_id, pid, 16);
@@ -22,7 +21,7 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 
 bool tud_msc_test_unit_ready_cb(uint8_t lun) {
     DSTATUS ds = disk_initialize(lun);
-    return (!(STA_NOINIT & ds) && !(STA_NODISK & ds));
+    return !(STA_NOINIT & ds) && !(STA_NODISK & ds);
 }
 
 void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count_p, uint16_t* block_size_p) {

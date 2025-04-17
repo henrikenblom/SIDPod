@@ -70,7 +70,6 @@ pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadratur
 target_link_libraries(${PROJECT_NAME}
         hardware_rtc
         hardware_sync
-        hardware_flash
         hardware_dma
         hardware_adc
         hardware_i2c

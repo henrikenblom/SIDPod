@@ -1,12 +1,4 @@
 #pragma once
-#include "hardware/flash.h"
-
-#ifdef SOLDERPARTY_RP2040_STAMP
-#define FLASH_STORAGE_BYTES (7552 * 1024)
-#endif
-#if defined(RASPBERRYPI_PICO) || defined(RASPBERRYPI_PICO_W)
-#define FLASH_STORAGE_BYTES                 (1408 * 1024)
-#endif
 
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
@@ -20,12 +12,6 @@
 #endif
 
 #define WAIT_SYNC_NS                        ((CLOCK_SPEED_KHZ / REFERENCE_CLOCK_SPEED_KHZ) * 10000)
-
-#define SECTOR_COUNT                        (FLASH_STORAGE_BYTES / FLASH_SECTOR_SIZE)
-#define FLASH_BASE_ADDR                     (PICO_FLASH_SIZE_BYTES - FLASH_STORAGE_BYTES)
-#define FLASH_MMAP_ADDR                     (XIP_BASE + FLASH_BASE_ADDR)
-
-#define FS_LABEL                            "SIDPOD"
 
 #define BOARD_TUD_RHPORT                    0
 
