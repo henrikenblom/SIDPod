@@ -1,12 +1,4 @@
 #pragma once
-#include "hardware/flash.h"
-
-#ifdef SOLDERPARTY_RP2040_STAMP
-#define FLASH_STORAGE_BYTES (7552 * 1024)
-#endif
-#if defined(RASPBERRYPI_PICO) || defined(RASPBERRYPI_PICO_W)
-#define FLASH_STORAGE_BYTES                 (1408 * 1024)
-#endif
 
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
@@ -14,18 +6,12 @@
 #define REFERENCE_CLOCK_SPEED_KHZ           125000
 
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
-#define CLOCK_SPEED_KHZ                     230000
+#define CLOCK_SPEED_KHZ                     250000
 #else
-#define CLOCK_SPEED_KHZ                     180000
+#define CLOCK_SPEED_KHZ                     REFERENCE_CLOCK_SPEED_KHZ
 #endif
 
 #define WAIT_SYNC_NS                        ((CLOCK_SPEED_KHZ / REFERENCE_CLOCK_SPEED_KHZ) * 10000)
-
-#define SECTOR_COUNT                        (FLASH_STORAGE_BYTES / FLASH_SECTOR_SIZE)
-#define FLASH_BASE_ADDR                     (PICO_FLASH_SIZE_BYTES - FLASH_STORAGE_BYTES)
-#define FLASH_MMAP_ADDR                     (XIP_BASE + FLASH_BASE_ADDR)
-
-#define FS_LABEL                            "SIDPOD"
 
 #define BOARD_TUD_RHPORT                    0
 
@@ -59,7 +45,7 @@
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1
-#define DISPLAY_GPIO_BASE_PIN               2
+#define DISPLAY_GPIO_BASE_PIN               6
 #define DISPLAY_EXTERNAL_VCC                0
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32
@@ -98,4 +84,4 @@
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      1200
-#define SPLASH_DISPLAY_DURATION             2000
+#define SPLASH_DISPLAY_DURATION             500

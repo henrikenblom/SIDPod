@@ -14,7 +14,7 @@ struct PlaylistEntry {
 
 class Playlist {
 public:
-    explicit Playlist(TCHAR *name) {
+    explicit Playlist(const char *name) {
         this->name = name;
         refresh();
     }
@@ -42,7 +42,7 @@ public:
 
     void refresh();
 
-    TCHAR *getName() const;
+    const char *getName() const;
 
     bool isAtReturnEntry() const;
 
@@ -56,7 +56,7 @@ private:
     uint8_t windowPosition = 0;
     uint8_t selectedPosition = 0;
     uint8_t windowSize = CATALOG_WINDOW_SIZE;
-    TCHAR *name;
+    const char *name;
     bool ready = false;
 
     void tryToAddAsPsid(FILINFO *fileInfo);

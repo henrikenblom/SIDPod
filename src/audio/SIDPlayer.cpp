@@ -36,7 +36,7 @@ static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_fo
 audio_i2s_config config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
     .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-    .dma_channel = 0,
+    .dma_channel = 2,
     .pio_sm = 0,
 };
 

@@ -20,18 +20,15 @@ project(SIDPod)
 
 pico_sdk_init()
 
+add_subdirectory(../../carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src/ build)
+
 bin2h(SOURCE_FILE resources/sidpod.bmp HEADER_FILE cmake-build-debug/generated/sidpod_bmp.h VARIABLE_NAME SIDPOD_BMP NULL_TERMINATE)
 bin2h(SOURCE_FILE resources/sidpod_24px_height.bmp HEADER_FILE cmake-build-debug/generated/sidpod_24px_height_bmp.h VARIABLE_NAME SIDPOD_24H_BMP NULL_TERMINATE)
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/io/ffsystem.c
         src/io/msc_disk.c
         src/io/usb_descriptors.c
-        src/io/diskio.c
-        src/io/ff_util.c
-        src/io/ffunicode.c
-        src/io/ff.c
         src/audio/c64.cpp
         src/audio/c64.h
         src/visualization/kiss_fftr.c
@@ -65,6 +62,7 @@ add_executable(${PROJECT_NAME}
         src/audio/sidendian.h
         src/audio/roms.cpp
         src/Catalog.cpp
+        src/io/hw_config.c
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -72,7 +70,6 @@ pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadratur
 target_link_libraries(${PROJECT_NAME}
         hardware_rtc
         hardware_sync
-        hardware_flash
         hardware_dma
         hardware_adc
         hardware_i2c
@@ -85,6 +82,7 @@ target_link_libraries(${PROJECT_NAME}
         pico_unique_id
         tinyusb_common
         tinyusb_device
+        no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -108,6 +106,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         PICO_AUDIO_I2S_MONO_INPUT=1
         PICO_AUDIO_I2S_DATA_PIN=26
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+)
+
+set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS
+        "-Wl,--print-memory-usage"
 )
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
