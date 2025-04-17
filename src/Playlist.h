@@ -14,9 +14,13 @@ struct PlaylistEntry {
 
 class Playlist {
 public:
+    enum State {
+        OUTDATED,
+        READY,
+    };
+
     explicit Playlist(const char *name) {
         this->name = name;
-        refresh();
     }
 
     ~Playlist() {
@@ -36,8 +40,8 @@ public:
 
     void markCurrentEntryAsUnplayable();
 
-    [[nodiscard]] bool isReady() const {
-        return ready;
+    [[nodiscard]] State getState() const {
+        return state;
     }
 
     void refresh();
@@ -57,7 +61,7 @@ private:
     uint8_t selectedPosition = 0;
     uint8_t windowSize = CATALOG_WINDOW_SIZE;
     const char *name;
-    bool ready = false;
+    State state = OUTDATED;
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 

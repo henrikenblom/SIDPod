@@ -75,7 +75,7 @@ void UI::updateUI() {
         case visualization:
             if (Catalog::playlistIsOpen()) {
                 Playlist *playlist = Catalog::getCurrentPlaylist();
-                if (playlist->isReady()) {
+                if (playlist->getState() == Playlist::State::READY) {
                     danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
                 }
             }
@@ -125,33 +125,43 @@ void UI::drawHeader(const char *title) {
 
 void UI::showSongSelector() {
     Playlist *playlist = Catalog::getCurrentPlaylist();
-    if (playlist->getSize()) {
-        if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
-            && !SIDPlayer::loadingWasSuccessful()) {
-            playlist->markCurrentEntryAsUnplayable();
-            // TODO: this seems to be broken for some files (Immigrant song)
-            SIDPlayer::resetState();
+    auto playlistState = playlist->getState();
+    if (playlistState == Playlist::State::READY) {
+        if (playlist->getSize()) {
+            if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+                && !SIDPlayer::loadingWasSuccessful()) {
+                playlist->markCurrentEntryAsUnplayable();
+                SIDPlayer::resetState();
+            }
+            ssd1306_clear(&disp);
+            drawHeader(Catalog::getSelected().c_str());
+            uint8_t y = 8;
+            for (const auto entry: playlist->getWindow()) {
+                if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                    animateLongTitle(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                } else {
+                    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
+                }
+                if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
+                                                                           SIDPlayer::getCurrentlyLoaded()->fileName) ==
+                    0
+                    && SIDPlayer::loadingWasSuccessful()) {
+                    drawNowPlayingSymbol(y);
+                } else if (entry->selected) {
+                    drawOpenSymbol(y);
+                }
+                if (entry->unplayable) crossOutLine(y);
+                y += 8;
+            }
+            ssd1306_show(&disp);
         }
+    } else if (playlistState == Playlist::State::OUTDATED) {
         ssd1306_clear(&disp);
         drawHeader(Catalog::getSelected().c_str());
-        uint8_t y = 8;
-        for (const auto entry: playlist->getWindow()) {
-            if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                animateLongTitle(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
-            } else {
-                ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
-            }
-            if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
-                                                                       SIDPlayer::getCurrentlyLoaded()->fileName) == 0
-                && SIDPlayer::loadingWasSuccessful()) {
-                drawNowPlayingSymbol(y);
-            } else if (entry->selected) {
-                drawOpenSymbol(y);
-            }
-            if (entry->unplayable) crossOutLine(y);
-            y += 8;
-        }
+        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Loading...");
         ssd1306_show(&disp);
+        playlist->refresh();
+        busy_wait_ms(500);
     }
 }
 

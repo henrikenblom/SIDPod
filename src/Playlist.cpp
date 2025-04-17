@@ -13,9 +13,9 @@ void Playlist::refresh() {
     auto dp = new DIR;
     entries.clear();
     f_opendir(dp, name);
-    while (entries.size() < MAX_PLAYLIST_ENTRIES) {
-        FRESULT fr = f_readdir(dp, &fno);
-        if (fr != FR_OK || fno.fname[0] == 0) break;
+    FRESULT fr = f_readdir(dp, &fno);
+    while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
+        fr = f_readdir(dp, &fno);
         if (isRegularFile(&fno)) {
             tryToAddAsPsid(&fno);
         }
@@ -75,7 +75,7 @@ void Playlist::selectPrevious() {
 void Playlist::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
-    ready = true;
+    state = READY;
     if (getSize() > 0) {
         updateWindow();
     }
