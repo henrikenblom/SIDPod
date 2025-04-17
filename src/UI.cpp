@@ -247,7 +247,9 @@ void UI::showVolumeControl() {
     ssd1306_clear(&disp);
     ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
     ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
-    ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
+    ssd1306_draw_square(&disp, 4, 10,
+                        static_cast<int>(120 * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
+                                                    VOLUME_STEPS))), 10);
     ssd1306_show(&disp);
 }
 
