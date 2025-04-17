@@ -65,6 +65,8 @@ private:
     static void placeSidTuneInC64mem(libsidplayfp::sidmemory &mem, FIL pFile);
 
     static void run(unsigned int events);
+
+    static uint_least32_t play(short *buffer, uint_least32_t count);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

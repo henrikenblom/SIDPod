@@ -77,6 +77,9 @@ add_executable(${PROJECT_NAME}
         src/audio/TuneInfo.cpp
         src/audio/EventScheduler.cpp
         src/audio/reloc65.cpp
+        src/audio/mixer.cpp
+        src/audio/sidemu.cpp
+        src/audio/resid-emu.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
