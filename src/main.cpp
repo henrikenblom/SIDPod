@@ -10,7 +10,6 @@
 
 using namespace std;
 
-extern "C" void filesystem_init();
 
 void runPossibleSecondWakeUp() {
     if (watchdog_caused_reboot()) {
@@ -43,7 +42,6 @@ int main() {
     UI::screenOn();
     UI::showSplash();
     bool quickStart = awaitButtonRelease();
-    filesystem_init();
     System::enableUsb();
     if (!System::usbConnected()) {
         Catalog::refresh();

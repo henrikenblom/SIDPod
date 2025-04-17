@@ -4,25 +4,25 @@
 #include "Playlist.h"
 
 #include <algorithm>
+#include <f_util.h>
 
 #include "platform_config.h"
 
 void Playlist::refresh() {
-    DIR *dp;
-    FILINFO fno;
-    FRESULT fr;
-    dp = new DIR;
     entries.clear();
-    f_opendir(dp, name);
-    while (entries.size() < MAX_PLAYLIST_ENTRIES) {
-        fr = f_readdir(dp, &fno);
-        if (fr != FR_OK || fno.fname[0] == 0) break;
+    char const *p_dir;
+    DIR dj = {};
+    FILINFO fno = {};
+    FRESULT fr;
+    p_dir = name;
+    fr = f_findfirst(&dj, &fno, p_dir, "*.sid");
+    while (fr == FR_OK && fno.fname[0]) {
         if (isRegularFile(&fno)) {
             tryToAddAsPsid(&fno);
         }
+        fr = f_findnext(&dj, &fno);
     }
-    f_closedir(dp);
-    delete dp;
+    f_closedir(&dj);
     std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });
@@ -30,7 +30,7 @@ void Playlist::refresh() {
     resetAccessors();
 }
 
-TCHAR *Playlist::getName() const {
+const char *Playlist::getName() const {
     return name;
 }
 
