@@ -65,7 +65,7 @@ private:
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 
-    bool isRegularFile(FILINFO *fileInfo);
+    static bool isRegularFile(FILINFO *fileInfo);
 
     void resetAccessors();
 

@@ -14,6 +14,7 @@ void Playlist::refresh() {
     entries.clear();
     f_opendir(dp, name);
     FRESULT fr = f_readdir(dp, &fno);
+    // TODO: Drive this loop externally, so that we can animate progress in the UI
     while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
         fr = f_readdir(dp, &fno);
         if (isRegularFile(&fno)) {
@@ -85,7 +86,6 @@ void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath) {
     snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, entries.at(selectedPosition).fileName);
 }
 
-//TODO: Use the load routine from C64.cpp to validate the playability of the file
 void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[SID_MINIMAL_HEADER_SIZE];
@@ -98,7 +98,7 @@ void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
         uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
         bool isRsid = magic == RSID_ID;
         if (magic == PSID_ID || isRsid) {
-            auto *pHeader = static_cast<unsigned char *>(header);
+            const auto *pHeader = static_cast<unsigned char *>(header);
             PlaylistEntry entry{};
             entry.unplayable = false;
             strcpy(entry.fileName, fileInfo->altname);
