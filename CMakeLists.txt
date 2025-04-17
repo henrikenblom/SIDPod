@@ -14,7 +14,7 @@ include(bin2h.cmake)
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
 
-#add_compile_definitions(SYS_CLK_MHZ=200)
+add_compile_definitions(SYS_CLK_MHZ=200)
 
 project(SIDPod)
 

@@ -24,17 +24,9 @@ https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/tree/main#customizing
 /* Configuration of hardware SPI object */
 static spi_t spi = {
     .hw_inst = spi0, // SPI component
-    .sck_gpio = 2, // GPIO number (not Pico pin number)
+    .sck_gpio = 2, // GPIO number
     .mosi_gpio = 3,
     .miso_gpio = 4,
-    //.baud_rate = 125 * 1000 * 1000 / 8  // 15625000 Hz
-    //.baud_rate = 125 * 1000 * 1000 / 6  // 20833333 Hz
-    .baud_rate = 125 * 1000 * 1000 / 4, // 31250000 Hz
-    //.baud_rate = 125 * 1000 * 1000 / 2  // 62500000 Hz
-    .set_drive_strength = true,
-    .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
-    .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
-    .baud_rate = 125 * 1000 * 1000 / 12
 };
 
 /* SPI Interface */
