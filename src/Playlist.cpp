@@ -9,20 +9,19 @@
 #include "platform_config.h"
 
 void Playlist::refresh() {
+    FILINFO fno;
+    auto dp = new DIR;
     entries.clear();
-    char const *p_dir;
-    DIR dj = {};
-    FILINFO fno = {};
-    FRESULT fr;
-    p_dir = name;
-    fr = f_findfirst(&dj, &fno, p_dir, "*.sid");
-    while (fr == FR_OK && fno.fname[0]) {
+    f_opendir(dp, name);
+    while (entries.size() < MAX_PLAYLIST_ENTRIES) {
+        FRESULT fr = f_readdir(dp, &fno);
+        if (fr != FR_OK || fno.fname[0] == 0) break;
         if (isRegularFile(&fno)) {
             tryToAddAsPsid(&fno);
         }
-        fr = f_findnext(&dj, &fno);
     }
-    f_closedir(&dj);
+    f_closedir(dp);
+    delete dp;
     std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
         return strcmp(a.title, b.title) < 0;
     });

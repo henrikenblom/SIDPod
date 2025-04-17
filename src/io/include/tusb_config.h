@@ -5,7 +5,7 @@
 #endif
 
 #ifndef HW_USB_PRODUCT_FS_STRING
-#define HW_USB_PRODUCT_FS_STRING "Really cool storage"
+#define HW_USB_PRODUCT_FS_STRING "SIDPod"
 #endif
 
 #define CFG_TUSB_RHPORT0_MODE   (OPT_MODE_DEVICE)
@@ -16,7 +16,7 @@
 #define HW_USB_MSC_INTERFACE_STRING "Board MSC"
 #endif
 // Set MSC EP buffer size to FatFS block size to avoid partial read/writes (offset arg).
-#define CFG_TUD_MSC_BUFSIZE (FLASH_SECTOR_SIZE)
+#define CFG_TUD_MSC_BUFSIZE (1024)
 #endif
 
 // Define static descriptor size and interface count based on the above config
