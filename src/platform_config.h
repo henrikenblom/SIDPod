@@ -61,12 +61,12 @@
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
 #define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)
-#define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.00004)
+#define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.00002)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000003)
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
-#define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 10)
+#define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 8)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
-#define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 2))
+#define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 3))
 #define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)

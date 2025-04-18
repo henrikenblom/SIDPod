@@ -161,7 +161,7 @@ void UI::showSongSelector() {
         ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Loading...");
         ssd1306_show(&disp);
         playlist->refresh();
-        busy_wait_ms(500);
+        busy_wait_ms(200);
     }
 }
 

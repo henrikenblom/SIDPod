@@ -308,7 +308,7 @@ namespace Visualization {
 
     void DanceFloor::randomizeExperience(char *experience) {
         const char *experiences[] = {"listening to", "enjoying", "experiencing", "feeling"};
-        int randomIndex = rand() % 4; // NOLINT(*-msc50-cpp)
+        int randomIndex = random() % 4;
         strcpy(experience, experiences[randomIndex]);
     }
 
