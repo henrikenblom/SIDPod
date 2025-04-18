@@ -116,6 +116,7 @@ int sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
 cycle_count initialCycleCount = 0;
 int visDMAChan = 0;
 dma_channel_config visDMACfg;
+int currentVisualizationBufferOffset = 0;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -133,7 +134,6 @@ void C64::begin() {
     channel_config_set_transfer_data_size(&visDMACfg, DMA_SIZE_16);
     channel_config_set_read_increment(&visDMACfg, true);
     channel_config_set_write_increment(&visDMACfg, true);
-    channel_config_set_ring(&visDMACfg, true, 0);
 }
 
 void C64::synth_init() {
@@ -167,11 +167,16 @@ inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {
     dma_channel_configure(
         visDMAChan,
         &visDMACfg,
-        visualizationBuffer,
+        visualizationBuffer + currentVisualizationBufferOffset,
         buffer,
-        sampleCount,
+        std::min(sampleCount, FFT_SAMPLES - currentVisualizationBufferOffset),
         true
     );
+
+    currentVisualizationBufferOffset += sampleCount;
+    if (currentVisualizationBufferOffset >= FFT_SAMPLES) {
+        currentVisualizationBufferOffset = 0;
+    }
 
     for (int i = 0; i < sampleCount; i++) {
         // TODO: Can bit shifting or integer division be used here?

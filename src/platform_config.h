@@ -66,7 +66,7 @@
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 10)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
-#define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 1.5))
+#define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 2))
 #define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
 #define SCROLL_LIMIT                        (-1000)
