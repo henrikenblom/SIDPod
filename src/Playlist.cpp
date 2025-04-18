@@ -16,10 +16,10 @@ void Playlist::refresh() {
     FRESULT fr = f_readdir(dp, &fno);
     // TODO: Drive this loop externally, so that we can animate progress in the UI
     while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
-        fr = f_readdir(dp, &fno);
         if (isRegularFile(&fno)) {
             tryToAddAsPsid(&fno);
         }
+        fr = f_readdir(dp, &fno);
     }
     f_closedir(dp);
     delete dp;
@@ -96,8 +96,7 @@ void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
     f_read(&pFile, &header, SID_MINIMAL_HEADER_SIZE, &bytesRead);
     if (bytesRead == SID_MINIMAL_HEADER_SIZE) {
         uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
-        bool isRsid = magic == RSID_ID;
-        if (magic == PSID_ID || isRsid) {
+        if (magic == PSID_ID || magic == RSID_ID) {
             const auto *pHeader = static_cast<unsigned char *>(header);
             PlaylistEntry entry{};
             entry.unplayable = false;
