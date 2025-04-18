@@ -44,6 +44,10 @@ audio_i2s_config config = {
 
 void SIDPlayer::initAudio() {
     updateVolumeFactor();
+    audio_i2s_setup(&audio_format, &config);
+    audio_i2s_connect(audioBufferPool);
+    audio_i2s_set_enabled(true);
+    C64::begin();
     multicore_launch_core1(core1Main);
     multicore_fifo_pop_blocking();
 }
@@ -55,6 +59,7 @@ void SIDPlayer::resetState() {
     lastCatalogEntry = {};
     memset(visualizationBuffer, 0, FFT_SAMPLES);
     C64::c64Init();
+    busy_wait_ms(200);
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -145,9 +150,6 @@ volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
 
 [[noreturn]] void SIDPlayer::core1Main() {
     ampOff();
-    audio_i2s_setup(&audio_format, &config);
-    audio_i2s_connect(audioBufferPool);
-    audio_i2s_set_enabled(true);
     queue_init(&txQueue, 1, 1);
     add_repeating_timer_ms(50, reinterpret_cast<repeating_timer_callback_t>(reapCommand), nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);

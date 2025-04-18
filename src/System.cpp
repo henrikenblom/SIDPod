@@ -49,7 +49,7 @@ void System::goDormant() {
 
 void System::enableUsb() {
     tud_init(BOARD_TUD_RHPORT);
-    add_repeating_timer_ms(1, repeatingTudTask, nullptr, &tudTaskTimer);
+    add_repeating_timer_us(100, repeatingTudTask, nullptr, &tudTaskTimer);
 }
 
 bool System::repeatingTudTask(struct repeating_timer *t) {

@@ -119,19 +119,7 @@ dma_channel_config visDMACfg;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
-void C64::synth_init() {
-    firstSID->reset();
-    firstSID->enable_filter(true);
-    firstSID->enable_external_filter(true);
-
-    secondSID->reset();
-    secondSID->enable_filter(true);
-    secondSID->enable_external_filter(true);
-
-    thirdSID->reset();
-    thirdSID->enable_filter(true);
-    thirdSID->enable_external_filter(true);
-
+void C64::begin() {
     interp_config cfg = interp_default_config();
     interp_config_set_blend(&cfg, true);
     interp_config_set_signed(&cfg, true);
@@ -146,6 +134,20 @@ void C64::synth_init() {
     channel_config_set_read_increment(&visDMACfg, true);
     channel_config_set_write_increment(&visDMACfg, true);
     channel_config_set_ring(&visDMACfg, true, 0);
+}
+
+void C64::synth_init() {
+    firstSID->reset();
+    firstSID->enable_filter(true);
+    firstSID->enable_external_filter(true);
+
+    secondSID->reset();
+    secondSID->enable_filter(true);
+    secondSID->enable_external_filter(true);
+
+    thirdSID->reset();
+    thirdSID->enable_filter(true);
+    thirdSID->enable_external_filter(true);
 }
 
 inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {

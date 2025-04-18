@@ -51,6 +51,8 @@ struct SidInfo {
 //----------------------------------------------
 class C64 {
 public:
+    static void begin();
+
     static void synth_init();
 
     static void sidPoke(int reg, unsigned char val, int8_t sid);

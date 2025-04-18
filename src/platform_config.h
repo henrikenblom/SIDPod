@@ -40,7 +40,7 @@
 
 #define AMP_CONTROL_PIN                     15
 
-#define VOLUME_STEPS                        32
+#define VOLUME_STEPS                        64
 #define INITIAL_VOLUME                      16
 
 #define I2C_BAUDRATE                        400000
