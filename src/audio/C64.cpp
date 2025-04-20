@@ -121,14 +121,6 @@ int currentVisualizationBufferOffset = 0;
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
 void C64::begin() {
-    interp_config cfg = interp_default_config();
-    interp_config_set_blend(&cfg, true);
-    interp_config_set_signed(&cfg, true);
-    interp_set_config(interp0, 0, &cfg);
-
-    cfg = interp_default_config();
-    interp_set_config(interp0, 1, &cfg);
-
     visDMAChan = dma_claim_unused_channel(true);
     visDMACfg = dma_channel_get_default_config(visDMAChan);
     channel_config_set_transfer_data_size(&visDMACfg, DMA_SIZE_16);
@@ -148,6 +140,14 @@ void C64::synth_init() {
     thirdSID->reset();
     thirdSID->enable_filter(true);
     thirdSID->enable_external_filter(true);
+
+    interp_config cfg = interp_default_config();
+    interp_config_set_blend(&cfg, true);
+    interp_config_set_signed(&cfg, true);
+    interp_set_config(interp0, 0, &cfg);
+
+    cfg = interp_default_config();
+    interp_set_config(interp0, 1, &cfg);
 }
 
 inline int C64::renderAndMix(short *buffer, size_t len, float volumeFactor) {

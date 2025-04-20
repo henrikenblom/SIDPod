@@ -53,6 +53,14 @@
 #define DISPLAY_Y_CENTER                    (DISPLAY_HEIGHT / 2)
 #define DISPLAY_I2C_ADDRESS                 0x3C
 
+#define UART_ID                             uart1
+#define BAUD_RATE                           115200
+#define UART_TX_PIN                         8
+#define UART_RX_PIN                         9
+#define DATA_BITS                           8
+#define STOP_BITS                           1
+#define PARITY                              UART_PARITY_NONE
+
 #define DISPLAY_STATE_CHANGE_DELAY_MS       500
 #define FONT_WIDTH                          6
 #define FONT_HEIGHT                         8

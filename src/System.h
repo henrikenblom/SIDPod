@@ -17,6 +17,20 @@ public:
 
     static bool usbConnected();
 
+    static bool awaitUartReadable();
+
+    static bool readBTDeviceName(char *buffer);
+
+    static void requestBTList();
+
+    static void updateBTDeviceList();
+
+    static bool selectBTDevice(const char *deviceName);
+
+    static void on_uart_rx();
+
+    static void initBuddy();
+
 private:
     static bool repeatingTudTask(struct repeating_timer *t);
 };

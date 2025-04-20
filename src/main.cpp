@@ -32,18 +32,17 @@ bool awaitButtonRelease() {
     return c >= LONG_PRESS_DURATION_MS;
 }
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
-int main() {
+[[noreturn]] int main() {
     set_sys_clock_khz(CLOCK_SPEED_KHZ, true);
     stdio_init_all();
     UI::initUI();
     runPossibleSecondWakeUp();
     UI::screenOn();
     UI::showSplash();
-    bool quickStart = awaitButtonRelease();
+    const bool quickStart = awaitButtonRelease();
     System::enableUsb();
     if (!System::usbConnected()) {
+        System::initBuddy();
         Catalog::refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();
