@@ -54,6 +54,8 @@ public:
 
     void getFullPathForSelectedEntry(TCHAR *fullPath);
 
+    void resetAccessors();
+
 private:
     std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_PLAYLIST_ENTRIES);
     std::vector<PlaylistEntry *> window;
@@ -65,9 +67,7 @@ private:
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 
-    static bool isRegularFile(FILINFO *fileInfo);
-
-    void resetAccessors();
+    static bool isRegularFile(FILINFO *fileInfo);;
 
     void updateWindow();
 

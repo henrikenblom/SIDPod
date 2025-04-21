@@ -12,6 +12,7 @@
 #include "platform_config.h"
 #include "audio/SIDPlayer.h"
 #include "BuddyInterface.h"
+#include "Catalog.h"
 
 repeating_timer tudTaskTimer{};
 
@@ -122,9 +123,14 @@ void System::gpio_callback(uint gpio, uint32_t events) {
         case BUDDY_TAP_PIN:
             if (mod1) {
                 if (mod2) {
-                    printf("HOME\n");
+                    if (Catalog::playlistIsOpen()) {
+                        Catalog::getCurrentPlaylist()->resetAccessors();
+                    } else {
+                        Catalog::goHome();
+                    }
+                } else {
+                    UI::doubleClickCallback();
                 }
-                UI::doubleClickCallback();
             } else {
                 UI::singleClickCallback(0, nullptr);
             }

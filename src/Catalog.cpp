@@ -115,6 +115,12 @@ void Catalog::selectPrevious() {
     slideUp();
 }
 
+void Catalog::goHome() {
+    topItem = 0;
+    selected.clear();
+    refresh();
+}
+
 Playlist *Catalog::getCurrentPlaylist() {
     return currentPlaylist;
 }
