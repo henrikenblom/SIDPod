@@ -29,6 +29,8 @@ public:
 
     static void on_uart_rx();
 
+    static void gpio_callback(uint gpio, uint32_t events);
+
     static void initBuddy();
 
 private:

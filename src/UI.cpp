@@ -279,45 +279,49 @@ bool UI::pollUserControls(repeating_timer *t) {
     return true;
 }
 
+void UI::verticalMovement(const int delta) {
+    danceFloor->stop();
+    if (currentState == visualization) {
+        startVolumeControlSession();
+    } else if (currentState == volume_control) {
+        resetVolumeControlSessionTimer();
+    }
+    if (delta > 0) {
+        for (int i = 0; i < delta; i++) {
+            if (currentState == volume_control) {
+                SIDPlayer::volumeUp();
+            } else {
+                if (Catalog::playlistIsOpen()) {
+                    Catalog::getCurrentPlaylist()->selectNext();
+                } else {
+                    Catalog::selectNext();
+                }
+                longTitleScrollOffset = 0;
+            }
+        }
+    } else if (delta < 0) {
+        for (int i = 0; i < delta * -1; i++) {
+            if (currentState == volume_control) {
+                SIDPlayer::volumeDown();
+            } else {
+                if (Catalog::playlistIsOpen()) {
+                    Catalog::getCurrentPlaylist()->selectPrevious();
+                } else {
+                    Catalog::selectPrevious();
+                }
+                longTitleScrollOffset = 0;
+            }
+        }
+    }
+}
+
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile void UI::pollEncoder() {
     encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
     encDelta = encNewValue - encOldValue;
     encOldValue = encNewValue;
     if (encDelta != 0) {
-        danceFloor->stop();
-        if (currentState == visualization) {
-            startVolumeControlSession();
-        } else if (currentState == volume_control) {
-            resetVolumeControlSessionTimer();
-        }
-        if (encDelta > 0) {
-            for (int i = 0; i < encDelta; i++) {
-                if (currentState == volume_control) {
-                    SIDPlayer::volumeUp();
-                } else {
-                    if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->selectNext();
-                    } else {
-                        Catalog::selectNext();
-                    }
-                    longTitleScrollOffset = 0;
-                }
-            }
-        } else if (encDelta < 0) {
-            for (int i = 0; i < encDelta * -1; i++) {
-                if (currentState == volume_control) {
-                    SIDPlayer::volumeDown();
-                } else {
-                    if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->selectPrevious();
-                    } else {
-                        Catalog::selectPrevious();
-                    }
-                    longTitleScrollOffset = 0;
-                }
-            }
-        }
+        verticalMovement(encDelta);
     }
 }
 

@@ -25,6 +25,16 @@ public:
 
     static void drawDialog(const char *text);
 
+    volatile static void startVolumeControlSession();
+
+    static void resetVolumeControlSessionTimer();
+
+    static void verticalMovement(int delta);
+
+    static int64_t singleClickCallback(alarm_id_t id, void *user_data);
+
+    volatile static void doubleClickCallback();
+
     enum State {
         song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector
     };
@@ -48,21 +58,13 @@ private:
 
     static inline void showRasterBars();
 
-    static int64_t singleClickCallback(alarm_id_t id, void *user_data);
-
     static int64_t longPressCallback(alarm_id_t id, void *user_data);
 
     static int64_t endVolumeControlSessionCallback(alarm_id_t id, void *user_data);
 
-    volatile static void startVolumeControlSession();
-
-    static void resetVolumeControlSessionTimer();
-
     static void endVolumeControlSession();
 
     static void animateShutdown();
-
-    volatile static void doubleClickCallback();
 
     volatile static void startSingleClickSession();
 

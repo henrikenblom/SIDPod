@@ -6,6 +6,7 @@
 #include "System.h"
 
 #include <set>
+#include <string>
 
 #include "UI.h"
 #include "platform_config.h"
@@ -16,7 +17,7 @@ repeating_timer tudTaskTimer{};
 
 bool connected = false;
 
-std::set<char[32]> btDeviceList;
+std::set<std::string> btDeviceList;
 
 void tud_mount_cb() {
     multicore_reset_core1();
@@ -103,7 +104,7 @@ void System::updateBTDeviceList() {
     requestBTList();
     char buffer[32];
     while (readBTDeviceName(buffer)) {
-        btDeviceList.insert(buffer);
+        btDeviceList.insert(std::string(buffer));
     }
 }
 
@@ -111,6 +112,34 @@ bool System::selectBTDevice(const char *deviceName) {
     uart_putc(UART_ID, RT_BT_SELECT);
     uart_puts(UART_ID, deviceName);
     return true; //TODO: Check if a device is connected through the use of GPIO
+}
+
+void System::gpio_callback(uint gpio, uint32_t events) {
+    (void) events;
+    bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
+    bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
+    switch (gpio) {
+        case BUDDY_TAP_PIN:
+            if (mod1) {
+                if (mod2) {
+                    printf("HOME\n");
+                }
+                UI::doubleClickCallback();
+            } else {
+                UI::singleClickCallback(0, nullptr);
+            }
+            break;
+        case BUDDY_VERTICAL_PIN:
+            UI::verticalMovement(mod1 ? -1 : 1);
+            break;
+        case BUDDY_HORIZONTAL_PIN:
+            break;
+        case BUDDY_ROTATE_PIN:
+            UI::verticalMovement(mod1 ? 1 : -1);
+            break;
+        default:
+            break;
+    }
 }
 
 void System::initBuddy() {
@@ -125,4 +154,24 @@ void System::initBuddy() {
     uart_set_hw_flow(UART_ID, false, false);
     uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
     uart_set_fifo_enabled(UART_ID, true);
+
+    // TODO: Add a mosfet to control the power to the ESP32 (This doesn't work)
+    gpio_set_dir(BUDDY_ENABLE_PIN, GPIO_OUT);
+    gpio_put(BUDDY_ENABLE_PIN, false);
+
+    gpio_init(BUDDY_TAP_PIN);
+    gpio_init(BUDDY_VERTICAL_PIN);
+    gpio_init(BUDDY_HORIZONTAL_PIN);
+    gpio_init(BUDDY_ROTATE_PIN);
+    gpio_init(BUDDY_MODIFIER1_PIN);
+    gpio_init(BUDDY_MODIFIER2_PIN);
+    gpio_init(BUDDY_BT_CONNECTED_PIN);
+
+    gpio_set_dir(BUDDY_MODIFIER1_PIN, GPIO_IN);
+    gpio_set_dir(BUDDY_MODIFIER2_PIN, GPIO_IN);
+
+    gpio_set_irq_enabled_with_callback(BUDDY_TAP_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
+    gpio_set_irq_enabled_with_callback(BUDDY_VERTICAL_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
+    gpio_set_irq_enabled_with_callback(BUDDY_HORIZONTAL_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
+    gpio_set_irq_enabled_with_callback(BUDDY_ROTATE_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
 }
