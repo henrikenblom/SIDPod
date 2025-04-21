@@ -20,7 +20,7 @@ bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
 int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
 repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
-auto volumeLabel = "Volume";
+auto volumeLabel = "VOLUME";
 auto goingDormantLabel = "Shutting down...";
 auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
@@ -31,11 +31,13 @@ UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 
 void UI::initUI() {
-    gpio_init(ENC_SW_PIN);
-    gpio_set_dir(ENC_SW_PIN, GPIO_IN);
-    gpio_pull_up(ENC_SW_PIN);
+#if (!USE_BUDDY)
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
+#endif
+    gpio_init(SWITCH_PIN);
+    gpio_set_dir(SWITCH_PIN, GPIO_IN);
+    gpio_pull_up(SWITCH_PIN);
     danceFloor = new Visualization::DanceFloor(&disp);
 }
 
@@ -247,11 +249,13 @@ void UI::drawDialog(const char *text) {
 
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
-    ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
-    ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
-    ssd1306_draw_square(&disp, 4, 10,
-                        static_cast<int>(120 * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
-                                                    VOLUME_STEPS))), 10);
+    drawHeader(volumeLabel);
+    ssd13606_draw_empty_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                               DISPLAY_WIDTH - 1, 8);
+    ssd1306_draw_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                        static_cast<int>(
+                            (DISPLAY_WIDTH - 1) * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
+                                    VOLUME_STEPS))), 8);
     ssd1306_show(&disp);
 }
 
@@ -286,7 +290,7 @@ bool UI::pollUserControls(repeating_timer *t) {
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile bool UI::pollSwitch() {
     bool used = false;
-    bool currentSwitchState = !gpio_get(ENC_SW_PIN);
+    bool currentSwitchState = !gpio_get(SWITCH_PIN);
     if (currentSwitchState && currentSwitchState != lastSwitchState) {
         used = true;
 #if (!USE_BUDDY)
@@ -432,7 +436,7 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     endDoubleClickSession();
     screenOff();
     int i = 0;
-    while (!gpio_get(ENC_SW_PIN)) {
+    while (!gpio_get(SWITCH_PIN)) {
         busy_wait_ms(1);
         if (i++ > DORMANT_ADDITIONAL_DURATION_MS) {
             goToSleep();

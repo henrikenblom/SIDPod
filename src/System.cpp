@@ -46,8 +46,8 @@ void System::virtualVBLSync() {
 void System::goDormant() {
     SIDPlayer::ampOff();
     sleep_run_from_rosc();
-    gpio_pull_up(ENC_SW_PIN);
-    sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
+    gpio_pull_up(SWITCH_PIN);
+    sleep_goto_dormant_until_pin(SWITCH_PIN, true, false);
     hardReset();
 }
 
@@ -150,8 +150,6 @@ void System::buddyCallback(uint gpio, uint32_t events) {
 }
 
 void System::initBuddy() {
-    //TODO: Connect the ESP_EN pin to some GPIO pin and set it to high
-
     uart_init(UART_ID, 2400);
 
     gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(UART_ID, UART_TX_PIN));
@@ -162,9 +160,10 @@ void System::initBuddy() {
     uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
     uart_set_fifo_enabled(UART_ID, true);
 
-    // TODO: Add a mosfet to control the power to the ESP32 (This doesn't work)
+    gpio_init(BUDDY_ENABLE_PIN);
     gpio_set_dir(BUDDY_ENABLE_PIN, GPIO_OUT);
-    gpio_put(BUDDY_ENABLE_PIN, false);
+    gpio_set_drive_strength(BUDDY_ENABLE_PIN, GPIO_DRIVE_STRENGTH_12MA);
+    gpio_put(BUDDY_ENABLE_PIN, true);
 
     gpio_init(BUDDY_TAP_PIN);
     gpio_init(BUDDY_VERTICAL_PIN);

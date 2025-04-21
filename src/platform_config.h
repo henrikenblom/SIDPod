@@ -87,7 +87,7 @@
 #define ENC_PIO                             pio1
 #define ENC_SM                              1
 #define ENC_BASE_PIN                        10
-#define ENC_SW_PIN                          12
+#define SWITCH_PIN                          12
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
