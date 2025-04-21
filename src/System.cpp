@@ -1,4 +1,3 @@
-#include <hardware/clocks.h>
 #include <device/usbd.h>
 #include <pico/multicore.h>
 #include <hardware/watchdog.h>
@@ -67,6 +66,8 @@ bool System::usbConnected() {
     return connected;
 }
 
+#if USE_BUDDY
+
 bool System::awaitUartReadable() {
     int c = 0;
     while (!uart_is_readable(UART_ID)) {
@@ -115,7 +116,7 @@ bool System::selectBTDevice(const char *deviceName) {
     return true; //TODO: Check if a device is connected through the use of GPIO
 }
 
-void System::gpio_callback(uint gpio, uint32_t events) {
+void System::buddyCallback(uint gpio, uint32_t events) {
     (void) events;
     bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
     bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
@@ -141,7 +142,7 @@ void System::gpio_callback(uint gpio, uint32_t events) {
         case BUDDY_HORIZONTAL_PIN:
             break;
         case BUDDY_ROTATE_PIN:
-            UI::verticalMovement(mod1 ? 1 : -1);
+            UI::adjustVolume(mod1);
             break;
         default:
             break;
@@ -176,8 +177,10 @@ void System::initBuddy() {
     gpio_set_dir(BUDDY_MODIFIER1_PIN, GPIO_IN);
     gpio_set_dir(BUDDY_MODIFIER2_PIN, GPIO_IN);
 
-    gpio_set_irq_enabled_with_callback(BUDDY_TAP_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
-    gpio_set_irq_enabled_with_callback(BUDDY_VERTICAL_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
-    gpio_set_irq_enabled_with_callback(BUDDY_HORIZONTAL_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
-    gpio_set_irq_enabled_with_callback(BUDDY_ROTATE_PIN, GPIO_IRQ_EDGE_RISE, true, gpio_callback);
+    gpio_set_irq_enabled_with_callback(BUDDY_TAP_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
+    gpio_set_irq_enabled_with_callback(BUDDY_VERTICAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
+    gpio_set_irq_enabled_with_callback(BUDDY_HORIZONTAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
+    gpio_set_irq_enabled_with_callback(BUDDY_ROTATE_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
 }
+
+#endif

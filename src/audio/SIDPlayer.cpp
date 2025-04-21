@@ -155,7 +155,7 @@ volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            if (Catalog::getCurrentPlaylist() != nullptr) {
+            if (Catalog::playlistIsOpen()) {
                 Playlist *playlist = Catalog::getCurrentPlaylist();
                 PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
                 if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {

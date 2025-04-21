@@ -40,7 +40,7 @@
 
 #define AMP_CONTROL_PIN                     15
 
-#define VOLUME_STEPS                        64
+#define VOLUME_STEPS                        48
 #define INITIAL_VOLUME                      16
 
 #define I2C_BAUDRATE                        400000
@@ -91,5 +91,5 @@
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
-#define VOLUME_CONTROL_DISPLAY_TIMEOUT      1200
+#define VOLUME_CONTROL_DISPLAY_TIMEOUT      400
 #define SPLASH_DISPLAY_DURATION             500

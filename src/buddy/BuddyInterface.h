@@ -5,6 +5,8 @@
 #ifndef BUDDYINTERFACE_H
 #define BUDDYINTERFACE_H
 
+#if USE_BUDDY
+
 #define BUDDY_ENABLE_PIN                    22
 
 #define BUDDY_TAP_PIN                       21
@@ -27,4 +29,6 @@ struct Request {
     RequestType type;
     char data[32];
 };
+#endif
+
 #endif //BUDDYINTERFACE_H

@@ -127,6 +127,7 @@ void UI::showSongSelector() {
     Playlist *playlist = Catalog::getCurrentPlaylist();
     auto playlistState = playlist->getState();
     if (playlistState == Playlist::State::READY) {
+        currentState = song_selector;
         if (playlist->getSize()) {
             if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
                 && !SIDPlayer::loadingWasSuccessful()) {
@@ -156,6 +157,7 @@ void UI::showSongSelector() {
             ssd1306_show(&disp);
         }
     } else if (playlistState == Playlist::State::OUTDATED) {
+        currentState = refreshing_playlist;
         ssd1306_clear(&disp);
         drawHeader(Catalog::getSelected().c_str());
         ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Loading...");
@@ -275,17 +277,87 @@ inline void UI::showRasterBars() {
 bool UI::pollUserControls(repeating_timer *t) {
     (void) t;
     pollSwitch();
+#if (!USE_BUDDY)
     pollEncoder();
+#endif
     return true;
 }
 
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool UI::pollSwitch() {
+    bool used = false;
+    bool currentSwitchState = !gpio_get(ENC_SW_PIN);
+    if (currentSwitchState && currentSwitchState != lastSwitchState) {
+        used = true;
+#if (!USE_BUDDY)
+        if (inDoubleClickSession) {
+            endSingleClickSession();
+            endDoubleClickSession();
+            doubleClickCallback();
+        } else {
+            startDoubleClickSession();
+            startSingleClickSession();
+        }
+#endif
+
+        if (currentState != sleeping) {
+            if (inLongPressSession) {
+                endLongPressSession();
+            } else {
+                startLongPressSession();
+            }
+        }
+    } else if (!currentSwitchState && lastSwitchState) {
+        endLongPressSession();
+    }
+    lastSwitchState = currentSwitchState;
+    return used;
+}
+
+#if (!USE_BUDDY)
+
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::pollEncoder() {
+    encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
+    encDelta = encNewValue - encOldValue;
+    encOldValue = encNewValue;
+    if (encDelta != 0) {
+        verticalMovement(encDelta);
+    }
+}
+
+#endif
+
+#if USE_BUDDY
+
+void UI::adjustVolume(const bool up) {
+    if (currentState == volume_control) {
+        resetVolumeControlSessionTimer();
+    } else {
+        startVolumeControlSession();
+        resetVolumeControlSessionTimer();
+    }
+    if (up) {
+        SIDPlayer::volumeUp();
+    } else {
+        SIDPlayer::volumeDown();
+    }
+}
+
+#endif
+
+
 void UI::verticalMovement(const int delta) {
     danceFloor->stop();
+#if (!USE_BUDDY)
     if (currentState == visualization) {
         startVolumeControlSession();
+        resetVolumeControlSessionTimer();
     } else if (currentState == volume_control) {
         resetVolumeControlSessionTimer();
     }
+#endif
+
     if (delta > 0) {
         for (int i = 0; i < delta; i++) {
             if (currentState == volume_control) {
@@ -315,44 +387,6 @@ void UI::verticalMovement(const int delta) {
     }
 }
 
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile void UI::pollEncoder() {
-    encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
-    encDelta = encNewValue - encOldValue;
-    encOldValue = encNewValue;
-    if (encDelta != 0) {
-        verticalMovement(encDelta);
-    }
-}
-
-// ReSharper disable once CppDFAUnreachableFunctionCall
-volatile bool UI::pollSwitch() {
-    bool used = false;
-    bool currentSwitchState = !gpio_get(ENC_SW_PIN);
-    if (currentSwitchState && currentSwitchState != lastSwitchState) {
-        used = true;
-        if (inDoubleClickSession) {
-            endSingleClickSession();
-            endDoubleClickSession();
-            doubleClickCallback();
-        } else {
-            startDoubleClickSession();
-            startSingleClickSession();
-        }
-        if (currentState != UI::sleeping) {
-            if (inLongPressSession) {
-                endLongPressSession();
-            } else {
-                startLongPressSession();
-            }
-        }
-    } else if (!currentSwitchState && lastSwitchState) {
-        endLongPressSession();
-    }
-    lastSwitchState = currentSwitchState;
-    return used;
-}
-
 int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) id;
     (void) user_data;
@@ -371,14 +405,17 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 Catalog::openSelected();
                 currentState = song_selector;
                 break;
+            case refreshing_playlist:
+                break;
             default:
-                if (Catalog::getCurrentPlaylist()->isAtReturnEntry()) {
+                auto playlist = Catalog::getCurrentPlaylist();
+                if (playlist->isAtReturnEntry()) {
                     Catalog::closeSelected();
                     currentState = playlist_selector;
                     break;
                 }
                 if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                           Catalog::getCurrentPlaylist()->getCurrentEntry()
+                           playlist->getCurrentEntry()
                            ->fileName) != 0) {
                     SIDPlayer::togglePlayPause();
                 }
@@ -406,9 +443,11 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile void UI::doubleClickCallback() {
-    if (currentState == UI::sleeping) {
+    if (currentState == sleeping) {
         screenOn();
-    } else if (currentState == UI::visualization || UI::volume_control) {
+    } else if (currentState == visualization
+               || currentState == volume_control
+               || currentState == song_selector) {
         SIDPlayer::togglePlayPause();
     }
 }
@@ -447,12 +486,13 @@ int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     (void) id;
     endVolumeControlSession();
-    currentState = visualization;
+    currentState = lastState;
     return 0;
 }
 
 // ReSharper disable once CppDFAUnreachableFunctionCall
 volatile void UI::startVolumeControlSession() {
+    lastState = currentState;
     currentState = volume_control;
     danceFloor->stop();
 }

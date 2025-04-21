@@ -16,6 +16,7 @@ class Playlist {
 public:
     enum State {
         OUTDATED,
+        REFRESHING,
         READY,
     };
 

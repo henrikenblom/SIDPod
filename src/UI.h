@@ -35,8 +35,14 @@ public:
 
     volatile static void doubleClickCallback();
 
+#if USE_BUDDY
+    static void adjustVolume(bool up);
+#endif
+
+
     enum State {
-        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector
+        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
+        refreshing_playlist,
     };
 
 private:
@@ -80,9 +86,13 @@ private:
 
     volatile static bool pollSwitch();
 
+    static bool pollUserControls(struct repeating_timer *t);
+
+#if (!USE_BUDDY)
+
     volatile static void pollEncoder();
 
-    static bool pollUserControls(struct repeating_timer *t);
+#endif
 };
 
 #endif //SIDPOD_UI_H

@@ -13,9 +13,9 @@ public:
 
     static void enableUsb();
 
-    static void runExclusiveUsbDBurst();
-
     static bool usbConnected();
+
+#if USE_BUDDY
 
     static bool awaitUartReadable();
 
@@ -27,11 +27,11 @@ public:
 
     static bool selectBTDevice(const char *deviceName);
 
-    static void on_uart_rx();
-
-    static void gpio_callback(uint gpio, uint32_t events);
+    static void buddyCallback(uint gpio, uint32_t events);
 
     static void initBuddy();
+
+#endif
 
 private:
     static bool repeatingTudTask(struct repeating_timer *t);

@@ -9,25 +9,29 @@
 #include "platform_config.h"
 
 void Playlist::refresh() {
-    FILINFO fno;
-    auto dp = new DIR;
-    entries.clear();
-    f_opendir(dp, name);
-    FRESULT fr = f_readdir(dp, &fno);
-    // TODO: Drive this loop externally, so that we can animate progress in the UI
-    while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
-        if (isRegularFile(&fno)) {
-            tryToAddAsPsid(&fno);
+    if (state != REFRESHING) {
+        state = REFRESHING;
+        FILINFO fno;
+        auto dp = new DIR;
+        entries.clear();
+        f_opendir(dp, name);
+        FRESULT fr = f_readdir(dp, &fno);
+        // TODO: Drive this loop externally, so that we can animate progress in the UI
+        while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
+            if (isRegularFile(&fno)) {
+                tryToAddAsPsid(&fno);
+            }
+            fr = f_readdir(dp, &fno);
         }
-        fr = f_readdir(dp, &fno);
+        f_closedir(dp);
+        delete dp;
+        std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
+            return strcmp(a.title, b.title) < 0;
+        });
+        addReturnEntry();
+        resetAccessors();
+        state = READY;
     }
-    f_closedir(dp);
-    delete dp;
-    std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
-        return strcmp(a.title, b.title) < 0;
-    });
-    addReturnEntry();
-    resetAccessors();
 }
 
 const char *Playlist::getName() const {
@@ -58,25 +62,28 @@ std::vector<PlaylistEntry *> Playlist::getWindow() {
 }
 
 void Playlist::selectNext() {
-    if (selectedPosition < getSize() - 1) {
-        selectedPosition++;
-        slideDown();
-        updateWindow();
+    if (state == READY) {
+        if (selectedPosition < getSize() - 1) {
+            selectedPosition++;
+            slideDown();
+            updateWindow();
+        }
     }
 }
 
 void Playlist::selectPrevious() {
-    if (selectedPosition > 0) {
-        selectedPosition--;
-        slideUp();
-        updateWindow();
+    if (state == READY) {
+        if (selectedPosition > 0) {
+            selectedPosition--;
+            slideUp();
+            updateWindow();
+        }
     }
 }
 
 void Playlist::resetAccessors() {
     selectedPosition = 0;
     windowPosition = 0;
-    state = READY;
     if (getSize() > 0) {
         updateWindow();
     }
