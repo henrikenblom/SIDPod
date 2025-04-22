@@ -32,9 +32,26 @@ bool awaitButtonRelease() {
     return c >= LONG_PRESS_DURATION_MS;
 }
 
+#if USE_BUDDY
+void initUart() {
+    uart_init(UART_ID, 2400);
+
+    gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(UART_ID, UART_TX_PIN));
+    gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(UART_ID, UART_RX_PIN));
+
+    uart_set_baudrate(UART_ID, BAUD_RATE);
+    uart_set_hw_flow(UART_ID, false, false);
+    uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
+    uart_set_fifo_enabled(UART_ID, true);
+}
+#endif
+
 [[noreturn]] int main() {
     set_sys_clock_khz(CLOCK_SPEED_KHZ, true);
     stdio_init_all();
+#if USE_BUDDY
+    initUart();
+#endif
     UI::initUI();
     runPossibleSecondWakeUp();
     UI::screenOn();
@@ -42,7 +59,6 @@ bool awaitButtonRelease() {
     const bool quickStart = awaitButtonRelease();
     System::enableUsb();
     if (!System::usbConnected()) {
-        System::initBuddy();
         Catalog::refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();

@@ -38,19 +38,19 @@ public:
 #if USE_BUDDY
     static void adjustVolume(bool up);
 
-    static void btConnected();
+    static void danceFloorStop();
 
-    static void btDisconnected();
+    static void showBluetoothInteraction();
 
-    static void btConnecting();
+    static void showBTProcessing(const char *text);
 
-    static void showBTDeviceSelector();
+    static void showBTDeviceList();
 #endif
 
 
     enum State {
         song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
-        refreshing_playlist, bluetooth_selector
+        refreshing_playlist, bluetooth_interaction
     };
 
 private:

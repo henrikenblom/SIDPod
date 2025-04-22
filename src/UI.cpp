@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "BluetoothDeviceList.h"
+#include "buddy/Buddy.h"
 #include "Catalog.h"
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
@@ -28,7 +28,7 @@ auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
-BluetoothDeviceList *btDeviceList = new BluetoothDeviceList();
+Buddy *buddy = Buddy::getInstance();
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 
@@ -97,7 +97,7 @@ void UI::updateUI() {
             if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
                 showSplashCycles = 0;
 #if USE_BUDDY
-                currentState = bluetooth_selector;
+                currentState = bluetooth_interaction;
 #else
                 currentState = playlist_selector;
 #endif
@@ -108,11 +108,14 @@ void UI::updateUI() {
         case playlist_selector:
             showPlaylistSelector();
             break;
-        case bluetooth_selector:
-            showBTDeviceSelector();
+        case bluetooth_interaction:
+            showBluetoothInteraction();
             break;
         default:
             showSongSelector();
+    }
+    if (buddy->getState() != Buddy::CONNECTED) {
+        currentState = bluetooth_interaction;
     }
 }
 
@@ -343,53 +346,52 @@ volatile void UI::pollEncoder() {
 
 #if USE_BUDDY
 
-void UI::showBTDeviceSelector() {
-    auto state = btDeviceList->getState();
-    if (state == BluetoothDeviceList::CONNECTED) {
-        currentState = playlist_selector;
-        return;
+void UI::showBluetoothInteraction() {
+    auto state = buddy->getState();
+    switch (state) {
+        case Buddy::READY:
+            buddy->refreshDeviceList();
+            break;
+        case Buddy::REFRESHING:
+            showBTProcessing("Scanning...");
+            break;
+        case Buddy::AWAITING_SELECTION:
+            showBTDeviceList();
+            break;
+        case Buddy::CONNECTING:
+        case Buddy::AWAITING_STATE_CHANGE:
+            showBTProcessing("Connecting...");
+            break;
+        case Buddy::CONNECTED:
+            currentState = playlist_selector;
+            break;
+        case Buddy::DISCONNECTED:
+            showBTProcessing("Disconnected");
+            break;
     }
+}
+
+void UI::showBTProcessing(const char *text) {
     ssd1306_clear(&disp);
-    drawHeader("SELECT DEVICE");
-    if (state == BluetoothDeviceList::State::OUTDATED) {
-        btDeviceList->refresh();
-    } else if (state == BluetoothDeviceList::State::READY) {
-        uint8_t y = FONT_HEIGHT;
-        for (const auto &entry: *btDeviceList->getWindow()) {
-            if (entry.selected && strlen(entry.name) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                animateLongTitle(entry.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
-            } else {
-                ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.name);
-            }
-            if (entry.selected) {
-                drawOpenSymbol(y);
-            }
-            y += 8;
-        }
-    } else if (state == BluetoothDeviceList::State::REFRESHING) {
-        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Refreshing...");
-    } else if (state == BluetoothDeviceList::State::CONNECTING) {
-        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Connecting...");
-    }
+    drawHeader("BLUETOOTH");
+    ssd1306_draw_string(&disp, 0, 16, 1, text);
     ssd1306_show(&disp);
 }
 
-void UI::btConnected() {
-    btDeviceList->setConnected();
-}
-
-// TODO: Somehow both of the following two functions freezes the UI. Find out why and fix it.
-
-void UI::btDisconnected() {
-    SIDPlayer::pauseIfPlaying();
-    currentState = bluetooth_selector;
-}
-
-
-void UI::btConnecting() {
-    SIDPlayer::pauseIfPlaying();
-    btDeviceList->awaitConnection();
-    currentState = bluetooth_selector;
+void UI::showBTDeviceList() {
+    ssd1306_clear(&disp);
+    drawHeader("SELECT DEVICE");
+    uint8_t y = FONT_HEIGHT;
+    for (const auto &device : *buddy->getWindow()) {
+        if (device.selected) {
+            animateLongTitle(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            drawOpenSymbol(y);
+        } else {
+            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, device.name);
+        }
+        y += FONT_HEIGHT;
+    }
+    ssd1306_show(&disp);
 }
 
 void UI::adjustVolume(const bool up) {
@@ -408,6 +410,9 @@ void UI::adjustVolume(const bool up) {
 
 #endif
 
+void UI::danceFloorStop() {
+    danceFloor->stop();
+}
 
 void UI::verticalMovement(const int delta) {
     danceFloor->stop();
@@ -424,8 +429,8 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeUp();
-            } else if (currentState == bluetooth_selector) {
-                btDeviceList->selectNext();
+            } else if (currentState == bluetooth_interaction) {
+                buddy->selectNext();
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectNext();
@@ -439,8 +444,8 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta * -1; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeDown();
-            } else if (currentState == bluetooth_selector) {
-                btDeviceList->selectPrevious();
+            } else if (currentState == bluetooth_interaction) {
+                buddy->selectPrevious();
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectPrevious();
@@ -473,8 +478,8 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 break;
             case refreshing_playlist:
                 break;
-            case bluetooth_selector:
-                btDeviceList->connectSelected();
+            case bluetooth_interaction:
+                buddy->connectSelected();
                 break;
             default:
                 auto playlist = Catalog::getCurrentPlaylist();

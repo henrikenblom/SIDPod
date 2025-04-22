@@ -63,7 +63,7 @@ add_executable(${PROJECT_NAME}
         src/audio/roms.cpp
         src/Catalog.cpp
         src/io/hw_config.c
-        src/BluetoothDeviceList.cpp
+        src/buddy/Buddy.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -87,6 +87,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/src/
         ${CMAKE_CURRENT_LIST_DIR}/src/buddy/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/

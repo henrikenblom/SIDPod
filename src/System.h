@@ -15,22 +15,6 @@ public:
 
     static bool usbConnected();
 
-#if USE_BUDDY
-
-    static bool awaitUartReadable();
-
-    static bool readBTDeviceName(char *buffer);
-
-    static void requestBTList();
-
-    static void updateBTDeviceList();
-
-    static bool selectBTDevice(const char *deviceName);
-
-    static void initBuddy();
-
-#endif
-
 private:
     static bool repeatingTudTask(struct repeating_timer *t);
 };

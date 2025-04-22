@@ -54,7 +54,7 @@
 #define DISPLAY_I2C_ADDRESS                 0x3C
 
 #define UART_ID                             uart1
-#define BAUD_RATE                           115200
+#define BAUD_RATE                           9600
 #define UART_TX_PIN                         8
 #define UART_RX_PIN                         9
 #define DATA_BITS                           8
