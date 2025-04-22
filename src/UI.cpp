@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include "BluetoothDeviceList.h"
 #include "Catalog.h"
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
@@ -27,6 +28,7 @@ auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
+BluetoothDeviceList *btDeviceList = new BluetoothDeviceList();
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 
@@ -94,13 +96,20 @@ void UI::updateUI() {
             }
             if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
                 showSplashCycles = 0;
+#if USE_BUDDY
+                currentState = bluetooth_selector;
+#else
                 currentState = playlist_selector;
+#endif
             } else {
                 sleep_ms(1);
             }
             break;
         case playlist_selector:
             showPlaylistSelector();
+            break;
+        case bluetooth_selector:
+            showBTDeviceSelector();
             break;
         default:
             showSongSelector();
@@ -255,7 +264,7 @@ void UI::showVolumeControl() {
     ssd1306_draw_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
                         static_cast<int>(
                             (DISPLAY_WIDTH - 1) * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
-                                    VOLUME_STEPS))), 8);
+                                                       VOLUME_STEPS))), 8);
     ssd1306_show(&disp);
 }
 
@@ -334,6 +343,55 @@ volatile void UI::pollEncoder() {
 
 #if USE_BUDDY
 
+void UI::showBTDeviceSelector() {
+    auto state = btDeviceList->getState();
+    if (state == BluetoothDeviceList::CONNECTED) {
+        currentState = playlist_selector;
+        return;
+    }
+    ssd1306_clear(&disp);
+    drawHeader("SELECT DEVICE");
+    if (state == BluetoothDeviceList::State::OUTDATED) {
+        btDeviceList->refresh();
+    } else if (state == BluetoothDeviceList::State::READY) {
+        uint8_t y = FONT_HEIGHT;
+        for (const auto &entry: *btDeviceList->getWindow()) {
+            if (entry.selected && strlen(entry.name) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                animateLongTitle(entry.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            } else {
+                ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.name);
+            }
+            if (entry.selected) {
+                drawOpenSymbol(y);
+            }
+            y += 8;
+        }
+    } else if (state == BluetoothDeviceList::State::REFRESHING) {
+        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Refreshing...");
+    } else if (state == BluetoothDeviceList::State::CONNECTING) {
+        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Connecting...");
+    }
+    ssd1306_show(&disp);
+}
+
+void UI::btConnected() {
+    btDeviceList->setConnected();
+}
+
+// TODO: Somehow both of the following two functions freezes the UI. Find out why and fix it.
+
+void UI::btDisconnected() {
+    SIDPlayer::pauseIfPlaying();
+    currentState = bluetooth_selector;
+}
+
+
+void UI::btConnecting() {
+    SIDPlayer::pauseIfPlaying();
+    btDeviceList->awaitConnection();
+    currentState = bluetooth_selector;
+}
+
 void UI::adjustVolume(const bool up) {
     if (currentState == volume_control) {
         resetVolumeControlSessionTimer();
@@ -366,6 +424,8 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeUp();
+            } else if (currentState == bluetooth_selector) {
+                btDeviceList->selectNext();
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectNext();
@@ -379,6 +439,8 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta * -1; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeDown();
+            } else if (currentState == bluetooth_selector) {
+                btDeviceList->selectPrevious();
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectPrevious();
@@ -410,6 +472,9 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 currentState = song_selector;
                 break;
             case refreshing_playlist:
+                break;
+            case bluetooth_selector:
+                btDeviceList->connectSelected();
                 break;
             default:
                 auto playlist = Catalog::getCurrentPlaylist();

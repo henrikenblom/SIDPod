@@ -113,39 +113,50 @@ void System::updateBTDeviceList() {
 bool System::selectBTDevice(const char *deviceName) {
     uart_putc(UART_ID, RT_BT_SELECT);
     uart_puts(UART_ID, deviceName);
-    return true; //TODO: Check if a device is connected through the use of GPIO
+    return true;
 }
 
-void System::buddyCallback(uint gpio, uint32_t events) {
-    (void) events;
-    bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
-    bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
-    switch (gpio) {
-        case BUDDY_TAP_PIN:
-            if (mod1) {
-                if (mod2) {
-                    if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->resetAccessors();
+void buddyCallback(uint gpio, uint32_t events) {
+    if (events & GPIO_IRQ_LEVEL_LOW) {
+        bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
+        if (mod1) {
+            UI::btConnecting();
+        } else {
+            UI::btDisconnected();
+        }
+    } else {
+        bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
+        bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
+        switch (gpio) {
+            case BUDDY_TAP_PIN:
+                if (mod1) {
+                    if (mod2) {
+                        if (Catalog::playlistIsOpen()) {
+                            Catalog::getCurrentPlaylist()->resetAccessors();
+                        } else {
+                            Catalog::goHome();
+                        }
                     } else {
-                        Catalog::goHome();
+                        UI::doubleClickCallback();
                     }
                 } else {
-                    UI::doubleClickCallback();
+                    UI::singleClickCallback(0, nullptr);
                 }
-            } else {
-                UI::singleClickCallback(0, nullptr);
-            }
-            break;
-        case BUDDY_VERTICAL_PIN:
-            UI::verticalMovement(mod1 ? -1 : 1);
-            break;
-        case BUDDY_HORIZONTAL_PIN:
-            break;
-        case BUDDY_ROTATE_PIN:
-            UI::adjustVolume(mod1);
-            break;
-        default:
-            break;
+                break;
+            case BUDDY_VERTICAL_PIN:
+                UI::verticalMovement(mod1 ? -1 : 1);
+                break;
+            case BUDDY_HORIZONTAL_PIN:
+                break;
+            case BUDDY_ROTATE_PIN:
+                UI::adjustVolume(mod1);
+                break;
+            case BUDDY_BT_CONNECTED_PIN:
+                UI::btConnected();
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -175,11 +186,18 @@ void System::initBuddy() {
 
     gpio_set_dir(BUDDY_MODIFIER1_PIN, GPIO_IN);
     gpio_set_dir(BUDDY_MODIFIER2_PIN, GPIO_IN);
+    gpio_set_dir(BUDDY_BT_CONNECTED_PIN, GPIO_IN);
 
     gpio_set_irq_enabled_with_callback(BUDDY_TAP_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
     gpio_set_irq_enabled_with_callback(BUDDY_VERTICAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
     gpio_set_irq_enabled_with_callback(BUDDY_HORIZONTAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
     gpio_set_irq_enabled_with_callback(BUDDY_ROTATE_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
+    gpio_set_irq_enabled_with_callback(
+        BUDDY_BT_CONNECTED_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_LEVEL_LOW, true,
+        buddyCallback);
+    if (gpio_get(BUDDY_BT_CONNECTED_PIN)) {
+        UI::btConnected();
+    }
 }
 
 #endif

@@ -63,6 +63,7 @@ add_executable(${PROJECT_NAME}
         src/audio/roms.cpp
         src/Catalog.cpp
         src/io/hw_config.c
+        src/BluetoothDeviceList.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)

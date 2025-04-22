@@ -27,8 +27,6 @@ public:
 
     static bool selectBTDevice(const char *deviceName);
 
-    static void buddyCallback(uint gpio, uint32_t events);
-
     static void initBuddy();
 
 #endif

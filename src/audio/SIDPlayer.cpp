@@ -62,6 +62,12 @@ void SIDPlayer::resetState() {
     busy_wait_ms(200);
 }
 
+void SIDPlayer::pauseIfPlaying() {
+    if (rendering) {
+        togglePlayPause();
+    }
+}
+
 void SIDPlayer::togglePlayPause() {
     queue_add_blocking(&txQueue, &playPauseCommand);
 }

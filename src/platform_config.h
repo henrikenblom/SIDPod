@@ -84,9 +84,12 @@
 
 #define USER_CONTROLS_POLLRATE_MS           50
 
+#if (!USE_BUDDY)
 #define ENC_PIO                             pio1
 #define ENC_SM                              1
 #define ENC_BASE_PIN                        10
+#endif
+
 #define SWITCH_PIN                          12
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1000

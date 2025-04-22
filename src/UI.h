@@ -37,12 +37,20 @@ public:
 
 #if USE_BUDDY
     static void adjustVolume(bool up);
+
+    static void btConnected();
+
+    static void btDisconnected();
+
+    static void btConnecting();
+
+    static void showBTDeviceSelector();
 #endif
 
 
     enum State {
         song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
-        refreshing_playlist,
+        refreshing_playlist, bluetooth_selector
     };
 
 private:
