@@ -83,6 +83,14 @@ void buddyCallback() {
     }
 }
 
+void connectionPinCallback(uint gpio, uint32_t events) {
+    if (events & GPIO_IRQ_EDGE_RISE) {
+        Buddy::getInstance()->setConnected();
+    } else if (events & GPIO_IRQ_EDGE_FALL) {
+        Buddy::getInstance()->setDisconnected();
+    }
+}
+
 Buddy::Buddy() {
     gpio_init(BUDDY_ENABLE_PIN);
     gpio_set_dir(BUDDY_ENABLE_PIN, GPIO_OUT);
@@ -92,6 +100,10 @@ Buddy::Buddy() {
     gpio_init(BUDDY_BT_CONNECTED_PIN);
 
     gpio_set_dir(BUDDY_BT_CONNECTED_PIN, GPIO_IN);
+    gpio_set_irq_enabled_with_callback(BUDDY_BT_CONNECTED_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, connectionPinCallback);
+    if (gpio_get(BUDDY_BT_CONNECTED_PIN)) {
+        setConnected();
+    }
 }
 
 void Buddy::addDevice(const char *name, const bool selected) {
