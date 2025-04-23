@@ -14,15 +14,8 @@
 #if USE_BUDDY
 
 #define BUDDY_ENABLE_PIN                    22
-
-#define BUDDY_TAP_PIN                       21
-#define BUDDY_VERTICAL_PIN                  20
-#define BUDDY_HORIZONTAL_PIN                19
-#define BUDDY_ROTATE_PIN                    18
-#define BUDDY_MODIFIER1_PIN                 17
-#define BUDDY_MODIFIER2_PIN                 16
-#define BUDDY_BT_CONNECTION_PIN             15
-
+#define BUDDY_BT_CONNECTED_PIN              15
+#define UART_READABLE_TIMEOUT_MS            100
 #define MAX_CONNECTION_ATTEMPTS             3
 
 enum RequestType {
@@ -30,6 +23,29 @@ enum RequestType {
     RT_BT_LIST = 1,
     RT_BT_SELECT = 2,
     RT_BT_DISCONNECT = 3,
+    RT_G_FORCE_ROTATE = 4,
+    RT_G_FORCE_VERTICAL = 5,
+    RT_G_FORCE_HORIZONTAL = 6,
+    RT_G_SET_AUTO = 7,
+};
+
+enum NotificationType {
+    NT_NONE = 0,
+    NT_GESTURE = 1,
+    NT_BT_CONNECTED = 2,
+    NT_BT_DISCONNECTED = 3,
+    NT_BT_DEVICE_LIST_CHANGED = 4,
+    NT_BT_CONNECTING = 5,
+};
+
+enum Gesture {
+    G_NONE = 0,
+    G_HORIZONTAL = 1,
+    G_VERTICAL = 2,
+    G_ROTATE = 3,
+    G_TAP = 4,
+    G_DOUBLE_TAP = 5,
+    G_HOME = 6,
 };
 
 struct Request {
@@ -79,9 +95,13 @@ public:
 
     void setConnecting();
 
-    void setConnected() {
-        state = CONNECTED;
-    }
+    void setConnected();
+
+    void forceVolumeControl();
+
+    void forceVerticalControl();
+
+    void enableGestureDetection();
 
     static Buddy *getInstance();
 

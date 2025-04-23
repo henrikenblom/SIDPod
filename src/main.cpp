@@ -10,6 +10,7 @@
 
 using namespace std;
 
+void buddyCallback();
 
 void runPossibleSecondWakeUp() {
     if (watchdog_caused_reboot()) {
@@ -43,6 +44,11 @@ void initUart() {
     uart_set_hw_flow(UART_ID, false, false);
     uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
     uart_set_fifo_enabled(UART_ID, true);
+
+    irq_set_exclusive_handler(UART1_IRQ, buddyCallback);
+    irq_set_enabled(UART1_IRQ, true);
+
+    uart_set_irq_enables(UART_ID, true, false);
 }
 #endif
 

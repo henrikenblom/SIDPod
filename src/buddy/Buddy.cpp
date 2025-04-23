@@ -12,6 +12,18 @@
 
 Buddy *instance = nullptr;
 
+void Buddy::forceVolumeControl() {
+    uart_putc(UART_ID, RT_G_FORCE_ROTATE);
+}
+
+void Buddy::forceVerticalControl() {
+    uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
+}
+
+void Buddy::enableGestureDetection() {
+    uart_putc(UART_ID, RT_G_SET_AUTO);
+}
+
 Buddy *Buddy::getInstance() {
     if (instance == nullptr) {
         instance = new Buddy();
@@ -19,47 +31,55 @@ Buddy *Buddy::getInstance() {
     return instance;
 }
 
-void buddyCallback(uint gpio, uint32_t events) {
-    bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
-    bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
-    switch (gpio) {
-        case BUDDY_TAP_PIN:
-            if (mod1) {
-                if (mod2) {
+void buddyCallback() {
+    if (uart_is_readable(UART_ID)) {
+        auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
+        if (notificationType == NT_GESTURE) {
+            auto gesture = static_cast<Gesture>(uart_getc(UART_ID));
+            char flags = uart_getc(UART_ID);
+            bool mod1 = IS_BIT_SET(flags, 0);
+            switch (gesture) {
+                case G_TAP:
+                    UI::singleClickCallback(0, nullptr);
+                    break;
+                case G_DOUBLE_TAP:
+                    UI::doubleClickCallback();
+                    break;
+                case G_HOME:
                     if (Catalog::playlistIsOpen()) {
                         Catalog::getCurrentPlaylist()->resetAccessors();
                     } else {
                         Catalog::goHome();
                     }
-                } else {
-                    UI::doubleClickCallback();
-                }
-            } else {
-                UI::singleClickCallback(0, nullptr);
+                    break;
+                case G_VERTICAL:
+                    UI::verticalMovement(mod1 ? -1 : 1);
+                    break;
+                case G_HORIZONTAL:
+                    break;
+                case G_ROTATE:
+                    UI::adjustVolume(mod1);
+                    break;
+                default: ;
             }
-            break;
-        case BUDDY_VERTICAL_PIN:
-            UI::verticalMovement(mod1 ? -1 : 1);
-            break;
-        case BUDDY_HORIZONTAL_PIN:
-            break;
-        case BUDDY_ROTATE_PIN:
-            UI::adjustVolume(mod1);
-            break;
-        case BUDDY_BT_CONNECTION_PIN:
+        } else {
             auto buddy = Buddy::getInstance();
-            if (mod1 && mod2) {
-                buddy->setConnecting();
-            } else if (mod1) {
-                buddy->setDisconnected();
-            } else if (mod2) {
-                if (buddy->getState() != Buddy::REFRESHING) {
+            switch (notificationType) {
+                case NT_BT_CONNECTING:
+                    buddy->setConnecting();
+                    break;
+                case NT_BT_DISCONNECTED:
+                    buddy->setDisconnected();
+                    break;
+                case NT_BT_DEVICE_LIST_CHANGED:
                     buddy->refreshDeviceList();
-                }
-            } else {
-                buddy->setConnected();
+                    break;
+                case NT_BT_CONNECTED:
+                    buddy->setConnected();
+                    break;
+                default: ;
             }
-            break;
+        }
     }
 }
 
@@ -69,35 +89,9 @@ Buddy::Buddy() {
     gpio_set_drive_strength(BUDDY_ENABLE_PIN, GPIO_DRIVE_STRENGTH_12MA);
     gpio_put(BUDDY_ENABLE_PIN, true);
 
-    gpio_init(BUDDY_TAP_PIN);
-    gpio_init(BUDDY_VERTICAL_PIN);
-    gpio_init(BUDDY_HORIZONTAL_PIN);
-    gpio_init(BUDDY_ROTATE_PIN);
-    gpio_init(BUDDY_MODIFIER1_PIN);
-    gpio_init(BUDDY_MODIFIER2_PIN);
-    gpio_init(BUDDY_BT_CONNECTION_PIN);
+    gpio_init(BUDDY_BT_CONNECTED_PIN);
 
-    gpio_set_dir(BUDDY_MODIFIER1_PIN, GPIO_IN);
-    gpio_set_dir(BUDDY_MODIFIER2_PIN, GPIO_IN);
-    gpio_set_dir(BUDDY_BT_CONNECTION_PIN, GPIO_IN);
-
-    gpio_set_irq_enabled_with_callback(BUDDY_TAP_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
-    gpio_set_irq_enabled_with_callback(BUDDY_VERTICAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
-    gpio_set_irq_enabled_with_callback(BUDDY_HORIZONTAL_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
-    gpio_set_irq_enabled_with_callback(BUDDY_ROTATE_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
-    gpio_set_irq_enabled_with_callback(BUDDY_BT_CONNECTION_PIN, GPIO_IRQ_EDGE_RISE, true, buddyCallback);
-
-    if (gpio_get(BUDDY_BT_CONNECTION_PIN)) {
-        bool mod1 = gpio_get(BUDDY_MODIFIER1_PIN);
-        bool mod2 = gpio_get(BUDDY_MODIFIER2_PIN);
-        if (mod1 && mod2) {
-            state = CONNECTING;
-        } else if (mod1) {
-            state = DISCONNECTED;
-        } else if (!mod2) {
-            state = CONNECTED;
-        }
-    }
+    gpio_set_dir(BUDDY_BT_CONNECTED_PIN, GPIO_IN);
 }
 
 void Buddy::addDevice(const char *name, const bool selected) {
@@ -144,6 +138,7 @@ void Buddy::refreshDeviceList() {
         selectedDevice = devices.at(selectedPosition).name;
         devices.clear();
     }
+    uart_set_irq_enables(UART_ID, false, false);
     requestBTList();
     char buffer[32] = {};
     while (readBTDeviceName(buffer)) {
@@ -156,6 +151,8 @@ void Buddy::refreshDeviceList() {
         addDevice(buffer);
     }
     resetAccessors();
+    uart_set_irq_enables(UART_ID, true, false);
+    forceVerticalControl();
     state = AWAITING_SELECTION;
 }
 
@@ -178,6 +175,11 @@ void Buddy::setConnecting() {
     } else {
         state = CONNECTING;
     }
+}
+
+void Buddy::setConnected() {
+    state = CONNECTED;
+    enableGestureDetection();
 }
 
 size_t Buddy::getSize() const {
@@ -220,7 +222,7 @@ bool Buddy::awaitUartReadable() {
     while (!uart_is_readable(UART_ID)) {
         busy_wait_ms(1);
         c++;
-        if (c > 1000) {
+        if (c > UART_READABLE_TIMEOUT_MS) {
             return false;
         }
     }
@@ -234,10 +236,11 @@ bool Buddy::readBTDeviceName(char *buffer) {
                 return false;
             }
             const uint8_t ch = uart_getc(UART_ID);
-            buffer[i] = ch;
             if (ch == '\n') {
+                buffer[i] = '\0';
                 break;
             }
+            buffer[i] = ch;
         }
         return true;
     }
