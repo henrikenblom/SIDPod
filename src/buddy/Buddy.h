@@ -68,6 +68,7 @@ public:
         CONNECTED,
         DISCONNECTED,
         AWAITING_STATE_CHANGE,
+        AWAITING_DISCONNECT_CONFIRMATION,
     };
 
     ~Buddy() {
@@ -97,11 +98,15 @@ public:
 
     void setConnected();
 
+    void askToDisconnect();
+
     void forceVolumeControl();
 
     void forceVerticalControl();
 
     void enableGestureDetection();
+
+    void disconnect();
 
     static Buddy *getInstance();
 
@@ -133,8 +138,6 @@ protected:
     void requestBTList();
 
     bool selectBTDevice(const char *deviceName);
-
-    void disconnect();
 };
 
 #endif // USE_BUDDY

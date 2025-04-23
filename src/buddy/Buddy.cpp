@@ -194,6 +194,10 @@ void Buddy::setConnected() {
     enableGestureDetection();
 }
 
+void Buddy::askToDisconnect() {
+    state = AWAITING_DISCONNECT_CONFIRMATION;
+}
+
 size_t Buddy::getSize() const {
     return devices.size();
 }
@@ -261,7 +265,6 @@ bool Buddy::readBTDeviceName(char *buffer) {
 
 void Buddy::requestBTList() {
     uart_putc(UART_ID, RT_BT_LIST);
-    uart_putc(UART_ID, 0);
 }
 
 bool Buddy::selectBTDevice(const char *deviceName) {
@@ -273,6 +276,5 @@ bool Buddy::selectBTDevice(const char *deviceName) {
 
 void Buddy::disconnect() {
     uart_putc(UART_ID, RT_BT_DISCONNECT);
-    uart_putc(UART_ID, 0);
-    state = READY;
+    refreshDeviceList();
 }

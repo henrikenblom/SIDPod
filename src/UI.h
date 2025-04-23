@@ -42,6 +42,8 @@ public:
 
     static void showBluetoothInteraction();
 
+    static void showBTDisconnectConfirmation();
+
     static void showBTProcessing(const char *text);
 
     static void showBTDeviceList();
