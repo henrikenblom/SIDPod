@@ -11,8 +11,6 @@
 #include "ff.h"
 #include "reSID/siddefs.h"
 
-#define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
-
 extern unsigned char memory[];
 
 constexpr int PSID_MAXSTRLEN = 32;

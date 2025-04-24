@@ -1,5 +1,7 @@
 #pragma once
 
+#define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
+
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
 
@@ -54,7 +56,7 @@
 #define DISPLAY_I2C_ADDRESS                 0x3C
 
 #define UART_ID                             uart1
-#define BAUD_RATE                           9600
+#define BAUD_RATE                           115200
 #define UART_TX_PIN                         8
 #define UART_RX_PIN                         9
 #define DATA_BITS                           8
