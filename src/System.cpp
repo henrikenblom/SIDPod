@@ -1,15 +1,14 @@
-#include <hardware/pll.h>
-#include <hardware/clocks.h>
 #include <device/usbd.h>
 #include <pico/multicore.h>
-#include <hardware/xosc.h>
 #include <hardware/watchdog.h>
 #include <pico/sleep.h>
 #include "System.h"
+
+#include "Buddy.h"
 #include "UI.h"
 #include "platform_config.h"
 #include "audio/SIDPlayer.h"
-
+#include "Catalog.h"
 
 repeating_timer tudTaskTimer{};
 
@@ -42,8 +41,8 @@ void System::virtualVBLSync() {
 void System::goDormant() {
     SIDPlayer::ampOff();
     sleep_run_from_rosc();
-    gpio_pull_up(ENC_SW_PIN);
-    sleep_goto_dormant_until_pin(ENC_SW_PIN, true, false);
+    gpio_pull_up(SWITCH_PIN);
+    sleep_goto_dormant_until_pin(SWITCH_PIN, true, false);
     hardReset();
 }
 

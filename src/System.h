@@ -13,8 +13,6 @@ public:
 
     static void enableUsb();
 
-    static void runExclusiveUsbDBurst();
-
     static bool usbConnected();
 
 private:

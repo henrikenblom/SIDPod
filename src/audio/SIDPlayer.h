@@ -42,6 +42,8 @@ public:
 
     static void resetState();
 
+    static void pauseIfPlaying();
+
 private:
     static volatile void tryJSRToPlayAddr();
 

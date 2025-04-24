@@ -25,8 +25,34 @@ public:
 
     static void drawDialog(const char *text);
 
+    volatile static void startVolumeControlSession();
+
+    static void resetVolumeControlSessionTimer();
+
+    static void verticalMovement(int delta);
+
+    static int64_t singleClickCallback(alarm_id_t id, void *user_data);
+
+    volatile static void doubleClickCallback();
+
+#if USE_BUDDY
+    static void adjustVolume(bool up);
+
+    static void danceFloorStop();
+
+    static void showBluetoothInteraction();
+
+    static void showBTDisconnectConfirmation();
+
+    static void showBTProcessing(const char *text);
+
+    static void showBTDeviceList();
+#endif
+
+
     enum State {
-        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector
+        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
+        refreshing_playlist, bluetooth_interaction
     };
 
 private:
@@ -48,21 +74,13 @@ private:
 
     static inline void showRasterBars();
 
-    static int64_t singleClickCallback(alarm_id_t id, void *user_data);
-
     static int64_t longPressCallback(alarm_id_t id, void *user_data);
 
     static int64_t endVolumeControlSessionCallback(alarm_id_t id, void *user_data);
 
-    volatile static void startVolumeControlSession();
-
-    static void resetVolumeControlSessionTimer();
-
     static void endVolumeControlSession();
 
     static void animateShutdown();
-
-    volatile static void doubleClickCallback();
 
     volatile static void startSingleClickSession();
 
@@ -78,9 +96,13 @@ private:
 
     volatile static bool pollSwitch();
 
+    static bool pollUserControls(struct repeating_timer *t);
+
+#if (!USE_BUDDY)
+
     volatile static void pollEncoder();
 
-    static bool pollUserControls(struct repeating_timer *t);
+#endif
 };
 
 #endif //SIDPOD_UI_H

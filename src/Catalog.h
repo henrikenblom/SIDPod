@@ -37,6 +37,8 @@ public:
 
     static void selectPrevious();
 
+    static void goHome();
+
     static Playlist *getCurrentPlaylist();
 
 private:

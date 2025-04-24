@@ -17,34 +17,39 @@ int topItem = 0;
 std::string selected;
 std::string playing;
 bool playlistOpen = false;
+bool refreshing = false;
 
 void Catalog::refresh() {
-    DIR *dp;
-    FILINFO fno;
-    FRESULT fr;
-    sd_card_t *sd_card_p = sd_get_by_drive_prefix("0:");
-    FATFS *fs_p = &sd_card_p->state.fatfs;
-    f_mount(fs_p, "0:", 1);
-    sd_card_p->state.mounted = true;
-    dp = new DIR;
-    f_opendir(dp, "");
-    int c = 0;
-    entries.clear();
-    while (entries.size() < CATALOG_WINDOW_SIZE) {
-        fr = f_readdir(dp, &fno);
-        if (fr != FR_OK || fno.fname[0] == 0) break;
-        if (isValidDirectory(&fno)) {
-            if (c++ >= topItem) {
-                entries.emplace_back(fno.fname);
-                if (selected.empty()) {
-                    selected = fno.fname;
+    if (!refreshing) {
+        refreshing = true;
+        DIR *dp;
+        FILINFO fno;
+        FRESULT fr;
+        sd_card_t *sd_card_p = sd_get_by_drive_prefix("0:");
+        FATFS *fs_p = &sd_card_p->state.fatfs;
+        f_mount(fs_p, "0:", 1);
+        sd_card_p->state.mounted = true;
+        dp = new DIR;
+        f_opendir(dp, "");
+        int c = 0;
+        entries.clear();
+        while (entries.size() < CATALOG_WINDOW_SIZE) {
+            fr = f_readdir(dp, &fno);
+            if (fr != FR_OK || fno.fname[0] == 0) break;
+            if (isValidDirectory(&fno)) {
+                if (c++ >= topItem) {
+                    entries.emplace_back(fno.fname);
+                    if (selected.empty()) {
+                        selected = fno.fname;
+                    }
                 }
             }
         }
-    }
 
-    f_closedir(dp);
-    delete dp;
+        f_closedir(dp);
+        delete dp;
+        refreshing = false;
+    }
 }
 
 std::string Catalog::getPlaying() {
@@ -113,6 +118,14 @@ void Catalog::selectPrevious() {
         }
     }
     slideUp();
+}
+
+void Catalog::goHome() {
+    if (!refreshing) {
+        topItem = 0;
+        selected.clear();
+        refresh();
+    }
 }
 
 Playlist *Catalog::getCurrentPlaylist() {

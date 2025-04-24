@@ -63,6 +63,7 @@ add_executable(${PROJECT_NAME}
         src/audio/roms.cpp
         src/Catalog.cpp
         src/io/hw_config.c
+        src/buddy/Buddy.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -86,6 +87,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/src/
+        ${CMAKE_CURRENT_LIST_DIR}/src/buddy/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/
@@ -106,6 +109,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         PICO_AUDIO_I2S_MONO_INPUT=1
         PICO_AUDIO_I2S_DATA_PIN=26
         PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+        USE_BUDDY=1
 )
 
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS

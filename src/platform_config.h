@@ -1,5 +1,7 @@
 #pragma once
 
+#define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
+
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
 
@@ -40,7 +42,7 @@
 
 #define AMP_CONTROL_PIN                     15
 
-#define VOLUME_STEPS                        64
+#define VOLUME_STEPS                        48
 #define INITIAL_VOLUME                      16
 
 #define I2C_BAUDRATE                        400000
@@ -52,6 +54,14 @@
 #define DISPLAY_X_CENTER                    (DISPLAY_WIDTH / 2)
 #define DISPLAY_Y_CENTER                    (DISPLAY_HEIGHT / 2)
 #define DISPLAY_I2C_ADDRESS                 0x3C
+
+#define UART_ID                             uart1
+#define BAUD_RATE                           115200
+#define UART_TX_PIN                         8
+#define UART_RX_PIN                         9
+#define DATA_BITS                           8
+#define STOP_BITS                           1
+#define PARITY                              UART_PARITY_NONE
 
 #define DISPLAY_STATE_CHANGE_DELAY_MS       500
 #define FONT_WIDTH                          6
@@ -76,12 +86,15 @@
 
 #define USER_CONTROLS_POLLRATE_MS           50
 
+#if (!USE_BUDDY)
 #define ENC_PIO                             pio1
 #define ENC_SM                              1
 #define ENC_BASE_PIN                        10
-#define ENC_SW_PIN                          12
+#endif
+
+#define SWITCH_PIN                          12
 #define DOUBLE_CLICK_SPEED_MS               250
 #define LONG_PRESS_DURATION_MS              1000
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
-#define VOLUME_CONTROL_DISPLAY_TIMEOUT      1200
+#define VOLUME_CONTROL_DISPLAY_TIMEOUT      400
 #define SPLASH_DISPLAY_DURATION             500
