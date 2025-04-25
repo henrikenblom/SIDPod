@@ -27,6 +27,7 @@ enum RequestType {
     RT_G_FORCE_VERTICAL = 5,
     RT_G_FORCE_HORIZONTAL = 6,
     RT_G_SET_AUTO = 7,
+    RT_BT_GET_CONNECTED = 8,
 };
 
 enum NotificationType {
@@ -56,6 +57,7 @@ struct Request {
 struct BluetoothDeviceListEntry {
     char name[32];
     bool selected;
+    bool connected;
 };
 
 class Buddy {
@@ -100,13 +102,21 @@ public:
 
     void askToDisconnect();
 
-    void forceVolumeControl();
+    void forceRotationControl();
 
     void forceVerticalControl();
 
     void enableGestureDetection();
 
     void disconnect();
+
+    const char *getConnectedDeviceName() {
+        return lastConnectedDeviceName;
+    }
+
+    const char *getSelectedDeviceName() {
+        return selectedDeviceName;
+    }
 
     static Buddy *getInstance();
 
@@ -117,7 +127,10 @@ protected:
     uint8_t selectedPosition = 0;
     uint8_t windowSize = CATALOG_WINDOW_SIZE;
     uint8_t connectionAttempts = 0;
-
+    RequestType lastGestureRequest = RT_NONE;
+    const char *selectedDeviceName = nullptr;
+    char lastConnectedDeviceName[32];
+    uint8_t lastConnectedAddr[6];
     State state = READY;
 
     Buddy();
@@ -135,6 +148,8 @@ protected:
     bool awaitUartReadable();
 
     bool readBTDeviceName(char *buffer);
+
+    void requestAndSetConnectedBTDeviceName();
 
     void requestBTList();
 

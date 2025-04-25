@@ -12,16 +12,25 @@
 
 Buddy *instance = nullptr;
 
-void Buddy::forceVolumeControl() {
-    uart_putc(UART_ID, RT_G_FORCE_ROTATE);
+void Buddy::forceRotationControl() {
+    if (lastGestureRequest != RT_G_FORCE_ROTATE) {
+        lastGestureRequest = RT_G_FORCE_ROTATE;
+        uart_putc(UART_ID, RT_G_FORCE_ROTATE);
+    }
 }
 
 void Buddy::forceVerticalControl() {
-    uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
+    if (lastGestureRequest != RT_G_FORCE_VERTICAL) {
+        lastGestureRequest = RT_G_FORCE_VERTICAL;
+        uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
+    }
 }
 
 void Buddy::enableGestureDetection() {
-    uart_putc(UART_ID, RT_G_SET_AUTO);
+    if (lastGestureRequest != RT_G_SET_AUTO) {
+        lastGestureRequest = RT_G_SET_AUTO;
+        uart_putc(UART_ID, RT_G_SET_AUTO);
+    }
 }
 
 Buddy *Buddy::getInstance() {
@@ -103,6 +112,7 @@ Buddy::Buddy() {
     gpio_set_irq_enabled_with_callback(BUDDY_BT_CONNECTED_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
                                        connectionPinCallback);
     if (gpio_get(BUDDY_BT_CONNECTED_PIN)) {
+        requestAndSetConnectedBTDeviceName();
         setConnected();
     }
 }
@@ -166,7 +176,6 @@ void Buddy::refreshDeviceList() {
         }
         resetAccessors();
         uart_set_irq_enables(UART_ID, true, false);
-        forceVerticalControl();
         state = AWAITING_SELECTION;
     }
 }
@@ -181,6 +190,8 @@ void Buddy::setDisconnected() {
     if (state == CONNECTED) {
         UI::danceFloorStop();
         SIDPlayer::pauseIfPlaying();
+    }
+    if (state != AWAITING_SELECTION && state != REFRESHING && state != READY) {
         state = DISCONNECTED;
     }
 }
@@ -195,8 +206,10 @@ void Buddy::setConnecting() {
 }
 
 void Buddy::setConnected() {
+    if (state == CONNECTING) {
+        requestAndSetConnectedBTDeviceName();
+    }
     state = CONNECTED;
-    enableGestureDetection();
 }
 
 void Buddy::askToDisconnect() {
@@ -268,11 +281,27 @@ bool Buddy::readBTDeviceName(char *buffer) {
     return false;
 }
 
+void Buddy::requestAndSetConnectedBTDeviceName() {
+    uart_putc(UART_ID, RT_BT_GET_CONNECTED);
+    readBTDeviceName(lastConnectedDeviceName);
+    if (awaitUartReadable()) {
+        for (unsigned char &i: lastConnectedAddr) {
+            const uint8_t ch = uart_getc(UART_ID);
+            i = ch;
+        }
+    }
+    printf("Last connected device: %s\n", getConnectedDeviceName());
+    printf("Address of connected device: %02X:%02X:%02X:%02X:%02X:%02X\n",
+           lastConnectedAddr[0], lastConnectedAddr[1], lastConnectedAddr[2],
+           lastConnectedAddr[3], lastConnectedAddr[4], lastConnectedAddr[5]);
+}
+
 void Buddy::requestBTList() {
     uart_putc(UART_ID, RT_BT_LIST);
 }
 
 bool Buddy::selectBTDevice(const char *deviceName) {
+    selectedDeviceName = deviceName;
     uart_putc(UART_ID, RT_BT_SELECT);
     uart_puts(UART_ID, deviceName);
     state = AWAITING_STATE_CHANGE;
@@ -281,5 +310,6 @@ bool Buddy::selectBTDevice(const char *deviceName) {
 
 void Buddy::disconnect() {
     uart_putc(UART_ID, RT_BT_DISCONNECT);
+    state = DISCONNECTED;
     refreshDeviceList();
 }

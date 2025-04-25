@@ -42,6 +42,8 @@ public:
 
     static void showBluetoothInteraction();
 
+    static void showBTConnecting();
+
     static void showBTDisconnectConfirmation();
 
     static void showBTProcessing(const char *text);
@@ -66,7 +68,7 @@ private:
 
     static void crossOutLine(int32_t y);
 
-    static void animateLongTitle(const char *title, int32_t y, int32_t xMargin, float *offsetCounter);
+    static void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter);
 
     static void drawRSIDSymbol(int32_t y);
 

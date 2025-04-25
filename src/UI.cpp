@@ -78,9 +78,9 @@ void UI::updateUI() {
     switch (currentState) {
         case visualization:
             if (Catalog::playlistIsOpen()) {
-                Playlist *playlist = Catalog::getCurrentPlaylist();
-                if (playlist->getState() == Playlist::State::READY) {
-                    buddy->forceVolumeControl();
+                if (const Playlist *playlist = Catalog::getCurrentPlaylist();
+                    playlist->getState() == Playlist::State::READY) {
+                    buddy->forceRotationControl();
                     danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
                 }
             }
@@ -107,12 +107,15 @@ void UI::updateUI() {
             }
             break;
         case playlist_selector:
+            buddy->forceVerticalControl();
             showPlaylistSelector();
             break;
         case bluetooth_interaction:
+            buddy->forceVerticalControl();
             showBluetoothInteraction();
             break;
         default:
+            buddy->forceVerticalControl();
             showSongSelector();
     }
     if (buddy->getState() != Buddy::CONNECTED) {
@@ -123,7 +126,7 @@ void UI::updateUI() {
 void UI::drawHeader(const char *title) {
     const size_t stringWidth = strlen(title) * FONT_WIDTH;
     if (stringWidth > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-        animateLongTitle(title, 0, 12, &headerScrollOffset);
+        animateLongText(title, 0, 12, &headerScrollOffset);
         ssd1306_draw_line(&disp, 0, 0, 8, 0);
         ssd1306_draw_line(&disp, 0, 2, 8, 2);
         ssd1306_draw_line(&disp, 0, 4, 8, 4);
@@ -154,7 +157,7 @@ void UI::showSongSelector() {
             uint8_t y = 8;
             for (const auto entry: playlist->getWindow()) {
                 if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                    animateLongTitle(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                    animateLongText(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
                 } else {
                     ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
                 }
@@ -190,7 +193,7 @@ void UI::showPlaylistSelector() {
         bool selected = entry == Catalog::getSelected();
         bool playing = entry == Catalog::getPlaying();
         if (selected && entry.length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-            animateLongTitle(entry.c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            animateLongText(entry.c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
         } else {
             ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
         }
@@ -205,7 +208,7 @@ void UI::showPlaylistSelector() {
 }
 
 
-void UI::animateLongTitle(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) {
+void UI::animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) {
     ssd1306_draw_string(&disp, xMargin - static_cast<int32_t>(*offsetCounter), y, 1, title);
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
     float advancement =
@@ -358,7 +361,7 @@ void UI::showBluetoothInteraction() {
             break;
         case Buddy::CONNECTING:
         case Buddy::AWAITING_STATE_CHANGE:
-            showBTProcessing("Connecting...");
+            showBTConnecting();
             break;
         case Buddy::CONNECTED:
             currentState = playlist_selector;
@@ -374,10 +377,25 @@ void UI::showBluetoothInteraction() {
     }
 }
 
+void UI::showBTConnecting() {
+    ssd1306_clear(&disp);
+    drawHeader("BLUETOOTH");
+    auto selectedDeviceName = buddy->getSelectedDeviceName();
+    char connectingMessage[64];
+    snprintf(connectingMessage, sizeof(connectingMessage), "Connecting %.*s",
+             static_cast<int>(strlen(selectedDeviceName) - 1), selectedDeviceName);
+    animateLongText(connectingMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
+    ssd1306_show(&disp);
+}
+
 void UI::showBTDisconnectConfirmation() {
     ssd1306_clear(&disp);
     drawHeader("BLUETOOTH");
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT, 1, "Disconnect?");
+    auto connectedDeviceName = buddy->getConnectedDeviceName();
+    char disconnectMessage[64];
+    snprintf(disconnectMessage, sizeof(disconnectMessage), "Disconnect %.*s?",
+             static_cast<int>(strlen(connectedDeviceName) - 1), connectedDeviceName);
+    animateLongText(disconnectMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
     ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 2, 1, yesLabel);
     ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 3, 1, noLabel);
     if (disconnectAffirmative) {
@@ -397,11 +415,11 @@ void UI::showBTProcessing(const char *text) {
 
 void UI::showBTDeviceList() {
     ssd1306_clear(&disp);
-    drawHeader("SELECT DEVICE");
+    drawHeader("SELECT BLUETOOTH DEVICE");
     uint8_t y = FONT_HEIGHT;
     for (const auto &device: *buddy->getWindow()) {
         if (device.selected) {
-            animateLongTitle(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            animateLongText(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
             drawOpenSymbol(y);
         } else {
             ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, device.name);
@@ -490,12 +508,13 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
         if (id) {
             disconnectAffirmative = false;
             buddy->askToDisconnect();
+            lastState = currentState;
             currentState = bluetooth_interaction;
+            danceFloor->stop();
         } else {
             switch (currentState) {
                 case visualization:
                     currentState = song_selector;
-                    buddy->enableGestureDetection();
                     danceFloor->stop();
                     break;
                 case volume_control:
@@ -514,6 +533,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                             buddy->disconnect();
                         } else {
                             buddy->setConnected();
+                            currentState = lastState;
                         }
                     } else {
                         buddy->connectSelected();
