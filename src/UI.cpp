@@ -80,7 +80,6 @@ void UI::updateUI() {
             if (Catalog::playlistIsOpen()) {
                 Playlist *playlist = Catalog::getCurrentPlaylist();
                 if (playlist->getState() == Playlist::State::READY) {
-                    buddy->forceVolumeControl();
                     danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
                 }
             }
@@ -495,7 +494,6 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
             switch (currentState) {
                 case visualization:
                     currentState = song_selector;
-                    buddy->enableGestureDetection();
                     danceFloor->stop();
                     break;
                 case volume_control:

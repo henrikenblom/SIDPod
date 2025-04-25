@@ -23,10 +23,6 @@ enum RequestType {
     RT_BT_LIST = 1,
     RT_BT_SELECT = 2,
     RT_BT_DISCONNECT = 3,
-    RT_G_FORCE_ROTATE = 4,
-    RT_G_FORCE_VERTICAL = 5,
-    RT_G_FORCE_HORIZONTAL = 6,
-    RT_G_SET_AUTO = 7,
 };
 
 enum NotificationType {
@@ -40,12 +36,10 @@ enum NotificationType {
 
 enum Gesture {
     G_NONE = 0,
-    G_HORIZONTAL = 1,
-    G_VERTICAL = 2,
-    G_ROTATE = 3,
-    G_TAP = 4,
-    G_DOUBLE_TAP = 5,
-    G_HOME = 6,
+    G_ROTATE = 1,
+    G_TAP = 2,
+    G_DOUBLE_TAP = 3,
+    G_HOME = 4,
 };
 
 struct Request {
@@ -99,12 +93,6 @@ public:
     void setConnected();
 
     void askToDisconnect();
-
-    void forceVolumeControl();
-
-    void forceVerticalControl();
-
-    void enableGestureDetection();
 
     void disconnect();
 

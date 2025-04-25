@@ -12,18 +12,6 @@
 
 Buddy *instance = nullptr;
 
-void Buddy::forceVolumeControl() {
-    uart_putc(UART_ID, RT_G_FORCE_ROTATE);
-}
-
-void Buddy::forceVerticalControl() {
-    uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
-}
-
-void Buddy::enableGestureDetection() {
-    uart_putc(UART_ID, RT_G_SET_AUTO);
-}
-
 Buddy *Buddy::getInstance() {
     if (instance == nullptr) {
         instance = new Buddy();
@@ -52,13 +40,8 @@ void buddyCallback() {
                         Catalog::goHome();
                     }
                     break;
-                case G_VERTICAL:
-                    UI::verticalMovement(mod1 ? -1 : 1);
-                    break;
-                case G_HORIZONTAL:
-                    break;
                 case G_ROTATE:
-                    UI::adjustVolume(mod1);
+                    UI::verticalMovement(mod1 ? 1 : -1);
                     break;
                 default: ;
             }
@@ -166,7 +149,6 @@ void Buddy::refreshDeviceList() {
         }
         resetAccessors();
         uart_set_irq_enables(UART_ID, true, false);
-        forceVerticalControl();
         state = AWAITING_SELECTION;
     }
 }
@@ -196,7 +178,6 @@ void Buddy::setConnecting() {
 
 void Buddy::setConnected() {
     state = CONNECTED;
-    enableGestureDetection();
 }
 
 void Buddy::askToDisconnect() {
