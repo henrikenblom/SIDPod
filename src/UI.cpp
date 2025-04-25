@@ -365,6 +365,8 @@ void UI::showBluetoothInteraction() {
             break;
         case Buddy::DISCONNECTED:
             showBTProcessing("Disconnected");
+            buddy->refreshDeviceList();
+            busy_wait_ms(2000);
             break;
         case Buddy::AWAITING_DISCONNECT_CONFIRMATION:
             showBTDisconnectConfirmation();

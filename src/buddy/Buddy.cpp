@@ -100,7 +100,8 @@ Buddy::Buddy() {
     gpio_init(BUDDY_BT_CONNECTED_PIN);
 
     gpio_set_dir(BUDDY_BT_CONNECTED_PIN, GPIO_IN);
-    gpio_set_irq_enabled_with_callback(BUDDY_BT_CONNECTED_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, connectionPinCallback);
+    gpio_set_irq_enabled_with_callback(BUDDY_BT_CONNECTED_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+                                       connectionPinCallback);
     if (gpio_get(BUDDY_BT_CONNECTED_PIN)) {
         setConnected();
     }
@@ -144,32 +145,36 @@ void Buddy::selectPrevious() {
 }
 
 void Buddy::refreshDeviceList() {
-    state = REFRESHING;
-    char *selectedDevice = nullptr;
-    if (!devices.empty()) {
-        selectedDevice = devices.at(selectedPosition).name;
-        devices.clear();
-    }
-    uart_set_irq_enables(UART_ID, false, false);
-    requestBTList();
-    char buffer[32] = {};
-    while (readBTDeviceName(buffer)) {
-        if (selectedDevice && std::strcmp(buffer, selectedDevice) == 0) {
-            addDevice(buffer, true);
-            selectedPosition = devices.size() - 1;
-        } else {
+    if (state == READY || state == AWAITING_SELECTION || state == DISCONNECTED) {
+        state = REFRESHING;
+        char *selectedDevice = nullptr;
+        if (!devices.empty()) {
+            selectedDevice = devices.at(selectedPosition).name;
+            devices.clear();
+        }
+        uart_set_irq_enables(UART_ID, false, false);
+        requestBTList();
+        char buffer[32] = {};
+        while (readBTDeviceName(buffer)) {
+            if (selectedDevice && std::strcmp(buffer, selectedDevice) == 0) {
+                addDevice(buffer, true);
+                selectedPosition = devices.size() - 1;
+            } else {
+                addDevice(buffer);
+            }
             addDevice(buffer);
         }
-        addDevice(buffer);
+        resetAccessors();
+        uart_set_irq_enables(UART_ID, true, false);
+        forceVerticalControl();
+        state = AWAITING_SELECTION;
     }
-    resetAccessors();
-    uart_set_irq_enables(UART_ID, true, false);
-    forceVerticalControl();
-    state = AWAITING_SELECTION;
 }
 
 void Buddy::connectSelected() {
-    selectBTDevice(devices.at(selectedPosition).name);
+    if (!devices.empty()) {
+        selectBTDevice(devices.at(selectedPosition).name);
+    }
 }
 
 void Buddy::setDisconnected() {

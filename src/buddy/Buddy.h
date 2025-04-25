@@ -117,6 +117,7 @@ protected:
     uint8_t selectedPosition = 0;
     uint8_t windowSize = CATALOG_WINDOW_SIZE;
     uint8_t connectionAttempts = 0;
+
     State state = READY;
 
     Buddy();
