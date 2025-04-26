@@ -79,6 +79,10 @@ namespace Visualization {
 
         void showCurrentSongNumber(bool show, bool hide);
 
+        void draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation);
+
+        void draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation) const;
+
         void updateSoundSprites();
 
         void updateRoundSprites();
@@ -123,6 +127,7 @@ namespace Visualization {
         uint32_t millisSinceLastSceneChange = millis_now();
         float horizon = 10;
         float songNumberOffset = 0;
+        int16_t ballRotation = 0;
 
         void (*stopCallback)() = nullptr;
 

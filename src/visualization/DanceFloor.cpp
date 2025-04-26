@@ -236,12 +236,44 @@ namespace Visualization {
         }
     }
 
+
+    void DanceFloor::draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation) {
+        for (float theta = 0; theta < 2 * M_PI; theta += 0.3) {
+            // Longitude
+            for (float phi = 0; phi < M_PI; phi += 0.3) {
+                // Latitude
+                // Calculate 3D sphere coordinates
+                float x3D = size * sin(phi) * cos(theta);
+                float y3D = size * sin(phi) * sin(theta);
+                float z3D = size * cos(phi);
+
+                // Apply rotation around the X-axis
+                float tempY = y3D * cos(xAxisRotation * M_PI / 180) - z3D * sin(xAxisRotation * M_PI / 180);
+                float tempZ = y3D * sin(xAxisRotation * M_PI / 180) + z3D * cos(xAxisRotation * M_PI / 180);
+                y3D = tempY;
+                z3D = tempZ;
+
+                // Apply rotation around the Y-axis
+                float tempX = x3D * cos(yAxisRotation * M_PI / 180) + z3D * sin(yAxisRotation * M_PI / 180);
+                x3D = tempX;
+
+                // Project 3D coordinates onto 2D plane
+                int32_t x2D = static_cast<int32_t>(x + x3D);
+                int32_t y2D = static_cast<int32_t>(y + y3D);
+
+                ssd1306_draw_pixel(pDisp, x2D, y2D);
+            }
+        }
+    }
+
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
+        int totalY = 0;
         for (uint8_t x = LOW_FREQ_DOMINANCE_COMP_OFFSET; x < 127 + LOW_FREQ_DOMINANCE_COMP_OFFSET; x++) {
             const int i = static_cast<int>(1.8) * x;
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i + static_cast<float>(i)) *
                                      compFactor);
+            totalY += y;
             if (y > 0) {
                 if (y > 28) y /= 8;
 
@@ -283,12 +315,14 @@ namespace Visualization {
             updateRoundSprites();
         }
         if (shouldUpdateSoundSprites()) {
-            drawFibonacciLandscape();
-            drawStarrySky(false);
-            if (transition == NO_TRANSITION) {
-                drawScroller();
-            }
-            updateSoundSprites();
+            draw3DPixelBall(64, 16, 14 + std::min(1, totalY / 64), ballRotation, ballRotation);
+            if (ballRotation++ > 360) ballRotation = 0;
+            // drawFibonacciLandscape();
+            // drawStarrySky(false);
+            // if (transition == NO_TRANSITION) {
+            //     drawScroller();
+            // }
+            // updateSoundSprites();
         }
         if (shouldUpdateStarFieldSprites()) {
             updateStarFieldSprites();
