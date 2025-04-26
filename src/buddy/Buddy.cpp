@@ -55,12 +55,45 @@ void buddyCallback() {
                 case G_DOUBLE_TAP:
                     UI::doubleClickCallback();
                     break;
-                case G_HOME:
+                case G_NORTH:
                     if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->resetAccessors();
+                        const auto playlist = Catalog::getCurrentPlaylist();
+                        if (UI::getState() == UI::visualization) {
+                            playlist->selectPrevious();
+                            if (playlist->isAtReturnEntry()) {
+                                playlist->selectLast();
+                            }
+                            SIDPlayer::togglePlayPause();
+                            UI::initDanceFloor();
+                        } else {
+                            playlist->resetAccessors();
+                        }
                     } else {
                         Catalog::goHome();
                     }
+                    break;
+                case G_SOUTH:
+                    if (Catalog::playlistIsOpen()) {
+                        const auto playlist = Catalog::getCurrentPlaylist();
+                        if (UI::getState() == UI::visualization) {
+                            playlist->selectNext();
+                            if (playlist->isAtLastEntry()) {
+                                playlist->selectFirst();
+                            }
+                            SIDPlayer::togglePlayPause();
+                            UI::initDanceFloor();
+                        } else {
+                            Catalog::getCurrentPlaylist()->selectLast();
+                        }
+                    }
+                    break;
+                case G_EAST:
+                    UI::initDanceFloor();
+                    SIDPlayer::playNextSong();
+                    break;
+                case G_WEST:
+                    UI::initDanceFloor();
+                    SIDPlayer::playPreviousSong();
                     break;
                 case G_VERTICAL:
                     UI::verticalMovement(mod1 ? -1 : 1);

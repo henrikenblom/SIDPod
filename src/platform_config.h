@@ -44,6 +44,7 @@
 
 #define VOLUME_STEPS                        48
 #define INITIAL_VOLUME                      16
+#define SONG_SKIP_TIME_MS                   5000
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1
@@ -83,6 +84,9 @@
 #define FFT_SAMPLES                         1000
 #define LOW_FREQ_DOMINANCE_COMP_OFFSET      2
 #define SIDPLAYER_STARTUP_GRACE_TIME        800
+#define SONG_NUMBER_DISPLAY_DURATION        5000
+#define SONG_NUMBER_SHOW_HIDE_DURATION      1000
+#define SONG_NUMBER_DISPLAY_DELAY           1000
 
 #define USER_CONTROLS_POLLRATE_MS           50
 

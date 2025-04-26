@@ -74,6 +74,14 @@ void UI::showSplash() {
     ssd1306_show(&disp);
 }
 
+void UI::initDanceFloor() {
+    danceFloor->init(Catalog::getCurrentPlaylist()->getCurrentEntry());
+}
+
+void UI::startDanceFloor() {
+    danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
+}
+
 void UI::updateUI() {
     switch (currentState) {
         case visualization:
@@ -81,7 +89,7 @@ void UI::updateUI() {
                 if (const Playlist *playlist = Catalog::getCurrentPlaylist();
                     playlist->getState() == Playlist::State::READY) {
                     buddy->forceRotationControl();
-                    danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
+                    startDanceFloor();
                 }
             }
             break;
@@ -448,6 +456,10 @@ void UI::adjustVolume(const bool up) {
 
 void UI::danceFloorStop() {
     danceFloor->stop();
+}
+
+UI::State UI::getState() {
+    return currentState;
 }
 
 void UI::verticalMovement(const int delta) {

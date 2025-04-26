@@ -15,6 +15,7 @@
 #include <hardware/interp.h>
 #include <hardware/pio.h>
 
+#include "delays.h"
 #include "../platform_config.h"
 #include "reSID/sid.h"
 #include "sidendian.h"
@@ -117,6 +118,8 @@ cycle_count initialCycleCount = 0;
 int visDMAChan = 0;
 dma_channel_config visDMACfg;
 int currentVisualizationBufferOffset = 0;
+uint32_t songStartMillis = 0;
+bool songLoaded = false;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -741,7 +744,53 @@ volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
     return false;
 }
 
+uint32_t C64::millisSinceSongStart() {
+    return millis() - songStartMillis;
+}
+
+int C64::getCurrentSong() {
+    return currentSong;
+}
+
+int C64::songIsLoaded() {
+    return songLoaded;
+}
+
+bool C64::playSong(uint16_t song) {
+    if (song >= info.songs) return false;
+    currentSong = song;
+    cpuJSR(info.init, currentSong);
+    float cpuFrequency = PAL_CPU_FREQUENCY;
+
+    if (useCIA()) {
+        uint_least64_t cia1TimerAValue = endian_little16(&memory[0xdc04]);
+        printf("CIA1 Timer A: %llu\n", cia1TimerAValue);
+        // TODO: This is a bit arbitrary. Figure out how to calculate this properly.
+        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 19500;
+    } else if (info.isPAL) {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
+    } else {
+        sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
+        cpuFrequency = NTSC_CPU_FREQUENCY;
+    }
+
+    firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    if (secondSidAddr) {
+        secondSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    }
+    if (thirdSidAddr) {
+        thirdSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
+    }
+    initialCycleCount = static_cast<cycle_count>(cpuFrequency) / (
+                            static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
+
+    songStartMillis = millis();
+
+    return true;
+}
+
 bool C64::sid_load_from_file(TCHAR file_name[]) {
+    songLoaded = false;
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
     UINT bytesRead;
@@ -778,34 +827,9 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
         info.play = (memory[0xffff] << 8) | memory[0xfffe];
     }
 
-    currentSong = info.start;
+    songLoaded = true;
 
-    cpuJSR(info.init, currentSong);
-    float cpuFrequency = PAL_CPU_FREQUENCY;
-
-    if (useCIA()) {
-        uint_least64_t cia1TimerAValue = endian_little16(&memory[0xdc04]);
-        printf("CIA1 Timer A: %llu\n", cia1TimerAValue);
-        // TODO: This is a bit arbitrary. Figure out how to calculate this properly.
-        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 19500;
-    } else if (info.isPAL) {
-        sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
-    } else {
-        sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
-        cpuFrequency = NTSC_CPU_FREQUENCY;
-    }
-
-    firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
-    if (secondSidAddr) {
-        secondSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
-    }
-    if (thirdSidAddr) {
-        thirdSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
-    }
-    initialCycleCount = static_cast<cycle_count>(cpuFrequency) / (
-                            static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
-
-    return true;
+    return playSong(info.start);
 }
 
 SidInfo *C64::getSidInfo() {

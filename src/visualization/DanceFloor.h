@@ -16,6 +16,8 @@ namespace Visualization {
 
         void stop();
 
+        void init(PlaylistEntry *_selectedEntry);
+
         struct StarSprite {
             uint8_t x;
             uint8_t y;
@@ -75,6 +77,8 @@ namespace Visualization {
 
         bool isOutsideOfRoundSpriteTimeWindow() const;
 
+        void showCurrentSongNumber(bool show, bool hide);
+
         void updateSoundSprites();
 
         void updateRoundSprites();
@@ -118,6 +122,7 @@ namespace Visualization {
         Transition transition = NO_TRANSITION;
         uint32_t millisSinceLastSceneChange = millis_now();
         float horizon = 10;
+        float songNumberOffset = 0;
 
         void (*stopCallback)() = nullptr;
 

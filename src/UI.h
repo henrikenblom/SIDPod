@@ -5,9 +5,18 @@
 
 class UI {
 public:
+    enum State {
+        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
+        refreshing_playlist, bluetooth_interaction
+    };
+
     static void initUI();
 
     static void showSplash();
+
+    static void initDanceFloor();
+
+    static void startDanceFloor();
 
     static void updateUI();
 
@@ -40,6 +49,8 @@ public:
 
     static void danceFloorStop();
 
+    static State getState();
+
     static void showBluetoothInteraction();
 
     static void showBTConnecting();
@@ -50,12 +61,6 @@ public:
 
     static void showBTDeviceList();
 #endif
-
-
-    enum State {
-        song_selector, splash, raster_bars, visualization, volume_control, sleeping, playlist_selector,
-        refreshing_playlist, bluetooth_interaction
-    };
 
 private:
     static void showSongSelector();
