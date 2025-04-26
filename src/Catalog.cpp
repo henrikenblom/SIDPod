@@ -25,10 +25,6 @@ void Catalog::refresh() {
         DIR *dp;
         FILINFO fno;
         FRESULT fr;
-        sd_card_t *sd_card_p = sd_get_by_drive_prefix("0:");
-        FATFS *fs_p = &sd_card_p->state.fatfs;
-        f_mount(fs_p, "0:", 1);
-        sd_card_p->state.mounted = true;
         dp = new DIR;
         f_opendir(dp, "");
         int c = 0;

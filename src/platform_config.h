@@ -98,3 +98,5 @@
 #define DORMANT_ADDITIONAL_DURATION_MS      1500
 #define VOLUME_CONTROL_DISPLAY_TIMEOUT      400
 #define SPLASH_DISPLAY_DURATION             500
+
+#define SETTINGS_DIRECTORY                  ".sidpod"

@@ -17,6 +17,7 @@
 #define BUDDY_BT_CONNECTED_PIN              15
 #define UART_READABLE_TIMEOUT_MS            100
 #define MAX_CONNECTION_ATTEMPTS             3
+#define LAST_BT_DEVICE_FILE                 "last_bt.txt"
 
 enum RequestType {
     RT_NONE = 0,
@@ -78,6 +79,8 @@ public:
         window.clear();
     }
 
+    void init();
+
     void addDevice(const char *name, bool selected = false);
 
     std::vector<BluetoothDeviceListEntry> *getWindow();
@@ -133,7 +136,7 @@ protected:
     uint8_t lastConnectedAddr[6];
     State state = READY;
 
-    Buddy();
+    Buddy() = default;
 
     [[nodiscard]] size_t getSize() const;
 
@@ -154,6 +157,12 @@ protected:
     void requestBTList();
 
     bool selectBTDevice(const char *deviceName);
+
+    bool loadLastConnectedBTDevice();
+
+    void saveConnectedBTDevice();
+
+    bool reconnectSavedBTDevice();
 };
 
 #endif // USE_BUDDY

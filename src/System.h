@@ -1,5 +1,6 @@
 #ifndef SIDPOD_SYSTEM_H
 #define SIDPOD_SYSTEM_H
+#include "ff.h"
 
 class System {
 public:
@@ -15,8 +16,16 @@ public:
 
     static bool usbConnected();
 
+    static void deleteSettingsFile(const char *fileName);
+
+    static bool openSettingsFile(FIL *fil, const char *fileName);
+
+    static bool mountAndPrepareFilesystem();
+
 private:
     static bool repeatingTudTask(struct repeating_timer *t);
+
+    static bool createSettingsDirectoryIfNotExists();
 };
 
 #endif //SIDPOD_SYSTEM_H

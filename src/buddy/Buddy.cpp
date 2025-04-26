@@ -4,6 +4,7 @@
 
 #include "Buddy.h"
 #include "Catalog.h"
+#include "System.h"
 #include "UI.h"
 #include "audio/SIDPlayer.h"
 
@@ -100,7 +101,7 @@ void connectionPinCallback(uint gpio, uint32_t events) {
     }
 }
 
-Buddy::Buddy() {
+void Buddy::init() {
     gpio_init(BUDDY_ENABLE_PIN);
     gpio_set_dir(BUDDY_ENABLE_PIN, GPIO_OUT);
     gpio_set_drive_strength(BUDDY_ENABLE_PIN, GPIO_DRIVE_STRENGTH_12MA);
@@ -114,6 +115,8 @@ Buddy::Buddy() {
     if (gpio_get(BUDDY_BT_CONNECTED_PIN)) {
         requestAndSetConnectedBTDeviceName();
         setConnected();
+    } else {
+        reconnectSavedBTDevice();
     }
 }
 
@@ -208,6 +211,7 @@ void Buddy::setConnecting() {
 void Buddy::setConnected() {
     if (state == CONNECTING) {
         requestAndSetConnectedBTDeviceName();
+        saveConnectedBTDevice();
     }
     state = CONNECTED;
 }
@@ -290,10 +294,6 @@ void Buddy::requestAndSetConnectedBTDeviceName() {
             i = ch;
         }
     }
-    printf("Last connected device: %s\n", getConnectedDeviceName());
-    printf("Address of connected device: %02X:%02X:%02X:%02X:%02X:%02X\n",
-           lastConnectedAddr[0], lastConnectedAddr[1], lastConnectedAddr[2],
-           lastConnectedAddr[3], lastConnectedAddr[4], lastConnectedAddr[5]);
 }
 
 void Buddy::requestBTList() {
@@ -308,8 +308,47 @@ bool Buddy::selectBTDevice(const char *deviceName) {
     return true;
 }
 
+bool Buddy::loadLastConnectedBTDevice() {
+    FIL fil;
+    bool result = false;
+    if (System::openSettingsFile(&fil, LAST_BT_DEVICE_FILE)) {
+        if (f_gets(lastConnectedDeviceName, sizeof(lastConnectedDeviceName), &fil) != nullptr) {
+            char lastAddrHex[21];
+            f_gets(lastAddrHex, 21, &fil);
+            lastConnectedDeviceName[sizeof(lastConnectedDeviceName) - 1] = '\0';
+            sscanf(lastAddrHex, "%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX",
+                   &lastConnectedAddr[0], &lastConnectedAddr[1], &lastConnectedAddr[2],
+                   &lastConnectedAddr[3], &lastConnectedAddr[4], &lastConnectedAddr[5]);
+            result = true;
+        }
+        f_close(&fil);
+    }
+    return result;
+}
+
+void Buddy::saveConnectedBTDevice() {
+    FIL fil;
+    System::openSettingsFile(&fil, LAST_BT_DEVICE_FILE);
+    f_printf(&fil, "%s\n", lastConnectedDeviceName);
+    f_printf(&fil, "%02X:%02X:%02X:%02X:%02X:%02X\n",
+             lastConnectedAddr[0], lastConnectedAddr[1], lastConnectedAddr[2],
+             lastConnectedAddr[3], lastConnectedAddr[4], lastConnectedAddr[5]);
+    f_close(&fil);
+}
+
+bool Buddy::reconnectSavedBTDevice() {
+    if (loadLastConnectedBTDevice()) {
+        uart_putc(UART_ID, RT_BT_SELECT);
+        uart_puts(UART_ID, lastConnectedDeviceName);
+        state = AWAITING_STATE_CHANGE;
+        return true;
+    }
+    return false;
+}
+
 void Buddy::disconnect() {
     uart_putc(UART_ID, RT_BT_DISCONNECT);
+    System::deleteSettingsFile(LAST_BT_DEVICE_FILE);
     state = DISCONNECTED;
     refreshDeviceList();
 }

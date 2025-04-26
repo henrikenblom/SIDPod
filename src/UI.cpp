@@ -284,6 +284,7 @@ void UI::start(bool quickStart) {
     if (quickStart) {
         showSplashCycles = SPLASH_DISPLAY_DURATION;
     }
+    buddy->init();
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
