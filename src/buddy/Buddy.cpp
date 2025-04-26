@@ -50,17 +50,24 @@ void buddyCallback() {
             bool mod1 = IS_BIT_SET(flags, 0);
             switch (gesture) {
                 case G_TAP:
+                case G_SOUTH:
                     UI::singleClickCallback(0, nullptr);
                     break;
                 case G_DOUBLE_TAP:
                     UI::doubleClickCallback();
                     break;
-                case G_HOME:
+                case G_NORTH:
                     if (Catalog::playlistIsOpen()) {
                         Catalog::getCurrentPlaylist()->resetAccessors();
                     } else {
                         Catalog::goHome();
                     }
+                    break;
+                case G_EAST:
+                    SIDPlayer::playNextSong();
+                    break;
+                case G_WEST:
+                    SIDPlayer::playPreviousSong();
                     break;
                 case G_VERTICAL:
                     UI::verticalMovement(mod1 ? -1 : 1);

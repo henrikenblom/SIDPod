@@ -71,6 +71,12 @@ public:
 
     static volatile bool clock(audio_buffer *buffer, float volumeFactor);
 
+    static uint32_t millisSinceSongStart();
+
+    static int getCurrentSong();
+
+    static bool playSong(uint16_t song);
+
     static void setLineLevel(bool on);
 
     static bool getLineLevelOn();

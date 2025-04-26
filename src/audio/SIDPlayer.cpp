@@ -138,6 +138,36 @@ bool SIDPlayer::loadingWasSuccessful() {
     return loadingSuccessful;
 }
 
+int SIDPlayer::getCurrentSong() {
+    return C64::getCurrentSong();
+}
+
+int SIDPlayer::getSongCount() {
+    return C64::getSidInfo()->songs;
+}
+
+void SIDPlayer::playNextSong() {
+    int song = getCurrentSong();
+    if (song++ >= getSongCount() - 1) {
+        song = 0;
+    }
+    C64::playSong(song);
+}
+
+void SIDPlayer::playPreviousSong() {
+    int song = getCurrentSong();
+    if (millisSinceSongStart() < SONG_SKIP_TIME_MS) {
+        if (--song < 0) {
+            song = getSongCount() - 1;
+        }
+    }
+    C64::playSong(song);
+}
+
+uint32_t SIDPlayer::millisSinceSongStart() {
+    return C64::millisSinceSongStart();
+}
+
 // core1 functions
 
 volatile bool SIDPlayer::reapCommand(repeating_timer *t) {

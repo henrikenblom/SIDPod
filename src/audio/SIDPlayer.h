@@ -40,6 +40,16 @@ public:
 
     static bool loadingWasSuccessful();
 
+    static int getCurrentSong();
+
+    static int getSongCount();
+
+    static void playNextSong();
+
+    static void playPreviousSong();
+
+    static uint32_t millisSinceSongStart();
+
     static void resetState();
 
     static void pauseIfPlaying();

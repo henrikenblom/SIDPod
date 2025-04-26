@@ -44,6 +44,7 @@
 
 #define VOLUME_STEPS                        48
 #define INITIAL_VOLUME                      16
+#define SONG_SKIP_TIME_MS                   5000
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1

@@ -220,6 +220,16 @@ namespace Visualization {
                millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION - 6000;
     }
 
+    void DanceFloor::showCurrentSongNumber() const {
+        int currentSong = SIDPlayer::getCurrentSong();
+        int songCount = SIDPlayer::getSongCount();
+        char songNumber[14];
+        snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
+        int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
+        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, width, FONT_HEIGHT);
+        ssd1306_draw_string(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, 1, songNumber);
+    }
+
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
         for (uint8_t x = LOW_FREQ_DOMINANCE_COMP_OFFSET; x < 127 + LOW_FREQ_DOMINANCE_COMP_OFFSET; x++) {
             const int i = static_cast<int>(1.8) * x;
@@ -278,6 +288,11 @@ namespace Visualization {
             updateStarFieldSprites();
             drawStarShip();
         }
+
+        if (SIDPlayer::millisSinceSongStart() < 4000) {
+            showCurrentSongNumber();
+        }
+
         ssd1306_show(pDisp);
 
         if (alternativeScene && millis_now() >= millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION) {

@@ -75,6 +75,8 @@ namespace Visualization {
 
         bool isOutsideOfRoundSpriteTimeWindow() const;
 
+        void showCurrentSongNumber() const;
+
         void updateSoundSprites();
 
         void updateRoundSprites();

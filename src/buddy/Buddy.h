@@ -47,7 +47,10 @@ enum Gesture {
     G_ROTATE = 3,
     G_TAP = 4,
     G_DOUBLE_TAP = 5,
-    G_HOME = 6,
+    G_NORTH = 6,
+    G_EAST = 7,
+    G_WEST = 8,
+    G_SOUTH = 9,
 };
 
 struct Request {
