@@ -61,6 +61,10 @@ std::vector<PlaylistEntry *> Playlist::getWindow() {
     return window;
 }
 
+bool Playlist::isAtLastEntry() {
+    return selectedPosition == getSize() - 1;
+}
+
 void Playlist::selectNext() {
     if (state == READY) {
         if (selectedPosition < getSize() - 1) {
@@ -78,6 +82,22 @@ void Playlist::selectPrevious() {
             slideUp();
             updateWindow();
         }
+    }
+}
+
+void Playlist::selectFirst() {
+    if (state == READY) {
+        selectedPosition = 1;
+        windowPosition = 1;
+        updateWindow();
+    }
+}
+
+void Playlist::selectLast() {
+    if (state == READY) {
+        selectedPosition = getSize() - 1;
+        windowPosition = getSize() - windowSize;
+        updateWindow();
     }
 }
 

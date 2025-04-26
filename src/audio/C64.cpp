@@ -119,6 +119,7 @@ int visDMAChan = 0;
 dma_channel_config visDMACfg;
 int currentVisualizationBufferOffset = 0;
 uint32_t songStartMillis = 0;
+bool songLoaded = false;
 
 /* ------------------------------------------------------------- synthesis
    initialize SID and frequency dependant values */
@@ -751,6 +752,10 @@ int C64::getCurrentSong() {
     return currentSong;
 }
 
+int C64::songIsLoaded() {
+    return songLoaded;
+}
+
 bool C64::playSong(uint16_t song) {
     if (song >= info.songs) return false;
     currentSong = song;
@@ -768,9 +773,7 @@ bool C64::playSong(uint16_t song) {
         sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
         cpuFrequency = NTSC_CPU_FREQUENCY;
     }
-    firstSID->reset();
-    secondSID->reset();
-    thirdSID->reset();
+
     firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
     if (secondSidAddr) {
         secondSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
@@ -787,6 +790,7 @@ bool C64::playSong(uint16_t song) {
 }
 
 bool C64::sid_load_from_file(TCHAR file_name[]) {
+    songLoaded = false;
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];
     UINT bytesRead;
@@ -822,6 +826,8 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
         if (!cpuJSRWithWatchdog(info.init, 0)) return false;
         info.play = (memory[0xffff] << 8) | memory[0xfffe];
     }
+
+    songLoaded = true;
 
     return playSong(info.start);
 }

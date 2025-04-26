@@ -52,6 +52,8 @@ public:
 
     static void resetState();
 
+    static void playIfPaused();
+
     static void pauseIfPlaying();
 
 private:

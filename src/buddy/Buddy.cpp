@@ -50,7 +50,6 @@ void buddyCallback() {
             bool mod1 = IS_BIT_SET(flags, 0);
             switch (gesture) {
                 case G_TAP:
-                case G_SOUTH:
                     UI::singleClickCallback(0, nullptr);
                     break;
                 case G_DOUBLE_TAP:
@@ -58,16 +57,43 @@ void buddyCallback() {
                     break;
                 case G_NORTH:
                     if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->resetAccessors();
+                        const auto playlist = Catalog::getCurrentPlaylist();
+                        if (UI::getState() == UI::visualization) {
+                            playlist->selectPrevious();
+                            if (playlist->isAtReturnEntry()) {
+                                playlist->selectLast();
+                            }
+                            SIDPlayer::togglePlayPause();
+                            UI::initDanceFloor();
+                        } else {
+                            playlist->resetAccessors();
+                        }
                     } else {
                         Catalog::goHome();
                     }
                     break;
+                case G_SOUTH:
+                    if (Catalog::playlistIsOpen()) {
+                        const auto playlist = Catalog::getCurrentPlaylist();
+                        if (UI::getState() == UI::visualization) {
+                            playlist->selectNext();
+                            if (playlist->isAtLastEntry()) {
+                                playlist->selectFirst();
+                            }
+                            SIDPlayer::togglePlayPause();
+                            UI::initDanceFloor();
+                        } else {
+                            Catalog::getCurrentPlaylist()->selectLast();
+                        }
+                    }
+                    break;
                 case G_EAST:
                     SIDPlayer::playNextSong();
+                    UI::initDanceFloor();
                     break;
                 case G_WEST:
                     SIDPlayer::playPreviousSong();
+                    UI::initDanceFloor();
                     break;
                 case G_VERTICAL:
                     UI::verticalMovement(mod1 ? -1 : 1);

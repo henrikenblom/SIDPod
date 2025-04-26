@@ -16,6 +16,8 @@ namespace Visualization {
 
         void stop();
 
+        void init(PlaylistEntry *_selectedEntry);
+
         struct StarSprite {
             uint8_t x;
             uint8_t y;

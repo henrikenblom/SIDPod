@@ -35,9 +35,15 @@ public:
 
     std::vector<PlaylistEntry *> getWindow();
 
+    bool isAtLastEntry();
+
     void selectNext();
 
     void selectPrevious();
+
+    void selectFirst();
+
+    void selectLast();
 
     void markCurrentEntryAsUnplayable();
 

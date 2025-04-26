@@ -221,12 +221,12 @@ namespace Visualization {
     }
 
     void DanceFloor::showCurrentSongNumber() const {
-        int currentSong = SIDPlayer::getCurrentSong();
-        int songCount = SIDPlayer::getSongCount();
+        const int currentSong = SIDPlayer::getCurrentSong();
+        const int songCount = SIDPlayer::getSongCount();
         char songNumber[14];
         snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
-        int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
-        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, width, FONT_HEIGHT);
+        const int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
+        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, width + 1, FONT_HEIGHT);
         ssd1306_draw_string(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, 1, songNumber);
     }
 
@@ -377,7 +377,7 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::start(PlaylistEntry *_selectedEntry) {
+    void DanceFloor::init(PlaylistEntry *_selectedEntry) {
         running = true;
         freeze = false;
         for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {
@@ -407,6 +407,10 @@ namespace Visualization {
             transition = FROM_BEGIN;
             horizon = 32;
         }
+    }
+
+    void DanceFloor::start(PlaylistEntry *_selectedEntry) {
+        init(_selectedEntry);
         visualize();
     }
 

@@ -75,6 +75,8 @@ public:
 
     static int getCurrentSong();
 
+    static int songIsLoaded();
+
     static bool playSong(uint16_t song);
 
     static void setLineLevel(bool on);

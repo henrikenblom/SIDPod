@@ -62,6 +62,12 @@ void SIDPlayer::resetState() {
     busy_wait_ms(200);
 }
 
+void SIDPlayer::playIfPaused() {
+    if (!rendering) {
+        togglePlayPause();
+    }
+}
+
 void SIDPlayer::pauseIfPlaying() {
     if (rendering) {
         togglePlayPause();
@@ -147,21 +153,27 @@ int SIDPlayer::getSongCount() {
 }
 
 void SIDPlayer::playNextSong() {
-    int song = getCurrentSong();
-    if (song++ >= getSongCount() - 1) {
-        song = 0;
+    if (C64::songIsLoaded()) {
+        int song = getCurrentSong();
+        if (song++ >= getSongCount() - 1) {
+            song = 0;
+        }
+        C64::playSong(song);
+        playIfPaused();
     }
-    C64::playSong(song);
 }
 
 void SIDPlayer::playPreviousSong() {
-    int song = getCurrentSong();
-    if (millisSinceSongStart() < SONG_SKIP_TIME_MS) {
-        if (--song < 0) {
-            song = getSongCount() - 1;
+    if (C64::songIsLoaded()) {
+        int song = getCurrentSong();
+        if (millisSinceSongStart() < SONG_SKIP_TIME_MS) {
+            if (--song < 0) {
+                song = getSongCount() - 1;
+            }
         }
+        C64::playSong(song);
+        playIfPaused();
     }
-    C64::playSong(song);
 }
 
 uint32_t SIDPlayer::millisSinceSongStart() {
