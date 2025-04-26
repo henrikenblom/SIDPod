@@ -77,7 +77,7 @@ namespace Visualization {
 
         bool isOutsideOfRoundSpriteTimeWindow() const;
 
-        void showCurrentSongNumber() const;
+        void showCurrentSongNumber(bool show, bool hide);
 
         void updateSoundSprites();
 
@@ -122,6 +122,7 @@ namespace Visualization {
         Transition transition = NO_TRANSITION;
         uint32_t millisSinceLastSceneChange = millis_now();
         float horizon = 10;
+        float songNumberOffset = 0;
 
         void (*stopCallback)() = nullptr;
 

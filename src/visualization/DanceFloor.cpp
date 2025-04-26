@@ -220,14 +220,20 @@ namespace Visualization {
                millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION - 6000;
     }
 
-    void DanceFloor::showCurrentSongNumber() const {
+    void DanceFloor::showCurrentSongNumber(bool show, bool hide) {
         const int currentSong = SIDPlayer::getCurrentSong();
         const int songCount = SIDPlayer::getSongCount();
         char songNumber[14];
         snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
         const int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
-        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, width + 1, FONT_HEIGHT);
-        ssd1306_draw_string(pDisp, 0, DISPLAY_HEIGHT - FONT_HEIGHT, 1, songNumber);
+        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT + songNumberOffset, width + 4, FONT_HEIGHT);
+        ssd1306_draw_string(pDisp, 2, DISPLAY_HEIGHT + songNumberOffset, 1, songNumber);
+        if (show) {
+            songNumberOffset -= 0.5;
+        }
+        if (hide) {
+            songNumberOffset += 0.5;
+        }
     }
 
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
@@ -289,8 +295,14 @@ namespace Visualization {
             drawStarShip();
         }
 
-        if (SIDPlayer::millisSinceSongStart() < 4000) {
-            showCurrentSongNumber();
+
+        auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
+        if (millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
+            && millisSinceSongStart < SONG_NUMBER_DISPLAY_DURATION + SONG_NUMBER_DISPLAY_DELAY +
+            SONG_NUMBER_SHOW_HIDE_DURATION * 2) {
+            showCurrentSongNumber(millisSinceSongStart < SONG_NUMBER_SHOW_HIDE_DURATION + SONG_NUMBER_DISPLAY_DELAY,
+                                  millisSinceSongStart > SONG_NUMBER_DISPLAY_DURATION + SONG_NUMBER_DISPLAY_DELAY +
+                                  SONG_NUMBER_SHOW_HIDE_DURATION);
         }
 
         ssd1306_show(pDisp);
@@ -332,18 +344,23 @@ namespace Visualization {
             if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
-                char extraText[50];
+                char extraText[50] = {};
+                char name[44] = {};
+                if (entry->songs > 1) {
+                    sprintf(name, "%s (song %d)", entry->name, SIDPlayer::getCurrentSong() + 1);
+                } else {
+                    sprintf(name, "%s", entry->name);
+                }
                 if (entry->sidChipBase3) {
                     sprintf(extraText, "Did you know that this song uses three SID chips?");
                 } else if (entry->sidChipBase2) {
                     sprintf(extraText, "Fun fact: This song uses two SID chips!");
                 }
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod. %s %s",
-                         entry->name, entry->author, entry->released, experience,
+                         "This is %s by %s (%s) and you are %s %s on a SIDPod. %s",
+                         name, entry->author, entry->released, experience,
                          entry->isPSID ? "it" : "this RSID",
-                         extraText,
-                         random() % 4 == 1 ? "Enjoy!" : "");
+                         extraText);
                 showScroller = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
@@ -384,29 +401,28 @@ namespace Visualization {
             if (SIDPlayer::isPlaying()) break;
             busy_wait_ms(1);
         }
-        if (selectedEntry != _selectedEntry) {
-            selectedEntry = _selectedEntry;
-            rsOffset = DISPLAY_WIDTH + 32;
-            rvOffset = 0;
-            showScroller = false;
-            for (auto &soundSprite: soundSprites) {
-                soundSprite = {0};
-            }
-            for (auto &roundSprite: roundSprites) {
-                roundSprite = {0};
-            }
-            for (auto &startFieldSprite: starFieldSprites) {
-                startFieldSprite = {0};
-            }
-
-            alternativeScene = false;
-            starFieldVisible = false;
-            starShipX = -64;
-            starShipY = DISPLAY_HEIGHT / 2 - 8;
-            letStarShipRoam = false;
-            transition = FROM_BEGIN;
-            horizon = 32;
+        selectedEntry = _selectedEntry;
+        rsOffset = DISPLAY_WIDTH + 32;
+        rvOffset = 0;
+        showScroller = false;
+        for (auto &soundSprite: soundSprites) {
+            soundSprite = {0};
         }
+        for (auto &roundSprite: roundSprites) {
+            roundSprite = {0};
+        }
+        for (auto &startFieldSprite: starFieldSprites) {
+            startFieldSprite = {0};
+        }
+
+        alternativeScene = false;
+        starFieldVisible = false;
+        starShipX = -64;
+        starShipY = DISPLAY_HEIGHT / 2 - 8;
+        letStarShipRoam = false;
+        transition = FROM_BEGIN;
+        horizon = 32;
+        songNumberOffset = 0;
     }
 
     void DanceFloor::start(PlaylistEntry *_selectedEntry) {

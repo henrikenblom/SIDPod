@@ -88,12 +88,12 @@ void buddyCallback() {
                     }
                     break;
                 case G_EAST:
-                    SIDPlayer::playNextSong();
                     UI::initDanceFloor();
+                    SIDPlayer::playNextSong();
                     break;
                 case G_WEST:
-                    SIDPlayer::playPreviousSong();
                     UI::initDanceFloor();
+                    SIDPlayer::playPreviousSong();
                     break;
                 case G_VERTICAL:
                     UI::verticalMovement(mod1 ? -1 : 1);
