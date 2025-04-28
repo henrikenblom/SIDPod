@@ -69,7 +69,7 @@ void buddyCallback() {
                             playlist->resetAccessors();
                         }
                     } else {
-                        Catalog::goHome();
+                        Catalog::resetAccessors();
                     }
                     break;
                 case G_SOUTH:
@@ -85,6 +85,8 @@ void buddyCallback() {
                         } else {
                             Catalog::getCurrentPlaylist()->selectLast();
                         }
+                    } else {
+                        Catalog::selectLast();
                     }
                     break;
                 case G_EAST:

@@ -37,6 +37,7 @@ void System::hardReset() {
 }
 
 void System::virtualVBLSync() {
+    //TODO: Implement a better VBL sync, that measures
     busy_wait_us(WAIT_SYNC_NS);
 }
 

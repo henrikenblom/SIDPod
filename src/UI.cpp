@@ -197,13 +197,13 @@ void UI::showPlaylistSelector() {
     ssd1306_clear(&disp);
     drawHeader("PLAYLISTS");
     uint8_t y = FONT_HEIGHT;
-    for (const std::string &entry: *Catalog::getEntries()) {
-        bool selected = entry == Catalog::getSelected();
-        bool playing = entry == Catalog::getPlaying();
-        if (selected && entry.length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-            animateLongText(entry.c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+    for (const auto &entry: Catalog::getWindow()) {
+        const bool selected = *entry == Catalog::getSelected();
+        const bool playing = *entry == Catalog::getPlaying();
+        if (selected && entry->length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+            animateLongText(entry->c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
         } else {
-            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry.c_str());
+            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->c_str());
         }
         if (selected) {
             drawOpenSymbol(y);

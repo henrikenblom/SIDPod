@@ -37,7 +37,7 @@ namespace Visualization {
 
         struct RoundSprite {
             int8_t distance;
-            int32_t x;
+            float x;
             int32_t y;
         };
 
@@ -106,6 +106,8 @@ namespace Visualization {
             return to_ms_since_boot(get_absolute_time());
         }
 
+        float roundSpriteXVelocity = 0;
+        float roundSpriteTargetXVelocity = 0;
         int sprite_index = 0;
         int roundSpriteIndex = 0;
         int starFieldSpriteIndex = 0;

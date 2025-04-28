@@ -78,9 +78,9 @@
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 8)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
 #define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 3))
-#define ALTERNATIVE_SCENE_DURATION          79400
+#define ALTERNATIVE_SCENE_DURATION          79000
 #define STARFIELD_ACTIVE_AFTER              30000
-#define END_SPHERE_SCENE_AFTER              40000
+#define END_SPHERE_SCENE_AFTER              35000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         1000
 #define LOW_FREQ_DOMINANCE_COMP_OFFSET      2

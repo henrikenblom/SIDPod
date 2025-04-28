@@ -158,9 +158,14 @@ namespace Visualization {
             if (sprite.distance > -16 && sprite.y < horizon) {
                 drawCircle(sprite.x, sprite.y, radius);
                 sprite.distance -= 4;
-                sprite.x -= starFieldVisible ? 2 : 0;
+                sprite.x += roundSpriteXVelocity;
             }
             roundSprite = sprite;
+        }
+        if (roundSpriteTargetXVelocity < 0 && roundSpriteXVelocity > roundSpriteTargetXVelocity) {
+            roundSpriteXVelocity -= 0.2;
+        } else if (roundSpriteXVelocity < roundSpriteTargetXVelocity) {
+            roundSpriteXVelocity += 0.2;
         }
     }
 
@@ -202,7 +207,8 @@ namespace Visualization {
     }
 
     bool DanceFloor::shouldUpdateRoundSprites() const {
-        return alternativeScene || transition == FROM_SPECTRUM || transition == FROM_ALTERNATIVE;
+        return sphereSizeInc != 0 && (alternativeScene || transition == FROM_SPECTRUM || transition ==
+                                      FROM_ALTERNATIVE);
     }
 
     bool DanceFloor::shouldUpdateSoundSprites() const {
@@ -243,11 +249,23 @@ namespace Visualization {
     }
 
 
-    void DanceFloor::draw3DPixelSphere(int32_t x, int32_t y, float size, int16_t xAxisRotation,
-                                       int16_t yAxisRotation) const {
-        for (float theta = 0; theta < 2 * M_PI; theta += 0.3) {
-            // Longitude
-            for (float phi = 0; phi < M_PI; phi += 0.3) {
+    void DanceFloor::draw3DPixelSphere(const int32_t x,
+                                       const int32_t y,
+                                       const float size,
+                                       const int16_t xAxisRotation,
+                                       const int16_t yAxisRotation) const {
+        if (size < 1) {
+            ssd1306_draw_pixel(pDisp, x, y);
+            return;
+        }
+        if (size <= 6) {
+            drawFilledCircle(x, y, static_cast<int>(size));
+            return;
+        }
+        float theta = 0;
+        while (theta < 2 * M_PI) {
+            float phi = 0;
+            while (phi < M_PI) {
                 // Latitude
                 // Calculate 3D sphere coordinates
                 float x3D = size * sin(phi) * cos(theta);
@@ -255,21 +273,21 @@ namespace Visualization {
                 float z3D = size * cos(phi);
 
                 // Apply rotation around the X-axis
-                float tempY = y3D * cos(xAxisRotation * M_PI / 180) - z3D * sin(xAxisRotation * M_PI / 180);
-                float tempZ = y3D * sin(xAxisRotation * M_PI / 180) + z3D * cos(xAxisRotation * M_PI / 180);
+                const auto tempY = static_cast<float>(y3D * cos(xAxisRotation * M_PI / 180) - z3D
+                                                      * sin(xAxisRotation * M_PI / 180));
+                z3D = static_cast<float>(y3D * sin(xAxisRotation * M_PI / 180) + z3D * cos(xAxisRotation * M_PI / 180));
                 y3D = tempY;
-                z3D = tempZ;
 
                 // Apply rotation around the Y-axis
-                float tempX = x3D * cos(yAxisRotation * M_PI / 180) + z3D * sin(yAxisRotation * M_PI / 180);
-                x3D = tempX;
+                x3D = static_cast<float>(x3D * cos(yAxisRotation * M_PI / 180) + z3D * sin(yAxisRotation * M_PI / 180));
 
                 // Project 3D coordinates onto 2D plane
-                int32_t x2D = static_cast<int32_t>(x + x3D);
-                int32_t y2D = static_cast<int32_t>(y + y3D);
+                ssd1306_draw_pixel(pDisp, static_cast<int32_t>(static_cast<float>(x) + x3D),
+                                   static_cast<int32_t>(static_cast<float>(y) + y3D));
 
-                ssd1306_draw_pixel(pDisp, x2D, y2D);
+                phi += 0.3;
             }
+            theta += 0.3;
         }
     }
 
@@ -279,7 +297,7 @@ namespace Visualization {
         sphereRotationX -= 1;
         sphereSize += sphereSizeInc;
         sphereX += sphereXInc;
-        if (sphereX < (sphereSize < 10 ? 10 : 0) || sphereX > (sphereSize < 10 ? DISPLAY_WIDTH - 10 : DISPLAY_WIDTH)) {
+        if (sphereX < 0 || sphereX > DISPLAY_WIDTH) {
             sphereXInc = -sphereXInc;
         }
 
@@ -306,7 +324,7 @@ namespace Visualization {
                 if (!isOutsideOfRoundSpriteTimeWindow() && shouldUpdateRoundSprites()) {
                     if (x % 16 == 0 || x == 0 || x == 127) {
                         RoundSprite roundSprite = {
-                            .distance = 20, .x = random() % DISPLAY_WIDTH,
+                            .distance = 20, .x = static_cast<float>(random() % DISPLAY_WIDTH),
                             .y = random() % DISPLAY_HEIGHT
                         };
                         roundSprites[roundSpriteIndex++] = roundSprite;
@@ -342,7 +360,9 @@ namespace Visualization {
         }
         if (shouldUpdateSoundSprites()) {
             drawFibonacciLandscape();
-            drawStarrySky(false);
+            if (transition != FROM_SPHERE) {
+                drawStarrySky(false);
+            }
             if (transition == NO_TRANSITION) {
                 drawScroller();
             }
@@ -373,20 +393,20 @@ namespace Visualization {
         }
         if (sphereScene && millis_now() >= millisSinceLastSceneChange + END_SPHERE_SCENE_AFTER
             && sphereSize >= maxSphereSize / 2) {
+            roundSpriteTargetXVelocity = 0;
             minSphereSize = 0;
             sphereSizeInc = -1;
             transition = FROM_SPHERE;
-            horizon = 32;
+            horizon = 44;
             millisSinceLastSceneChange = millis_now();
         }
         if (transition == FROM_SPHERE && sphereSize <= minSphereSize) {
+            roundSpriteXVelocity = 0;
             sphereScene = false;
-            minSphereSize = 6;
-            sphereSizeInc = 1;
-            sphereSize = 100;
+            sphereSizeInc = 0;
             millisSinceLastSceneChange = millis_now();
         }
-        if (transition == FROM_ALTERNATIVE && millis_now() >= millisSinceLastSceneChange + 8000) {
+        if (transition == FROM_ALTERNATIVE && millis_now() >= millisSinceLastSceneChange + 8600) {
             transition = NO_TRANSITION;
             sphereScene = true;
             alternativeScene = false;
@@ -395,6 +415,7 @@ namespace Visualization {
         }
         if (alternativeScene && !starFieldVisible && isWithinStarFieldTimeWindow()) {
             starFieldVisible = true;
+            roundSpriteTargetXVelocity = -3;
         }
         if (transition == FROM_SPECTRUM) {
             horizon += 0.2;
@@ -410,6 +431,9 @@ namespace Visualization {
                 starFieldVisible = false;
                 starShipX = -64;
                 starShipY = DISPLAY_HEIGHT / 2 - 8;
+                sphereSizeInc = 1;
+                sphereSize = 100;
+                minSphereSize = 6;
             }
         }
     }
@@ -495,7 +519,7 @@ namespace Visualization {
         starFieldVisible = false;
         sphereScene = false;
         starShipX = -64;
-        starShipY = DISPLAY_HEIGHT / 2 - 8;
+        starShipY = DISPLAY_Y_CENTER - 8;
         letStarShipRoam = false;
         transition = FROM_BEGIN;
         horizon = 32;
@@ -507,6 +531,8 @@ namespace Visualization {
         sphereX = DISPLAY_X_CENTER;
         sphereXInc = 1;
         maxSphereSize = 64;
+        roundSpriteXVelocity = 0;
+        roundSpriteTargetXVelocity = 0;
         millisSinceLastSceneChange = millis_now();
     }
 
