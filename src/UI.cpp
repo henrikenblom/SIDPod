@@ -75,11 +75,11 @@ void UI::showSplash() {
 }
 
 void UI::initDanceFloor() {
-    danceFloor->init(Catalog::getCurrentPlaylist()->getCurrentEntry());
+    danceFloor->init();
 }
 
 void UI::startDanceFloor() {
-    danceFloor->start(Catalog::getCurrentPlaylist()->getCurrentEntry());
+    danceFloor->start();
 }
 
 void UI::updateUI() {
@@ -563,6 +563,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                                playlist->getCurrentEntry()
                                ->fileName) != 0) {
                         SIDPlayer::togglePlayPause();
+                        initDanceFloor();
                     }
                     currentState = visualization;
             }

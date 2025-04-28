@@ -8,7 +8,7 @@
 #define REFERENCE_CLOCK_SPEED_KHZ           125000
 
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
-#define CLOCK_SPEED_KHZ                     250000
+#define CLOCK_SPEED_KHZ                     260000
 #else
 #define CLOCK_SPEED_KHZ                     REFERENCE_CLOCK_SPEED_KHZ
 #endif
@@ -80,6 +80,7 @@
 #define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 3))
 #define ALTERNATIVE_SCENE_DURATION          79400
 #define STARFIELD_ACTIVE_AFTER              30000
+#define END_SPHERE_SCENE_AFTER              40000
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         1000
 #define LOW_FREQ_DOMINANCE_COMP_OFFSET      2

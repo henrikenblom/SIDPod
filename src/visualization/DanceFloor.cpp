@@ -1,4 +1,6 @@
 #include "DanceFloor.h"
+
+#include "Catalog.h"
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../System.h"
@@ -149,11 +151,12 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::updateRoundSprites() {
+    void DanceFloor::updateRoundSprites(bool instantImplosion) {
         for (auto &roundSprite: roundSprites) {
             auto sprite = roundSprite;
+            int32_t radius = sprite.distance / 2.5 - (40 - (instantImplosion ? 10 : horizon));
             if (sprite.distance > -16 && sprite.y < horizon) {
-                drawCircle(sprite.x, sprite.y, sprite.distance / 2.5 - (40 - horizon));
+                drawCircle(sprite.x, sprite.y, radius);
                 sprite.distance -= 4;
                 sprite.x -= starFieldVisible ? 2 : 0;
             }
@@ -203,11 +206,15 @@ namespace Visualization {
     }
 
     bool DanceFloor::shouldUpdateSoundSprites() const {
-        return !alternativeScene || transition != NO_TRANSITION;
+        return (!alternativeScene && !sphereScene) || transition == FROM_SPHERE;;
     }
 
     bool DanceFloor::shouldUpdateStarFieldSprites() const {
         return starFieldVisible;
+    }
+
+    bool DanceFloor::shouldUpdateSphere() const {
+        return sphereScene || transition == FROM_SPHERE || transition == FROM_ALTERNATIVE;
     }
 
     bool DanceFloor::isWithinStarFieldTimeWindow() const {
@@ -216,8 +223,7 @@ namespace Visualization {
     }
 
     bool DanceFloor::isOutsideOfRoundSpriteTimeWindow() const {
-        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER + 6000 &&
-               millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION - 6000;
+        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER + 6000;
     }
 
     void DanceFloor::showCurrentSongNumber(bool show, bool hide) {
@@ -237,7 +243,8 @@ namespace Visualization {
     }
 
 
-    void DanceFloor::draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation) {
+    void DanceFloor::draw3DPixelSphere(int32_t x, int32_t y, float size, int16_t xAxisRotation,
+                                       int16_t yAxisRotation) const {
         for (float theta = 0; theta < 2 * M_PI; theta += 0.3) {
             // Longitude
             for (float phi = 0; phi < M_PI; phi += 0.3) {
@@ -266,6 +273,25 @@ namespace Visualization {
         }
     }
 
+    void DanceFloor::drawSphereScene(const int totalY) {
+        draw3DPixelSphere(sphereX, DISPLAY_Y_CENTER, sphereSize, sphereRotationX, sphereRotationY);
+        sphereRotationY += 1 + std::min(90, totalY / 8);
+        sphereRotationX -= 1;
+        sphereSize += sphereSizeInc;
+        sphereX += sphereXInc;
+        if (sphereX < (sphereSize < 10 ? 10 : 0) || sphereX > (sphereSize < 10 ? DISPLAY_WIDTH - 10 : DISPLAY_WIDTH)) {
+            sphereXInc = -sphereXInc;
+        }
+
+        if (sphereSize % 40 == 0) {
+            sphereSizeInc += sphereSizeInc > 0 ? 1 : -1;
+        }
+        if (sphereSize > maxSphereSize) sphereSizeInc = -1;
+        if (sphereSize < minSphereSize) sphereSizeInc = 1;
+        if (sphereRotationX < 0) sphereRotationX = 359;
+        if (sphereRotationY > 360) sphereRotationY -= 360;
+    }
+
     void DanceFloor::drawScene(const kiss_fft_cpx *fft_out) {
         int totalY = 0;
         for (uint8_t x = LOW_FREQ_DOMINANCE_COMP_OFFSET; x < 127 + LOW_FREQ_DOMINANCE_COMP_OFFSET; x++) {
@@ -273,9 +299,9 @@ namespace Visualization {
             int y = static_cast<int>((fft_out[i].r + fft_out[i].i +
                                       fft_out[i + 1].r + fft_out[i + 1].i + static_cast<float>(i)) *
                                      compFactor);
-            totalY += y;
             if (y > 0) {
                 if (y > 28) y /= 8;
+                totalY += y;
 
                 if (!isOutsideOfRoundSpriteTimeWindow() && shouldUpdateRoundSprites()) {
                     if (x % 16 == 0 || x == 0 || x == 127) {
@@ -296,7 +322,7 @@ namespace Visualization {
                     soundSprites[sprite_index++] = sprite;
                     if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
                 }
-                if (shouldUpdateStarFieldSprites()) {
+                if (shouldUpdateStarFieldSprites() && !transition == FROM_ALTERNATIVE) {
                     if ((x % 64 == 0 || x == 0 || x == 127) && y > 0) {
                         StarFieldSprite starFieldSprite = {
                             .x = DISPLAY_WIDTH + 10, .y = (uint8_t) (random() % DISPLAY_HEIGHT),
@@ -312,23 +338,23 @@ namespace Visualization {
 
         ssd1306_clear(pDisp);
         if (shouldUpdateRoundSprites()) {
-            updateRoundSprites();
+            updateRoundSprites(transition == FROM_ALTERNATIVE);
         }
         if (shouldUpdateSoundSprites()) {
-            draw3DPixelBall(64, 16, 14 + std::min(1, totalY / 64), ballRotation, ballRotation);
-            if (ballRotation++ > 360) ballRotation = 0;
-            // drawFibonacciLandscape();
-            // drawStarrySky(false);
-            // if (transition == NO_TRANSITION) {
-            //     drawScroller();
-            // }
-            // updateSoundSprites();
+            drawFibonacciLandscape();
+            drawStarrySky(false);
+            if (transition == NO_TRANSITION) {
+                drawScroller();
+            }
+            updateSoundSprites();
         }
         if (shouldUpdateStarFieldSprites()) {
             updateStarFieldSprites();
             drawStarShip();
         }
-
+        if (shouldUpdateSphere()) {
+            drawSphereScene(totalY);
+        }
 
         auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
         if (millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
@@ -345,6 +371,28 @@ namespace Visualization {
             millisSinceLastSceneChange = millis_now();
             transition = FROM_ALTERNATIVE;
         }
+        if (sphereScene && millis_now() >= millisSinceLastSceneChange + END_SPHERE_SCENE_AFTER
+            && sphereSize >= maxSphereSize / 2) {
+            minSphereSize = 0;
+            sphereSizeInc = -1;
+            transition = FROM_SPHERE;
+            horizon = 32;
+            millisSinceLastSceneChange = millis_now();
+        }
+        if (transition == FROM_SPHERE && sphereSize <= minSphereSize) {
+            sphereScene = false;
+            minSphereSize = 6;
+            sphereSizeInc = 1;
+            sphereSize = 100;
+            millisSinceLastSceneChange = millis_now();
+        }
+        if (transition == FROM_ALTERNATIVE && millis_now() >= millisSinceLastSceneChange + 8000) {
+            transition = NO_TRANSITION;
+            sphereScene = true;
+            alternativeScene = false;
+            starFieldVisible = false;
+            millisSinceLastSceneChange = millis_now();
+        }
         if (alternativeScene && !starFieldVisible && isWithinStarFieldTimeWindow()) {
             starFieldVisible = true;
         }
@@ -354,7 +402,7 @@ namespace Visualization {
                 transition = NO_TRANSITION;
                 alternativeScene = true;
             }
-        } else if (transition == FROM_ALTERNATIVE || transition == FROM_BEGIN) {
+        } else if (transition == FROM_SPHERE || transition == FROM_BEGIN) {
             horizon -= 0.2;
             if (horizon <= 10) {
                 transition = NO_TRANSITION;
@@ -375,7 +423,8 @@ namespace Visualization {
 
     void DanceFloor::visualize() {
         while (running) {
-            if (!showScroller && strcmp(selectedEntry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
+            if (!showScroller && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
+                                        SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 char extraText[50] = {};
@@ -428,14 +477,7 @@ namespace Visualization {
         }
     }
 
-    void DanceFloor::init(PlaylistEntry *_selectedEntry) {
-        running = true;
-        freeze = false;
-        for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {
-            if (SIDPlayer::isPlaying()) break;
-            busy_wait_ms(1);
-        }
-        selectedEntry = _selectedEntry;
+    void DanceFloor::init() {
         rsOffset = DISPLAY_WIDTH + 32;
         rvOffset = 0;
         showScroller = false;
@@ -451,16 +493,30 @@ namespace Visualization {
 
         alternativeScene = false;
         starFieldVisible = false;
+        sphereScene = false;
         starShipX = -64;
         starShipY = DISPLAY_HEIGHT / 2 - 8;
         letStarShipRoam = false;
         transition = FROM_BEGIN;
         horizon = 32;
         songNumberOffset = 0;
+        sphereRotationX = 0;
+        sphereRotationY = 0;
+        sphereSize = 100;
+        sphereSizeInc = 1;
+        sphereX = DISPLAY_X_CENTER;
+        sphereXInc = 1;
+        maxSphereSize = 64;
+        millisSinceLastSceneChange = millis_now();
     }
 
-    void DanceFloor::start(PlaylistEntry *_selectedEntry) {
-        init(_selectedEntry);
+    void DanceFloor::start() {
+        for (int i = 0; i < SIDPLAYER_STARTUP_GRACE_TIME; i++) {
+            if (SIDPlayer::isPlaying()) break;
+            busy_wait_ms(1);
+        }
+        running = true;
+        freeze = false;
         visualize();
     }
 

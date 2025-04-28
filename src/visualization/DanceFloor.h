@@ -12,11 +12,11 @@ namespace Visualization {
     public:
         explicit DanceFloor(ssd1306_t *disp);
 
-        void start(PlaylistEntry *_selectedEntry);
+        void start();
 
         void stop();
 
-        void init(PlaylistEntry *_selectedEntry);
+        void init();
 
         struct StarSprite {
             uint8_t x;
@@ -45,7 +45,8 @@ namespace Visualization {
             NO_TRANSITION,
             FROM_ALTERNATIVE,
             FROM_SPECTRUM,
-            FROM_BEGIN
+            FROM_BEGIN,
+            FROM_SPHERE
         };
 
     private:
@@ -73,19 +74,23 @@ namespace Visualization {
 
         bool shouldUpdateStarFieldSprites() const;
 
+        bool shouldUpdateSphere() const;
+
         bool isWithinStarFieldTimeWindow() const;
 
         bool isOutsideOfRoundSpriteTimeWindow() const;
 
         void showCurrentSongNumber(bool show, bool hide);
 
-        void draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation);
+        void draw3DPixelSphere(int32_t x, int32_t y, float size, int16_t xAxisRotation, int16_t yAxisRotation) const;
+
+        void drawSphereScene(int totalY);
 
         void draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation) const;
 
         void updateSoundSprites();
 
-        void updateRoundSprites();
+        void updateRoundSprites(bool instantImplosion);
 
         void updateStarFieldSprites();
 
@@ -120,14 +125,22 @@ namespace Visualization {
         volatile bool showScroller = false;
         kiss_fftr_cfg fft_cfg{};
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
-        PlaylistEntry *selectedEntry{};
         bool alternativeScene = false;
         bool starFieldVisible = false;
+        bool sphereScene = false;
         Transition transition = NO_TRANSITION;
         uint32_t millisSinceLastSceneChange = millis_now();
         float horizon = 10;
         float songNumberOffset = 0;
-        int16_t ballRotation = 0;
+        uint16_t sphereRotationX = 0;
+        uint16_t sphereRotationY = 0;
+        uint16_t sphereSize = 100;
+        uint16_t sphereSizeInc = 1;
+        uint16_t sphereX = DISPLAY_X_CENTER;
+        uint16_t sphereXInc = 1;
+        uint16_t sphereZComp = 0;
+        uint8_t minSphereSize = 6;
+        uint8_t maxSphereSize = 64;
 
         void (*stopCallback)() = nullptr;
 
