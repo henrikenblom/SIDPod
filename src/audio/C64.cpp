@@ -790,6 +790,7 @@ bool C64::playSong(uint16_t song) {
 }
 
 bool C64::sid_load_from_file(TCHAR file_name[]) {
+    info = {};
     songLoaded = false;
     FIL pFile;
     BYTE header[SID_HEADER_SIZE];

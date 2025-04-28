@@ -3,7 +3,6 @@
 //
 
 #include "Catalog.h"
-#include <cstring>
 #include <sd_card.h>
 #include <vector>
 #include <string>
@@ -12,8 +11,11 @@
 #include "Playlist.h"
 
 std::vector<std::string> entries;
+std::vector<std::string *> window;
 Playlist *currentPlaylist = nullptr;
-int topItem = 0;
+uint8_t selectedPosition = 0;
+uint8_t windowPosition = 0;
+uint8_t windowSize = CATALOG_WINDOW_SIZE;
 std::string selected;
 std::string playing;
 bool playlistOpen = false;
@@ -27,24 +29,19 @@ void Catalog::refresh() {
         FRESULT fr;
         dp = new DIR;
         f_opendir(dp, "");
-        int c = 0;
         entries.clear();
-        while (entries.size() < CATALOG_WINDOW_SIZE) {
+        while (entries.size() < MAX_PLAYLIST_ENTRIES) {
             fr = f_readdir(dp, &fno);
             if (fr != FR_OK || fno.fname[0] == 0) break;
             if (isValidDirectory(&fno)) {
-                if (c++ >= topItem) {
-                    entries.emplace_back(fno.fname);
-                    if (selected.empty()) {
-                        selected = fno.fname;
-                    }
-                }
+                entries.emplace_back(fno.fname);
             }
         }
 
         f_closedir(dp);
         delete dp;
         refreshing = false;
+        resetAccessors();
     }
 }
 
@@ -60,8 +57,8 @@ std::string Catalog::getSelected() {
     return selected;
 }
 
-std::vector<std::string> *Catalog::getEntries() {
-    return &entries;
+std::vector<std::string *> Catalog::getWindow() {
+    return window;
 }
 
 bool Catalog::playlistIsOpen() {
@@ -83,47 +80,62 @@ void Catalog::openSelected() {
 }
 
 void Catalog::slideDown() {
-    if (topItem <= entries.size() - CATALOG_WINDOW_SIZE + 2) {
-        topItem++;
+    if (windowSize + windowPosition < getSize()) {
+        windowPosition++;
     }
-    refresh();
 }
 
 void Catalog::slideUp() {
-    if (topItem > 0) {
-        topItem--;
+    if (windowPosition > 0) {
+        windowPosition--;
     }
-    refresh();
 }
 
 void Catalog::selectNext() {
-    for (int i = 0; i < entries.size(); i++) {
-        if (entries[i] == selected && i != entries.size() - 1) {
-            selected = entries[i + 1];
-            break;
-        }
+    if (selectedPosition < getSize() - 1) {
+        selectedPosition++;
+        slideDown();
+        updateWindow();
     }
-    slideDown();
 }
 
 void Catalog::selectPrevious() {
-    for (int i = 0; i < entries.size(); i++) {
-        if (entries[i] == selected && i > 0) {
-            selected = entries[i - 1];
-            break;
-        }
+    if (selectedPosition > 0) {
+        selectedPosition--;
+        slideUp();
+        updateWindow();
     }
-    slideUp();
 }
 
-void Catalog::goHome() {
-    if (!refreshing) {
-        topItem = 0;
-        selected.clear();
-        refresh();
-    }
+void Catalog::selectLast() {
+    selectedPosition = getSize() - 1;
+    windowPosition = getSize() - windowSize;
+    updateWindow();
+}
+
+size_t Catalog::getSize() {
+    return entries.size();
 }
 
 Playlist *Catalog::getCurrentPlaylist() {
     return currentPlaylist;
+}
+
+void Catalog::updateWindow() {
+    if (getSize()) {
+        window.clear();
+        for (int i = 0; i < std::min(windowSize, static_cast<uint8_t>(getSize())); i++) {
+            auto entry = &entries.at(windowPosition + i);
+            window.push_back(entry);
+        }
+        selected = entries.at(selectedPosition);
+    }
+}
+
+void Catalog::resetAccessors() {
+    selectedPosition = 0;
+    windowPosition = 0;
+    if (getSize() > 0) {
+        updateWindow();
+    }
 }

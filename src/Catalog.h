@@ -21,7 +21,7 @@ public:
 
     static std::string getSelected();
 
-    static std::vector<std::string> *getEntries();
+    static std::vector<std::string *> getWindow();
 
     static bool playlistIsOpen();
 
@@ -37,16 +37,20 @@ public:
 
     static void selectPrevious();
 
-    static void goHome();
+    static void selectLast();
+
+    static size_t getSize();
 
     static Playlist *getCurrentPlaylist();
+
+    static void resetAccessors();
 
 private:
     static bool isValidDirectory(FILINFO *fileInfo) {
         return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46;
     }
 
-    static bool containsSIDs(TCHAR *path);
+    static void updateWindow();
 };
 
 
