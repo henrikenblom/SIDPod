@@ -68,7 +68,7 @@
 #define FONT_WIDTH                          6
 #define FONT_HEIGHT                         8
 #define CATALOG_WINDOW_SIZE                 ((DISPLAY_HEIGHT / FONT_HEIGHT) - 1)
-#define MAX_PLAYLIST_ENTRIES                256
+#define MAX_LIST_ENTRIES                    256
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
 #define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)

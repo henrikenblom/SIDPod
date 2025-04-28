@@ -64,7 +64,7 @@ public:
     void resetAccessors();
 
 private:
-    std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_PLAYLIST_ENTRIES);
+    std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_LIST_ENTRIES);
     std::vector<PlaylistEntry *> window;
     uint8_t windowPosition = 0;
     uint8_t selectedPosition = 0;

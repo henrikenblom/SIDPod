@@ -3,6 +3,8 @@
 //
 
 #include "Catalog.h"
+
+#include <algorithm>
 #include <sd_card.h>
 #include <vector>
 #include <string>
@@ -30,7 +32,7 @@ void Catalog::refresh() {
         dp = new DIR;
         f_opendir(dp, "");
         entries.clear();
-        while (entries.size() < MAX_PLAYLIST_ENTRIES) {
+        while (entries.size() < MAX_LIST_ENTRIES) {
             fr = f_readdir(dp, &fno);
             if (fr != FR_OK || fno.fname[0] == 0) break;
             if (isValidDirectory(&fno)) {
@@ -40,6 +42,9 @@ void Catalog::refresh() {
 
         f_closedir(dp);
         delete dp;
+        std::sort(entries.begin(), entries.end(), [](const std::string &a, const std::string &b) -> bool {
+            return strcmp(a.c_str(), b.c_str()) < 0;
+        });
         refreshing = false;
         resetAccessors();
     }

@@ -17,7 +17,7 @@ void Playlist::refresh() {
         f_opendir(dp, name);
         FRESULT fr = f_readdir(dp, &fno);
         // TODO: Drive this loop externally, so that we can animate progress in the UI
-        while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_PLAYLIST_ENTRIES) {
+        while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_LIST_ENTRIES) {
             if (isRegularFile(&fno)) {
                 tryToAddAsPsid(&fno);
             }
