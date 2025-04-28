@@ -238,8 +238,8 @@ namespace Visualization {
         char songNumber[14];
         snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
         const int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
-        ssd1306_clear_square(pDisp, 0, DISPLAY_HEIGHT + songNumberOffset, width + 4, FONT_HEIGHT);
-        ssd1306_draw_string(pDisp, 2, DISPLAY_HEIGHT + songNumberOffset, 1, songNumber);
+        ssd1306_clear_square(pDisp, DISPLAY_WIDTH - width -2, DISPLAY_HEIGHT + songNumberOffset, width + 2, FONT_HEIGHT);
+        ssd1306_draw_string(pDisp, DISPLAY_WIDTH - width, DISPLAY_HEIGHT + songNumberOffset, 1, songNumber);
         if (show) {
             songNumberOffset -= 0.5;
         }
@@ -340,7 +340,7 @@ namespace Visualization {
                     soundSprites[sprite_index++] = sprite;
                     if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
                 }
-                if (shouldUpdateStarFieldSprites() && !transition == FROM_ALTERNATIVE) {
+                if (shouldUpdateStarFieldSprites() && transition != FROM_ALTERNATIVE) {
                     if ((x % 64 == 0 || x == 0 || x == 127) && y > 0) {
                         StarFieldSprite starFieldSprite = {
                             .x = DISPLAY_WIDTH + 10, .y = (uint8_t) (random() % DISPLAY_HEIGHT),
@@ -377,7 +377,8 @@ namespace Visualization {
         }
 
         auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
-        if (millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
+        if (SIDPlayer::getSongCount() > 1
+            && millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
             && millisSinceSongStart < SONG_NUMBER_DISPLAY_DURATION + SONG_NUMBER_DISPLAY_DELAY +
             SONG_NUMBER_SHOW_HIDE_DURATION * 2) {
             showCurrentSongNumber(millisSinceSongStart < SONG_NUMBER_SHOW_HIDE_DURATION + SONG_NUMBER_DISPLAY_DELAY,
@@ -522,7 +523,7 @@ namespace Visualization {
         starShipY = DISPLAY_Y_CENTER - 8;
         letStarShipRoam = false;
         transition = FROM_BEGIN;
-        horizon = 32;
+        horizon = 40;
         songNumberOffset = 0;
         sphereRotationX = 0;
         sphereRotationY = 0;
