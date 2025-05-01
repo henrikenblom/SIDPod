@@ -5,15 +5,13 @@
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
 
-#define REFERENCE_CLOCK_SPEED_KHZ           125000
-
 #if defined SYS_CLK_MHZ && SYS_CLK_MHZ == 200
-#define CLOCK_SPEED_KHZ                     260000
+#define CLOCK_SPEED_KHZ                     200000
 #else
-#define CLOCK_SPEED_KHZ                     REFERENCE_CLOCK_SPEED_KHZ
+#define CLOCK_SPEED_KHZ                     125000
 #endif
 
-#define WAIT_SYNC_NS                        ((CLOCK_SPEED_KHZ / REFERENCE_CLOCK_SPEED_KHZ) * 10000)
+#define SYNC_INTERVAL_MS                    40
 
 #define BOARD_TUD_RHPORT                    0
 
@@ -78,9 +76,11 @@
 #define SOUND_SPRITE_COUNT                  (DISPLAY_HEIGHT * DISPLAY_WIDTH / 8)
 #define ROUND_SPRITE_COUNT                  (DISPLAY_WIDTH / 2)
 #define STARFIELD_SPRITE_COUNT              (int (DISPLAY_WIDTH * 3))
+#define SPECTRUM_SCENE_DURATION_MS          62000
 #define ALTERNATIVE_SCENE_DURATION          79000
 #define STARFIELD_ACTIVE_AFTER              30000
 #define END_SPHERE_SCENE_AFTER              35000
+#define FROM_ALTERNATIVE_TRANSITION_DURATION       8600
 #define SCROLL_LIMIT                        (-1000)
 #define FFT_SAMPLES                         1000
 #define LOW_FREQ_DOMINANCE_COMP_OFFSET      2

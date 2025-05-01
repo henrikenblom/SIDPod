@@ -9,12 +9,14 @@
 #include "platform_config.h"
 #include "audio/SIDPlayer.h"
 #include "Catalog.h"
+#include "delays.h"
 #include "sd_card.h"
 
 repeating_timer tudTaskTimer{};
 
 bool connected = false;
 bool mounted = false;
+uint32_t lastVBLTimestamp = 0;
 
 void tud_mount_cb() {
     multicore_reset_core1();
@@ -37,8 +39,10 @@ void System::hardReset() {
 }
 
 void System::virtualVBLSync() {
-    //TODO: Implement a better VBL sync, that measures
-    busy_wait_us(WAIT_SYNC_NS);
+    if (const int compDelay = SYNC_INTERVAL_MS - static_cast<int>(millis() - lastVBLTimestamp); compDelay > 0) {
+        busy_wait_ms(compDelay);
+    }
+    lastVBLTimestamp = millis();
 }
 
 void System::goDormant() {

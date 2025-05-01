@@ -1,6 +1,7 @@
 #include "DanceFloor.h"
 
 #include "Catalog.h"
+#include "delays.h"
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../System.h"
@@ -41,8 +42,7 @@ namespace Visualization {
             ssd1306_draw_string(pDisp, rsOffset--, 1, 1, scrollText);
             if (rsOffset < SCROLL_LIMIT) {
                 rsOffset = DISPLAY_WIDTH + 1;
-                transition = FROM_SPECTRUM;
-                millisSinceLastSceneChange = millis_now();
+                showScroller = false;
             }
         }
     }
@@ -53,13 +53,13 @@ namespace Visualization {
                 if (ignoreHorizon || sprite.y < horizon) {
                     ssd1306_draw_pixel(pDisp, sprite.x, sprite.y);
                 } else {
-                    drawHorizonPixel(sprite.x, sprite.y);
+                    drawHorizonAwarePixel(sprite.x, sprite.y);
                 }
             }
         }
     }
 
-    void DanceFloor::drawHorizonPixel(int32_t x, int32_t y) const {
+    void DanceFloor::drawHorizonAwarePixel(int32_t x, int32_t y) const {
         if (x >= 0 && x < DISPLAY_WIDTH && y >= 0 && y < DISPLAY_HEIGHT && y < horizon) {
             ssd1306_draw_pixel(pDisp, x, y);
         }
@@ -72,10 +72,10 @@ namespace Visualization {
         int32_t xi = 0;
         int32_t yi = radius;
 
-        drawHorizonPixel(x, y + radius);
-        drawHorizonPixel(x, y - radius);
-        drawHorizonPixel(x + radius, y);
-        drawHorizonPixel(x - radius, y);
+        drawHorizonAwarePixel(x, y + radius);
+        drawHorizonAwarePixel(x, y - radius);
+        drawHorizonAwarePixel(x + radius, y);
+        drawHorizonAwarePixel(x - radius, y);
 
         while (xi < yi) {
             if (f >= 0) {
@@ -87,14 +87,14 @@ namespace Visualization {
             ddF_x += 2;
             f += ddF_x;
 
-            drawHorizonPixel(x + xi, y + yi);
-            drawHorizonPixel(x - xi, y + yi);
-            drawHorizonPixel(x + xi, y - yi);
-            drawHorizonPixel(x - xi, y - yi);
-            drawHorizonPixel(x + yi, y + xi);
-            drawHorizonPixel(x - yi, y + xi);
-            drawHorizonPixel(x + yi, y - xi);
-            drawHorizonPixel(x - yi, y - xi);
+            drawHorizonAwarePixel(x + xi, y + yi);
+            drawHorizonAwarePixel(x - xi, y + yi);
+            drawHorizonAwarePixel(x + xi, y - yi);
+            drawHorizonAwarePixel(x - xi, y - yi);
+            drawHorizonAwarePixel(x + yi, y + xi);
+            drawHorizonAwarePixel(x - yi, y + xi);
+            drawHorizonAwarePixel(x + yi, y - xi);
+            drawHorizonAwarePixel(x - yi, y - xi);
         }
     }
 
@@ -102,7 +102,7 @@ namespace Visualization {
         for (int32_t i = -radius; i <= radius; i++) {
             for (int32_t j = -radius; j <= radius; j++) {
                 if (i * i + j * j <= radius * radius) {
-                    ssd1306_draw_pixel(pDisp, x + i, y + j);
+                    drawHorizonAwarePixel(x + i, y + j);
                 }
             }
         }
@@ -173,14 +173,14 @@ namespace Visualization {
         for (auto &starFieldSprite: starFieldSprites) {
             auto sprite = starFieldSprite;
             if (sprite.x > 0) {
-                drawHorizonPixel(sprite.x, sprite.y);
+                drawHorizonAwarePixel(sprite.x, sprite.y);
                 sprite.x -= sprite.velocity;
             }
             starFieldSprite = sprite;
         }
     }
 
-    // TODO: Refactor this to use the same logic as the other sprites and make sure it's reset after each run
+    // TODO: Refactor this to use the same logic as the other sprites
     void DanceFloor::drawStarShip() {
         if (starShipX > -20) {
             ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 7, starShipY); // Left gondola
@@ -224,12 +224,12 @@ namespace Visualization {
     }
 
     bool DanceFloor::isWithinStarFieldTimeWindow() const {
-        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER &&
-               millis_now() < millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION + 9000;
+        return millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER &&
+               millis_now() < lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION + 9000;
     }
 
     bool DanceFloor::isOutsideOfRoundSpriteTimeWindow() const {
-        return millis_now() >= millisSinceLastSceneChange + STARFIELD_ACTIVE_AFTER + 6000;
+        return millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER + 6000;
     }
 
     void DanceFloor::showCurrentSongNumber(bool show, bool hide) {
@@ -238,7 +238,8 @@ namespace Visualization {
         char songNumber[14];
         snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
         const int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
-        ssd1306_clear_square(pDisp, DISPLAY_WIDTH - width -2, DISPLAY_HEIGHT + songNumberOffset, width + 2, FONT_HEIGHT);
+        ssd1306_clear_square(pDisp, DISPLAY_WIDTH - width - 2, DISPLAY_HEIGHT + songNumberOffset, width + 2,
+                             FONT_HEIGHT);
         ssd1306_draw_string(pDisp, DISPLAY_WIDTH - width, DISPLAY_HEIGHT + songNumberOffset, 1, songNumber);
         if (show) {
             songNumberOffset -= 0.5;
@@ -255,7 +256,7 @@ namespace Visualization {
                                        const int16_t xAxisRotation,
                                        const int16_t yAxisRotation) const {
         if (size < 1) {
-            ssd1306_draw_pixel(pDisp, x, y);
+            drawHorizonAwarePixel(x, y);
             return;
         }
         if (size <= 6) {
@@ -282,8 +283,8 @@ namespace Visualization {
                 x3D = static_cast<float>(x3D * cos(yAxisRotation * M_PI / 180) + z3D * sin(yAxisRotation * M_PI / 180));
 
                 // Project 3D coordinates onto 2D plane
-                ssd1306_draw_pixel(pDisp, static_cast<int32_t>(static_cast<float>(x) + x3D),
-                                   static_cast<int32_t>(static_cast<float>(y) + y3D));
+                drawHorizonAwarePixel(static_cast<int32_t>(static_cast<float>(x) + x3D),
+                                      static_cast<int32_t>(static_cast<float>(y) + y3D));
 
                 phi += 0.3;
             }
@@ -322,8 +323,8 @@ namespace Visualization {
                 totalY += y;
 
                 if (!isOutsideOfRoundSpriteTimeWindow() && shouldUpdateRoundSprites()) {
-                    if (x % 16 == 0 || x == 0 || x == 127) {
-                        RoundSprite roundSprite = {
+                    if (x % rMod == 0 || x == 0 || x == 127) {
+                        const RoundSprite roundSprite = {
                             .distance = 20, .x = static_cast<float>(random() % DISPLAY_WIDTH),
                             .y = random() % DISPLAY_HEIGHT
                         };
@@ -341,7 +342,7 @@ namespace Visualization {
                     if (sprite_index > SOUND_SPRITE_COUNT) sprite_index = 0;
                 }
                 if (shouldUpdateStarFieldSprites() && transition != FROM_ALTERNATIVE) {
-                    if ((x % 64 == 0 || x == 0 || x == 127) && y > 0) {
+                    if ((x % sMod == 0 || x == 0 || x == 127) && y > 0) {
                         StarFieldSprite starFieldSprite = {
                             .x = DISPLAY_WIDTH + 10, .y = (uint8_t) (random() % DISPLAY_HEIGHT),
                             .velocity = static_cast<int8_t>(std::min(8,
@@ -376,6 +377,11 @@ namespace Visualization {
             drawSphereScene(totalY);
         }
 
+        if (transition == FROM_ALTERNATIVE) {
+            rMod = static_cast<int>(16 + (millis_now() - lastSceneChangeMS) / 96);
+            sMod = static_cast<int>(64 + (millis_now() - lastSceneChangeMS) / 48);
+        }
+
         auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
         if (SIDPlayer::getSongCount() > 1
             && millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
@@ -388,31 +394,37 @@ namespace Visualization {
 
         ssd1306_show(pDisp);
 
-        if (alternativeScene && millis_now() >= millisSinceLastSceneChange + ALTERNATIVE_SCENE_DURATION) {
-            millisSinceLastSceneChange = millis_now();
+        if (!alternativeScene && !sphereScene && transition == NO_TRANSITION
+            && millis_now() >= lastSceneChangeMS + SPECTRUM_SCENE_DURATION_MS) {
+            transition = FROM_SPECTRUM;
+            lastSceneChangeMS = millis_now();
+        }
+        if (alternativeScene && millis_now() >= lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION) {
+            lastSceneChangeMS = millis_now();
             transition = FROM_ALTERNATIVE;
         }
-        if (sphereScene && millis_now() >= millisSinceLastSceneChange + END_SPHERE_SCENE_AFTER
+        if (sphereScene && millis_now() >= lastSceneChangeMS + END_SPHERE_SCENE_AFTER
             && sphereSize >= maxSphereSize / 2) {
             roundSpriteTargetXVelocity = 0;
             minSphereSize = 0;
             sphereSizeInc = -1;
             transition = FROM_SPHERE;
             horizon = 44;
-            millisSinceLastSceneChange = millis_now();
+            lastSceneChangeMS = millis_now();
         }
         if (transition == FROM_SPHERE && sphereSize <= minSphereSize) {
             roundSpriteXVelocity = 0;
             sphereScene = false;
             sphereSizeInc = 0;
-            millisSinceLastSceneChange = millis_now();
+            lastSceneChangeMS = millis_now();
         }
-        if (transition == FROM_ALTERNATIVE && millis_now() >= millisSinceLastSceneChange + 8600) {
+        if (transition == FROM_ALTERNATIVE
+            && millis_now() >= lastSceneChangeMS + FROM_ALTERNATIVE_TRANSITION_DURATION) {
             transition = NO_TRANSITION;
             sphereScene = true;
             alternativeScene = false;
             starFieldVisible = false;
-            millisSinceLastSceneChange = millis_now();
+            lastSceneChangeMS = millis_now();
         }
         if (alternativeScene && !starFieldVisible && isWithinStarFieldTimeWindow()) {
             starFieldVisible = true;
@@ -435,6 +447,10 @@ namespace Visualization {
                 sphereSizeInc = 1;
                 sphereSize = 100;
                 minSphereSize = 6;
+                rMod = 16;
+                sMod = 64;
+                showScroller = true;
+                lastSceneChangeMS = millis_now();
             }
         }
     }
@@ -448,7 +464,7 @@ namespace Visualization {
 
     void DanceFloor::visualize() {
         while (running) {
-            if (!showScroller && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
+            if (!scrollerInitialized && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
                                         SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
@@ -469,7 +485,7 @@ namespace Visualization {
                          name, entry->author, entry->released, experience,
                          entry->isPSID ? "it" : "this RSID",
                          extraText);
-                showScroller = true;
+                scrollerInitialized = true;
             }
             compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
             if (SIDPlayer::isPlaying()) {
@@ -507,13 +523,13 @@ namespace Visualization {
         rvOffset = 0;
         showScroller = false;
         for (auto &soundSprite: soundSprites) {
-            soundSprite = {0};
+            soundSprite = {};
         }
         for (auto &roundSprite: roundSprites) {
-            roundSprite = {0};
+            roundSprite = {};
         }
         for (auto &startFieldSprite: starFieldSprites) {
-            startFieldSprite = {0};
+            startFieldSprite = {};
         }
 
         alternativeScene = false;
@@ -534,7 +550,9 @@ namespace Visualization {
         maxSphereSize = 64;
         roundSpriteXVelocity = 0;
         roundSpriteTargetXVelocity = 0;
-        millisSinceLastSceneChange = millis_now();
+        scrollerInitialized = false;
+        showScroller = true;
+        lastSceneChangeMS = millis_now();
     }
 
     void DanceFloor::start() {
