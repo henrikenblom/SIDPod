@@ -58,7 +58,7 @@ namespace Visualization {
 
         void drawStarrySky(bool ignoreHorizon);
 
-        void drawHorizonPixel(int32_t x, int32_t y) const;
+        void drawHorizonAwarePixel(int32_t x, int32_t y) const;
 
         void drawCircle(int32_t x, int32_t y, int32_t radius) const;
 
@@ -113,7 +113,7 @@ namespace Visualization {
         int starFieldSpriteIndex = 0;
         float starShipX = -64;
         float starShipY = DISPLAY_HEIGHT / 2 - 8;
-        float starShipVelocity = 0.3;
+        float starShipVelocity = 0.24;
         bool letStarShipRoam = false;
         char scrollText[200]{};
         char pausedLabel[7] = "PAUSED";
@@ -125,13 +125,16 @@ namespace Visualization {
         volatile bool running = false;
         volatile bool freeze = false;
         volatile bool showScroller = false;
+        bool scrollerInitialized = false;
         kiss_fftr_cfg fft_cfg{};
         double compFactor = DEFAULT_SPECTRUM_COMPENSATION;
         bool alternativeScene = false;
         bool starFieldVisible = false;
         bool sphereScene = false;
         Transition transition = NO_TRANSITION;
-        uint32_t millisSinceLastSceneChange = millis_now();
+        uint32_t lastSceneChangeMS = millis_now();
+        int rMod = 16;
+        int sMod = 64;
         float horizon = 10;
         float songNumberOffset = 0;
         uint16_t sphereRotationX = 0;

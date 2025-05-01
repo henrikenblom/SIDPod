@@ -23,6 +23,7 @@ public:
     static bool mountAndPrepareFilesystem();
 
 private:
+    // ReSharper disable once CppRedundantElaboratedTypeSpecifier
     static bool repeatingTudTask(struct repeating_timer *t);
 
     static bool createSettingsDirectoryIfNotExists();
