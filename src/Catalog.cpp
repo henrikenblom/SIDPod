@@ -5,7 +5,10 @@
 #include "Catalog.h"
 
 #include <algorithm>
-#include <sd_card.h>
+#ifdef USE_SDCARD
+#include "sd_card.h"
+#endif
+#include <cstring>
 #include <vector>
 #include <string>
 

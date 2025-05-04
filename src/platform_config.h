@@ -2,6 +2,22 @@
 
 #define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
 
+#ifndef USE_SDCARD
+#include "hardware/flash.h"
+
+#ifdef SOLDERPARTY_RP2040_STAMP
+#define FLASH_STORAGE_BYTES (7552 * 1024)
+#endif
+#ifdef RASPBERRYPI_PICO
+#define FLASH_STORAGE_BYTES                 (1408 * 1024)
+#endif
+
+#define SECTOR_COUNT                        (FLASH_STORAGE_BYTES / FLASH_SECTOR_SIZE)
+#define FLASH_BASE_ADDR                     (PICO_FLASH_SIZE_BYTES - FLASH_STORAGE_BYTES)
+#define FLASH_MMAP_ADDR                     (XIP_BASE + FLASH_BASE_ADDR)
+
+#endif
+
 #define AIRCR_Register                      (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
 #define SYSRESETREQ                         0x5FA0004
 
@@ -21,6 +37,8 @@
 #ifndef HW_USB_PID
 #define HW_USB_PID                          (0x0006)
 #endif
+
+#define FS_LABEL                            "SIDPOD"
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
@@ -46,7 +64,11 @@
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1
+#ifdef USE_SDCARD
 #define DISPLAY_GPIO_BASE_PIN               6
+#else
+#define DISPLAY_GPIO_BASE_PIN               2
+#endif
 #define DISPLAY_EXTERNAL_VCC                0
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32

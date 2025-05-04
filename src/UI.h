@@ -44,12 +44,12 @@ public:
 
     volatile static void doubleClickCallback();
 
-#if USE_BUDDY
-    static void adjustVolume(bool up);
-
     static void danceFloorStop();
 
     static State getState();
+
+#if USE_BUDDY
+    static void adjustVolume(bool up);
 
     static void showBluetoothInteraction();
 

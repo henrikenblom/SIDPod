@@ -6,6 +6,7 @@
 #include "kiss_fft.h"
 #include "../Playlist.h"
 #include "kiss_fftr.h"
+#include "System.h"
 
 namespace Visualization {
     class DanceFloor {
@@ -102,10 +103,6 @@ namespace Visualization {
 
         void visualize();
 
-        uint32_t millis_now() const {
-            return to_ms_since_boot(get_absolute_time());
-        }
-
         float roundSpriteXVelocity = 0;
         float roundSpriteTargetXVelocity = 0;
         int sprite_index = 0;
@@ -132,7 +129,7 @@ namespace Visualization {
         bool starFieldVisible = false;
         bool sphereScene = false;
         Transition transition = NO_TRANSITION;
-        uint32_t lastSceneChangeMS = millis_now();
+        uint32_t lastSceneChangeMS = System::millis_now();
         int rMod = 16;
         int sMod = 64;
         float horizon = 10;

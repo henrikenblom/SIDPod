@@ -1,7 +1,6 @@
 #include "DanceFloor.h"
 
 #include "Catalog.h"
-#include "delays.h"
 #include "../platform_config.h"
 #include "kiss_fftr.h"
 #include "../System.h"
@@ -224,12 +223,12 @@ namespace Visualization {
     }
 
     bool DanceFloor::isWithinStarFieldTimeWindow() const {
-        return millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER &&
-               millis_now() < lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION + 9000;
+        return System::System::millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER &&
+               System::System::millis_now() < lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION + 9000;
     }
 
     bool DanceFloor::isOutsideOfRoundSpriteTimeWindow() const {
-        return millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER + 6000;
+        return System::System::millis_now() >= lastSceneChangeMS + STARFIELD_ACTIVE_AFTER + 6000;
     }
 
     void DanceFloor::showCurrentSongNumber(bool show, bool hide) {
@@ -378,8 +377,8 @@ namespace Visualization {
         }
 
         if (transition == FROM_ALTERNATIVE) {
-            rMod = static_cast<int>(16 + (millis_now() - lastSceneChangeMS) / 96);
-            sMod = static_cast<int>(64 + (millis_now() - lastSceneChangeMS) / 48);
+            rMod = static_cast<int>(16 + (System::millis_now() - lastSceneChangeMS) / 96);
+            sMod = static_cast<int>(64 + (System::millis_now() - lastSceneChangeMS) / 48);
         }
 
         auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
@@ -395,36 +394,36 @@ namespace Visualization {
         ssd1306_show(pDisp);
 
         if (!alternativeScene && !sphereScene && transition == NO_TRANSITION
-            && millis_now() >= lastSceneChangeMS + SPECTRUM_SCENE_DURATION_MS) {
+            && System::millis_now() >= lastSceneChangeMS + SPECTRUM_SCENE_DURATION_MS) {
             transition = FROM_SPECTRUM;
-            lastSceneChangeMS = millis_now();
+            lastSceneChangeMS = System::millis_now();
         }
-        if (alternativeScene && millis_now() >= lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION) {
-            lastSceneChangeMS = millis_now();
+        if (alternativeScene && System::millis_now() >= lastSceneChangeMS + ALTERNATIVE_SCENE_DURATION) {
+            lastSceneChangeMS = System::millis_now();
             transition = FROM_ALTERNATIVE;
         }
-        if (sphereScene && millis_now() >= lastSceneChangeMS + END_SPHERE_SCENE_AFTER
+        if (sphereScene && System::millis_now() >= lastSceneChangeMS + END_SPHERE_SCENE_AFTER
             && sphereSize >= maxSphereSize / 2) {
             roundSpriteTargetXVelocity = 0;
             minSphereSize = 0;
             sphereSizeInc = -1;
             transition = FROM_SPHERE;
             horizon = 44;
-            lastSceneChangeMS = millis_now();
+            lastSceneChangeMS = System::millis_now();
         }
         if (transition == FROM_SPHERE && sphereSize <= minSphereSize) {
             roundSpriteXVelocity = 0;
             sphereScene = false;
             sphereSizeInc = 0;
-            lastSceneChangeMS = millis_now();
+            lastSceneChangeMS = System::millis_now();
         }
         if (transition == FROM_ALTERNATIVE
-            && millis_now() >= lastSceneChangeMS + FROM_ALTERNATIVE_TRANSITION_DURATION) {
+            && System::millis_now() >= lastSceneChangeMS + FROM_ALTERNATIVE_TRANSITION_DURATION) {
             transition = NO_TRANSITION;
             sphereScene = true;
             alternativeScene = false;
             starFieldVisible = false;
-            lastSceneChangeMS = millis_now();
+            lastSceneChangeMS = System::millis_now();
         }
         if (alternativeScene && !starFieldVisible && isWithinStarFieldTimeWindow()) {
             starFieldVisible = true;
@@ -450,7 +449,7 @@ namespace Visualization {
                 rMod = 16;
                 sMod = 64;
                 showScroller = true;
-                lastSceneChangeMS = millis_now();
+                lastSceneChangeMS = System::millis_now();
             }
         }
     }
@@ -465,7 +464,7 @@ namespace Visualization {
     void DanceFloor::visualize() {
         while (running) {
             if (!scrollerInitialized && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
-                                        SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
+                                               SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 char extraText[50] = {};
@@ -552,7 +551,7 @@ namespace Visualization {
         roundSpriteTargetXVelocity = 0;
         scrollerInitialized = false;
         showScroller = true;
-        lastSceneChangeMS = millis_now();
+        lastSceneChangeMS = System::millis_now();
     }
 
     void DanceFloor::start() {

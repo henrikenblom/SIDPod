@@ -65,7 +65,7 @@ void initUart() {
     const bool quickStart = awaitButtonRelease();
     System::enableUsb();
     if (!System::usbConnected()) {
-        System::mountAndPrepareFilesystem();
+        System::prepareFilesystem();
         Catalog::refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();
