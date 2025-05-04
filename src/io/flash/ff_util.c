@@ -24,5 +24,4 @@ void filesystem_init() {
         f_setlabel(FS_LABEL);
         f_mount(fs, "", FA_READ);
     }
-    free(fs);
 }
