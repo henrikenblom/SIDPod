@@ -140,6 +140,10 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void *buff
     return count * FLASH_SECTOR_SIZE;
 }
 
+bool tud_msc_is_writable_cb(uint8_t lun) {
+    return !ejected;
+}
+
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize) {
     (void) offset;
     uint32_t count = bufsize / FLASH_SECTOR_SIZE;
