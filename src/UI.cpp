@@ -71,7 +71,7 @@ void UI::showSplash() {
     currentState = splash;
     ssd1306_clear(&disp);
     ssd1306_bmp_show_image(&disp, SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
-    ssd1306_draw_string(&disp, 0, 25, 1, "2.0");
+    ssd1306_draw_string(&disp, 0, 25, 1, "2.0beta");
     ssd1306_draw_string(&disp, 64, 25, 1, "\"Residious\"");
     ssd1306_show(&disp);
 }
