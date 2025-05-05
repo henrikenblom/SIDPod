@@ -34,6 +34,8 @@ SOFTWARE.
 extern "C" {
 #endif
 
+#define IS_BIT_SET(value, bit) (((value) & (1 << (bit))) != 0)
+
 #include <pico/stdlib.h>
 #include <hardware/i2c.h>
 
@@ -279,6 +281,8 @@ void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y);
 void ssd1306_clear_square(ssd1306_t *p, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 void ssd1306_deinit(ssd1306_t *p);
+
+void ssd1306_dump_pbm(ssd1306_t *p);
 
 #ifdef __cplusplus
 }

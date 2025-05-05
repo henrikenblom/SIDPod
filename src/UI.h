@@ -48,6 +48,8 @@ public:
 
     static State getState();
 
+    static void screenshotToPBM();
+
 #if USE_BUDDY
     static void adjustVolume(bool up);
 

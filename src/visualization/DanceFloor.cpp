@@ -391,8 +391,6 @@ namespace Visualization {
                                   SONG_NUMBER_SHOW_HIDE_DURATION);
         }
 
-        ssd1306_show(pDisp);
-
         if (!alternativeScene && !sphereScene && transition == NO_TRANSITION
             && System::millis_now() >= lastSceneChangeMS + SPECTRUM_SCENE_DURATION_MS) {
             transition = FROM_SPECTRUM;
@@ -514,6 +512,10 @@ namespace Visualization {
                 }
             }
             System::virtualVBLSync();
+            ssd1306_show(pDisp);
+            if (screenDump) {
+                ssd1306_dump_pbm(pDisp);
+            }
         }
     }
 

@@ -143,6 +143,7 @@ namespace Visualization {
         uint16_t sphereZComp = 0;
         uint8_t minSphereSize = 6;
         uint8_t maxSphereSize = 64;
+        volatile bool screenDump = false;
 
         void (*stopCallback)() = nullptr;
 

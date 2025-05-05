@@ -62,6 +62,7 @@ void initUart() {
     runPossibleSecondWakeUp();
     UI::screenOn();
     UI::showSplash();
+    UI::screenshotToPBM();
     const bool quickStart = awaitButtonRelease();
     System::enableUsb();
     if (!System::usbConnected()) {

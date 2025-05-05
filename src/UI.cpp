@@ -34,7 +34,6 @@ UI::State lastState = currentState;
 Buddy *buddy = Buddy::getInstance();
 #endif
 
-
 void UI::initUI() {
 #if (!USE_BUDDY)
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
@@ -477,6 +476,10 @@ UI::State UI::getState() {
     return currentState;
 }
 
+void UI::screenshotToPBM() {
+    ssd1306_dump_pbm(&disp);
+}
+
 void UI::verticalMovement(const int delta) {
     danceFloor->stop();
 #if (!USE_BUDDY)
@@ -560,9 +563,9 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                     Catalog::openSelected();
                     currentState = song_selector;
                     break;
+#ifdef USE_BUDDY
                 case refreshing_playlist:
                     break;
-#ifdef USE_BUDDY
                 case bluetooth_interaction:
                     if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
                         if (disconnectAffirmative) {
