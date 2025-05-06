@@ -4,13 +4,19 @@
 #include <pico/sleep.h>
 #include "System.h"
 
+#ifdef USE_BUDDY
 #include "Buddy.h"
+#endif
+#ifdef USE_SDCARD
+#include "sd_card.h"
+#endif
+
 #include "UI.h"
 #include "platform_config.h"
 #include "audio/SIDPlayer.h"
 #include "Catalog.h"
-#include "delays.h"
-#include "sd_card.h"
+
+extern "C" void filesystem_init();
 
 repeating_timer tudTaskTimer{};
 
@@ -39,10 +45,14 @@ void System::hardReset() {
 }
 
 void System::virtualVBLSync() {
-    if (const int compDelay = SYNC_INTERVAL_MS - static_cast<int>(millis() - lastVBLTimestamp); compDelay > 0) {
+    if (const int compDelay = SYNC_INTERVAL_MS - static_cast<int>(millis_now() - lastVBLTimestamp); compDelay > 0) {
         busy_wait_ms(compDelay);
     }
-    lastVBLTimestamp = millis();
+    lastVBLTimestamp = millis_now();
+}
+
+uint32_t System::millis_now() {
+    return to_ms_since_boot(get_absolute_time());
 }
 
 void System::goDormant() {
@@ -76,7 +86,7 @@ void System::deleteSettingsFile(const char *fileName) {
 
 bool System::openSettingsFile(FIL *fil, const char *fileName) {
     if (!mounted) {
-        mountAndPrepareFilesystem();
+        prepareFilesystem();
     }
     TCHAR fullPath[FF_LFN_BUF + 1];
     snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", SETTINGS_DIRECTORY, fileName);
@@ -99,11 +109,15 @@ bool System::createSettingsDirectoryIfNotExists() {
     return true;
 }
 
-bool System::mountAndPrepareFilesystem() {
+bool System::prepareFilesystem() {
+#ifdef USE_SDCARD
     sd_card_t *sd_card_p = sd_get_by_drive_prefix("0:");
     FATFS *fs_p = &sd_card_p->state.fatfs;
     f_mount(fs_p, "0:", 1);
     sd_card_p->state.mounted = true;
+#else
+    filesystem_init();
+#endif
     createSettingsDirectoryIfNotExists();
     return true;
 }

@@ -15,11 +15,11 @@
 #include <hardware/interp.h>
 #include <hardware/pio.h>
 
-#include "delays.h"
 #include "../platform_config.h"
 #include "reSID/sid.h"
 #include "sidendian.h"
 #include "SIDPlayer.h"
+#include "System.h"
 
 #define ICODE_ATTR
 #define IDATA_ATTR
@@ -745,7 +745,7 @@ volatile bool C64::clock(audio_buffer *buffer, float volumeFactor) {
 }
 
 uint32_t C64::millisSinceSongStart() {
-    return millis() - songStartMillis;
+    return System::millis_now() - songStartMillis;
 }
 
 int C64::getCurrentSong() {
@@ -784,7 +784,7 @@ bool C64::playSong(uint16_t song) {
     initialCycleCount = static_cast<cycle_count>(cpuFrequency) / (
                             static_cast<float>(SAMPLE_RATE) / static_cast<float>(sampleCount));
 
-    songStartMillis = millis();
+    songStartMillis = System::millis_now();
 
     return true;
 }

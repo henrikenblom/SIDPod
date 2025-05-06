@@ -4,6 +4,8 @@
 
 class System {
 public:
+    static uint32_t millis_now();
+
     static void goDormant();
 
     static void softReset();
@@ -20,7 +22,7 @@ public:
 
     static bool openSettingsFile(FIL *fil, const char *fileName);
 
-    static bool mountAndPrepareFilesystem();
+    static bool prepareFilesystem();
 
 private:
     // ReSharper disable once CppRedundantElaboratedTypeSpecifier

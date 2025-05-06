@@ -21,6 +21,7 @@ https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/tree/main#customizing
 
 #include "hw_config.h"
 
+#ifdef USE_SDCARD
 /* Configuration of hardware SPI object */
 static spi_t spi = {
     .hw_inst = spi0,
@@ -63,5 +64,7 @@ sd_card_t *sd_get_by_num(size_t num) {
         return NULL;
     }
 }
+
+#endif
 
 /* [] END OF FILE */

@@ -28,9 +28,11 @@ auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
-Buddy *buddy = Buddy::getInstance();
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
+#ifdef USE_BUDDY
+Buddy *buddy = Buddy::getInstance();
+#endif
 
 void UI::initUI() {
 #if (!USE_BUDDY)
@@ -69,7 +71,7 @@ void UI::showSplash() {
     currentState = splash;
     ssd1306_clear(&disp);
     ssd1306_bmp_show_image(&disp, SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
-    ssd1306_draw_string(&disp, 0, 25, 1, "2.0");
+    ssd1306_draw_string(&disp, 0, 25, 1, "2.0beta");
     ssd1306_draw_string(&disp, 64, 25, 1, "\"Residious\"");
     ssd1306_show(&disp);
 }
@@ -88,7 +90,9 @@ void UI::updateUI() {
             if (Catalog::playlistIsOpen()) {
                 if (const Playlist *playlist = Catalog::getCurrentPlaylist();
                     playlist->getState() == Playlist::State::READY) {
+#ifdef USE_BUDDY
                     buddy->forceRotationControl();
+#endif
                     startDanceFloor();
                 }
             }
@@ -115,20 +119,28 @@ void UI::updateUI() {
             }
             break;
         case playlist_selector:
+#ifdef USE_BUDDY
             buddy->forceVerticalControl();
+#endif
             showPlaylistSelector();
             break;
+#ifdef USE_BUDDY
         case bluetooth_interaction:
             buddy->forceVerticalControl();
             showBluetoothInteraction();
             break;
+#endif
         default:
+#ifdef USE_BUDDY
             buddy->forceVerticalControl();
+#endif
             showSongSelector();
     }
+#ifdef USE_BUDDY
     if (buddy->getState() != Buddy::CONNECTED) {
         currentState = bluetooth_interaction;
     }
+#endif
 }
 
 void UI::drawHeader(const char *title) {
@@ -292,7 +304,9 @@ void UI::start(bool quickStart) {
     if (quickStart) {
         showSplashCycles = SPLASH_DISPLAY_DURATION;
     }
+#ifdef USE_BUDDY
     buddy->init();
+#endif
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
@@ -462,6 +476,10 @@ UI::State UI::getState() {
     return currentState;
 }
 
+void UI::screenshotToPBM() {
+    ssd1306_dump_pbm(&disp);
+}
+
 void UI::verticalMovement(const int delta) {
     danceFloor->stop();
 #if (!USE_BUDDY)
@@ -477,12 +495,14 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeUp();
+#ifdef USE_BUDDY
             } else if (currentState == bluetooth_interaction) {
                 if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
                     disconnectAffirmative = false;
                 } else {
                     buddy->selectNext();
                 }
+#endif
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectNext();
@@ -496,12 +516,14 @@ void UI::verticalMovement(const int delta) {
         for (int i = 0; i < delta * -1; i++) {
             if (currentState == volume_control) {
                 SIDPlayer::volumeDown();
+#ifdef USE_BUDDY
             } else if (currentState == bluetooth_interaction) {
                 if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
                     disconnectAffirmative = true;
                 } else {
                     buddy->selectPrevious();
                 }
+#endif
             } else {
                 if (Catalog::playlistIsOpen()) {
                     Catalog::getCurrentPlaylist()->selectPrevious();
@@ -518,6 +540,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     endDoubleClickSession();
     if (!inLongPressSession && currentState != sleeping) {
+#ifdef USE_BUDDY
         if (id) {
             disconnectAffirmative = false;
             buddy->askToDisconnect();
@@ -525,6 +548,8 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
             currentState = bluetooth_interaction;
             danceFloor->stop();
         } else {
+#endif
+
             switch (currentState) {
                 case visualization:
                     currentState = song_selector;
@@ -538,6 +563,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                     Catalog::openSelected();
                     currentState = song_selector;
                     break;
+#ifdef USE_BUDDY
                 case refreshing_playlist:
                     break;
                 case bluetooth_interaction:
@@ -552,6 +578,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                         buddy->connectSelected();
                     }
                     break;
+#endif
                 default:
                     auto playlist = Catalog::getCurrentPlaylist();
                     if (playlist->isAtReturnEntry()) {
@@ -567,7 +594,9 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                     }
                     currentState = visualization;
             }
+#ifdef USE_BUDDY
         }
+#endif
     }
     return 0;
 }

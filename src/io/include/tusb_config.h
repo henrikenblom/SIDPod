@@ -15,8 +15,12 @@
 #ifndef HW_USB_MSC_INTERFACE_STRING
 #define HW_USB_MSC_INTERFACE_STRING "Board MSC"
 #endif
-// Set MSC EP buffer size to FatFS block size to avoid partial read/writes (offset arg).
+#ifdef USE_SDCARD
 #define CFG_TUD_MSC_BUFSIZE (1024)
+#else
+#define CFG_TUD_MSC_BUFSIZE (FLASH_SECTOR_SIZE)
+#endif
+
 #endif
 
 // Define static descriptor size and interface count based on the above config

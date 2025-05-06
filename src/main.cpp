@@ -62,10 +62,11 @@ void initUart() {
     runPossibleSecondWakeUp();
     UI::screenOn();
     UI::showSplash();
+    UI::screenshotToPBM();
     const bool quickStart = awaitButtonRelease();
     System::enableUsb();
     if (!System::usbConnected()) {
-        System::mountAndPrepareFilesystem();
+        System::prepareFilesystem();
         Catalog::refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();
