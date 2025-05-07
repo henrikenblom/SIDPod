@@ -25,10 +25,12 @@ ___
       * [Chip support](#chip-support)
       * [Playlist selection](#playlist-selection)
       * [Song selection](#song-selection)
+    * [Visualization mode](#visualization-mode)
     * [Volume control](#volume-control)
     * [Pocket mode](#pocket-mode)
     * [Deep sleep](#deep-sleep)
   * [Beta disclaimer](#beta-disclaimer)
+    * [General disclaimer](#general-disclaimer)
   * [What's on the horizon?](#whats-on-the-horizon)
 <!-- TOC -->
 
