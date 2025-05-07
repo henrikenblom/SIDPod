@@ -32,10 +32,6 @@ public:
 
     static bool isPlaying();
 
-    static void toggleLineLevel();
-
-    static bool lineLevelOn();
-
     static SidInfo *getSidInfo();
 
     static bool loadingWasSuccessful();

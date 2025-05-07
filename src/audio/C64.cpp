@@ -924,11 +924,3 @@ void C64::readHeader(BYTE *buffer, SidInfo &info) {
         info.sid3is8580 = !IS_BIT_SET(info.flags, 8) && IS_BIT_SET(info.flags, 9);
     }
 }
-
-void C64::setLineLevel(bool on) {
-    //reSID.enable_filter(on);
-}
-
-bool C64::getLineLevelOn() {
-    return false;
-}

@@ -79,10 +79,6 @@ public:
 
     static bool playSong(uint16_t song);
 
-    static void setLineLevel(bool on);
-
-    static bool getLineLevelOn();
-
     static bool sid_load_from_file(TCHAR file_name[]);
 
     static SidInfo *getSidInfo();

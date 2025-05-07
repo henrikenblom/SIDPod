@@ -83,9 +83,7 @@ void SIDPlayer::ampOn() {
 }
 
 void SIDPlayer::ampOff() {
-    if (!C64::getLineLevelOn()) {
-        gpio_pull_down(AMP_CONTROL_PIN);
-    }
+    gpio_pull_down(AMP_CONTROL_PIN);
 }
 
 void SIDPlayer::updateVolumeFactor() {
@@ -122,18 +120,6 @@ PlaylistEntry *SIDPlayer::getCurrentlyLoaded() {
 
 bool SIDPlayer::isPlaying() {
     return rendering;
-}
-
-void SIDPlayer::toggleLineLevel() {
-    if (C64::getLineLevelOn()) {
-        C64::setLineLevel(false);
-    } else {
-        C64::setLineLevel(true);
-    }
-}
-
-bool SIDPlayer::lineLevelOn() {
-    return C64::getLineLevelOn();
 }
 
 SidInfo *SIDPlayer::getSidInfo() {

@@ -47,8 +47,12 @@ public:
 
 private:
     static bool isValidDirectory(FILINFO *fileInfo) {
-        return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46;
+        return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46 && containsAtLeastOnePSID(fileInfo->fname);
     }
+
+    static bool isPSID(char *path);
+
+    static bool containsAtLeastOnePSID(char *name);
 
     static void updateWindow();
 };
