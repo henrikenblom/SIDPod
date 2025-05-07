@@ -2,36 +2,45 @@
 #include <hardware/gpio.h>
 #include <cstdio>
 #include "UI.h"
+
+#include <string>
+
+#include "buddy/Buddy.h"
+#include "Catalog.h"
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
-#include "PSIDCatalog.h"
+#include "Playlist.h"
 #include "audio/SIDPlayer.h"
 #include "quadrature_encoder.pio.h"
 #include "visualization/DanceFloor.h"
-#include "sidpod_bmp.h"
+#include "sidpod_24px_height_bmp.h"
 #include "System.h"
 
 ssd1306_t disp;
-bool lastSwitchState, inDoubleClickSession, inLongPressSession = false;
+bool lastSwitchState, inDoubleClickSession, inLongPressSession, disconnectAffirmative = false;
 int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
-struct repeating_timer userControlTimer;
+repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
-auto volumeLabel = "Volume";
-auto lineLevelLabel = "Line level:";
+auto volumeLabel = "VOLUME";
+auto goingDormantLabel = "Shutting down...";
 auto yesLabel = "Yes";
 auto noLabel = "No";
-auto emptyFlashMsg = {"No playable PSIDs.", "Use USB to transfer", "PSIDs to the root", "of the SIDPod."};
-float longTitleScrollOffset, playingSymbolAnimationCounter = 0;
+float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
 Visualization::DanceFloor *danceFloor;
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
+#ifdef USE_BUDDY
+Buddy *buddy = Buddy::getInstance();
+#endif
 
 void UI::initUI() {
-    gpio_init(ENC_SW_PIN);
-    gpio_set_dir(ENC_SW_PIN, GPIO_IN);
-    gpio_pull_up(ENC_SW_PIN);
+#if (!USE_BUDDY)
     uint offset = pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
+#endif
+    gpio_init(SWITCH_PIN);
+    gpio_set_dir(SWITCH_PIN, GPIO_IN);
+    gpio_pull_up(SWITCH_PIN);
     danceFloor = new Visualization::DanceFloor(&disp);
 }
 
@@ -50,7 +59,7 @@ void UI::screenOn() {
 
 void UI::screenOff() {
     lastState = currentState;
-    currentState = UI::sleeping;
+    currentState = sleeping;
     ssd1306_clear(&disp);
     ssd1306_show(&disp);
     ssd1306_poweroff(&disp);
@@ -58,82 +67,179 @@ void UI::screenOff() {
 }
 
 void UI::showSplash() {
-    currentState = UI::splash;
+    currentState = splash;
     ssd1306_clear(&disp);
-    ssd1306_bmp_show_image(&disp, SIDPOD_BMP, SIDPOD_BMP_SIZE);
+    ssd1306_bmp_show_image(&disp, SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
+    ssd1306_draw_string(&disp, 0, 25, 1, "2.0beta");
+    ssd1306_draw_string(&disp, 64, 25, 1, "\"Residious\"");
     ssd1306_show(&disp);
+}
+
+void UI::initDanceFloor() {
+    danceFloor->init();
+}
+
+void UI::startDanceFloor() {
+    danceFloor->start();
 }
 
 void UI::updateUI() {
     switch (currentState) {
-        case UI::visualization:
-            danceFloor->start(PSIDCatalog::getCurrentEntry());
+        case visualization:
+            if (Catalog::playlistIsOpen()) {
+                if (const Playlist *playlist = Catalog::getCurrentPlaylist();
+                    playlist->getState() == Playlist::State::READY) {
+#ifdef USE_BUDDY
+                    buddy->forceRotationControl();
+#endif
+                    startDanceFloor();
+                }
+            }
             break;
-        case UI::volume_control:
+        case volume_control:
             showVolumeControl();
             break;
-        case UI::raster_bars:
+        case raster_bars:
             showRasterBars();
             break;
-        case UI::splash:
+        case splash:
             if (showSplashCycles == 0) {
                 showSplash();
             }
             if (showSplashCycles++ > SPLASH_DISPLAY_DURATION) {
                 showSplashCycles = 0;
-                currentState = UI::song_selector;
+#if USE_BUDDY
+                currentState = bluetooth_interaction;
+#else
+                currentState = playlist_selector;
+#endif
             } else {
                 sleep_ms(1);
             }
             break;
+        case playlist_selector:
+#ifdef USE_BUDDY
+            buddy->forceVerticalControl();
+#endif
+            showPlaylistSelector();
+            break;
+#ifdef USE_BUDDY
+        case bluetooth_interaction:
+            buddy->forceVerticalControl();
+            showBluetoothInteraction();
+            break;
+#endif
         default:
+#ifdef USE_BUDDY
+            buddy->forceVerticalControl();
+#endif
             showSongSelector();
+    }
+#ifdef USE_BUDDY
+    if (buddy->getState() != Buddy::CONNECTED) {
+        currentState = bluetooth_interaction;
+    }
+#endif
+}
+
+void UI::drawHeader(const char *title) {
+    const size_t stringWidth = strlen(title) * FONT_WIDTH;
+    if (stringWidth > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+        animateLongText(title, 0, 12, &headerScrollOffset);
+        ssd1306_draw_line(&disp, 0, 0, 8, 0);
+        ssd1306_draw_line(&disp, 0, 2, 8, 2);
+        ssd1306_draw_line(&disp, 0, 4, 8, 4);
+        ssd1306_draw_line(&disp, 0, 6, 8, 6);
+    } else {
+        ssd1306_draw_line(&disp, 0, 0, DISPLAY_WIDTH, 0);
+        ssd1306_draw_line(&disp, 0, 2, DISPLAY_WIDTH, 2);
+        ssd1306_draw_line(&disp, 0, 4, DISPLAY_WIDTH, 4);
+        ssd1306_draw_line(&disp, 0, 6, DISPLAY_WIDTH, 6);
+        ssd1306_clear_square(&disp, 8, 0, stringWidth + FONT_WIDTH, FONT_HEIGHT);
+        ssd1306_draw_string(&disp, 12, 0, 1, title);
     }
 }
 
 void UI::showSongSelector() {
-    if (PSIDCatalog::getSize()) {
-        if (strcmp(PSIDCatalog::getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
-            && !SIDPlayer::loadingWasSuccessful()) {
-            PSIDCatalog::markCurrentEntryAsUnplayable();
-            SIDPlayer::resetState();
+    Playlist *playlist = Catalog::getCurrentPlaylist();
+    auto playlistState = playlist->getState();
+    if (playlistState == Playlist::State::READY) {
+        currentState = song_selector;
+        if (playlist->getSize()) {
+            if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+                && !SIDPlayer::loadingWasSuccessful()) {
+                playlist->markCurrentEntryAsUnplayable();
+                SIDPlayer::resetState();
+            }
+            ssd1306_clear(&disp);
+            drawHeader(Catalog::getSelected().c_str());
+            uint8_t y = 8;
+            for (const auto entry: playlist->getWindow()) {
+                if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                    animateLongText(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                } else {
+                    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
+                }
+                if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
+                                                                           SIDPlayer::getCurrentlyLoaded()->fileName) ==
+                    0
+                    && SIDPlayer::loadingWasSuccessful()) {
+                    drawNowPlayingSymbol(y);
+                } else if (entry->selected) {
+                    drawOpenSymbol(y);
+                }
+                if (entry->unplayable) crossOutLine(y);
+                y += 8;
+            }
+            ssd1306_show(&disp);
         }
+    } else if (playlistState == Playlist::State::OUTDATED) {
+        currentState = refreshing_playlist;
         ssd1306_clear(&disp);
-        uint8_t y = 0;
-        for (auto entry: PSIDCatalog::getWindow()) {
-            if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                animateLongTitle(entry->title, y);
-            } else {
-                ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
-            }
-            if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
-                && SIDPlayer::loadingWasSuccessful()) {
-                drawNowPlayingSymbol(y);
-            } else if (entry->selected) {
-                drawPlaySymbol(y);
-            }
-            if (entry->unplayable) crossOutLine(y);
-            y += 8;
-        }
+        drawHeader(Catalog::getSelected().c_str());
+        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Loading...");
         ssd1306_show(&disp);
-    } else {
-        showFlashEmptyScreen();
+        playlist->refresh();
+        busy_wait_ms(200);
     }
 }
 
-void UI::animateLongTitle(char *title, int32_t y) {
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN - (int32_t) longTitleScrollOffset, y, 1, title);
-    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + SONG_LIST_LEFT_MARGIN;
-    float advancement =
-            longTitleScrollOffset > 1 && (int) longTitleScrollOffset < scrollRange
-            ? 0.4
-            : 0.02;
-    if ((int) (longTitleScrollOffset += advancement) > scrollRange)
-        longTitleScrollOffset = 0;
-    ssd1306_clear_square(&disp, 0, y, SONG_LIST_LEFT_MARGIN - 1, y + FONT_HEIGHT);
+void UI::showPlaylistSelector() {
+    ssd1306_clear(&disp);
+    drawHeader("PLAYLISTS");
+    uint8_t y = FONT_HEIGHT;
+    for (const auto &entry: Catalog::getWindow()) {
+        const bool selected = *entry == Catalog::getSelected();
+        const bool playing = *entry == Catalog::getPlaying();
+        if (selected && entry->length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+            animateLongText(entry->c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+        } else {
+            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->c_str());
+        }
+        if (selected) {
+            drawOpenSymbol(y);
+        } else if (playing && SIDPlayer::loadingWasSuccessful()) {
+            drawNowPlayingSymbol(y);
+        }
+        y += 8;
+    }
+    ssd1306_show(&disp);
 }
 
-void UI::drawPlaySymbol(int32_t y) {
+
+void UI::animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) {
+    ssd1306_draw_string(&disp, xMargin - static_cast<int32_t>(*offsetCounter), y, 1, title);
+    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
+    float advancement =
+            *offsetCounter > 1 && (int) *offsetCounter < scrollRange
+                ? 0.4
+                : 0.02;
+    if (static_cast<int>(*offsetCounter += advancement) > scrollRange)
+        *offsetCounter = 0;
+    ssd1306_clear_square(&disp, 0, y, xMargin - 1, y + FONT_HEIGHT);
+}
+
+void UI::drawOpenSymbol(int32_t y) {
     ssd1306_draw_pixel(&disp, 0, y + 2);
     ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
     ssd1306_draw_pixel(&disp, 0, y + 4);
@@ -164,38 +270,42 @@ void UI::crossOutLine(int32_t y) {
     ssd1306_draw_line(&disp, SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
 }
 
-void UI::showFlashEmptyScreen() {
-    ssd1306_clear(&disp);
-    int x = (DISPLAY_WIDTH / 2) - FONT_WIDTH * 10;
-    int y = 0;
-    for (auto msgLine: emptyFlashMsg) {
-        ssd1306_draw_string(&disp, x, y, 1, msgLine);
-        y += FONT_HEIGHT;
-    }
-    ssd1306_show(&disp);
+void UI::drawDialog(const char *text) {
+    int labelWidth = static_cast<int>(strlen(text)) * FONT_WIDTH;
+    int windowWidth = labelWidth + 4;
+    int windowHeight = FONT_HEIGHT + 1;
+    ssd1306_clear_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
+                         windowWidth, windowHeight + 1);
+    ssd13606_draw_empty_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
+                               windowWidth, windowHeight + 1);
+    ssd1306_draw_string(&disp, DISPLAY_X_CENTER - (labelWidth / 2) + 1, DISPLAY_Y_CENTER - FONT_HEIGHT / 2 + 1, 1,
+                        text);
 }
 
 void UI::showVolumeControl() {
     ssd1306_clear(&disp);
-    ssd1306_draw_string(&disp, 4, 0, 1, volumeLabel);
-    ssd13606_draw_empty_square(&disp, 4, 10, 120, 10);
-    ssd1306_draw_square(&disp, 4, 10, 120 / VOLUME_STEPS * SIDPlayer::getVolume(), 10);
-    ssd1306_draw_string(&disp, 4, 24, 1, lineLevelLabel);
-    int statusLabelX = (int) (strlen(lineLevelLabel) * FONT_WIDTH) + FONT_WIDTH;
-    if (SIDPlayer::lineLevelOn()) {
-        ssd1306_draw_string(&disp, statusLabelX, 24, 1, yesLabel);
-    } else {
-        ssd1306_draw_string(&disp, statusLabelX, 24, 1, noLabel);
-    }
+    drawHeader(volumeLabel);
+    ssd13606_draw_empty_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                               DISPLAY_WIDTH - 1, 8);
+    ssd1306_draw_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                        static_cast<int>(
+                            (DISPLAY_WIDTH - 1) * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
+                                                       VOLUME_STEPS))), 8);
     ssd1306_show(&disp);
 }
 
 void UI::stop() {
-    currentState = UI::raster_bars;
+    currentState = raster_bars;
     danceFloor->stop();
 }
 
-void UI::start() {
+void UI::start(bool quickStart) {
+    if (quickStart) {
+        showSplashCycles = SPLASH_DISPLAY_DURATION;
+    }
+#ifdef USE_BUDDY
+    buddy->init();
+#endif
     add_repeating_timer_ms(USER_CONTROLS_POLLRATE_MS, pollUserControls, nullptr, &userControlTimer);
 }
 
@@ -206,49 +316,19 @@ inline void UI::showRasterBars() {
     ssd1306_show_unacked(&disp);
 }
 
-bool UI::pollUserControls(struct repeating_timer *t) {
+bool UI::pollUserControls(repeating_timer *t) {
     (void) t;
     pollSwitch();
+#if (!USE_BUDDY)
     pollEncoder();
+#endif
     return true;
 }
 
-void UI::pollEncoder() {
-    encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
-    encDelta = encNewValue - encOldValue;
-    encOldValue = encNewValue;
-    if (encDelta != 0) {
-        danceFloor->stop();
-        if (currentState == UI::visualization) {
-            startVolumeControlSession();
-        } else if (currentState == UI::volume_control) {
-            resetVolumeControlSessionTimer();
-        }
-        if (encDelta > 0) {
-            for (int i = 0; i < encDelta; i++) {
-                if (currentState == UI::volume_control) {
-                    SIDPlayer::volumeUp();
-                } else {
-                    PSIDCatalog::selectNext();
-                    longTitleScrollOffset = 0;
-                }
-            }
-        } else if (encDelta < 0) {
-            for (int i = 0; i < encDelta * -1; i++) {
-                if (currentState == UI::volume_control) {
-                    SIDPlayer::volumeDown();
-                } else {
-                    PSIDCatalog::selectPrevious();
-                    longTitleScrollOffset = 0;
-                }
-            }
-        }
-    }
-}
-
-bool UI::pollSwitch() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile bool UI::pollSwitch() {
     bool used = false;
-    bool currentSwitchState = !gpio_get(ENC_SW_PIN);
+    bool currentSwitchState = !gpio_get(SWITCH_PIN);
     if (currentSwitchState && currentSwitchState != lastSwitchState) {
         used = true;
         if (inDoubleClickSession) {
@@ -259,7 +339,7 @@ bool UI::pollSwitch() {
             startDoubleClickSession();
             startSingleClickSession();
         }
-        if (currentState != UI::sleeping) {
+        if (currentState != sleeping) {
             if (inLongPressSession) {
                 endLongPressSession();
             } else {
@@ -273,27 +353,245 @@ bool UI::pollSwitch() {
     return used;
 }
 
+#if (!USE_BUDDY)
+
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::pollEncoder() {
+    encNewValue = quadrature_encoder_get_count(ENC_PIO, ENC_SM) / 2;
+    encDelta = encNewValue - encOldValue;
+    encOldValue = encNewValue;
+    if (encDelta != 0) {
+        verticalMovement(encDelta);
+    }
+}
+
+#endif
+
+#if USE_BUDDY
+
+void UI::showBluetoothInteraction() {
+    auto state = buddy->getState();
+    switch (state) {
+        case Buddy::READY:
+            buddy->refreshDeviceList();
+            break;
+        case Buddy::REFRESHING:
+            showBTProcessing("Scanning...");
+            break;
+        case Buddy::AWAITING_SELECTION:
+            showBTDeviceList();
+            break;
+        case Buddy::CONNECTING:
+        case Buddy::AWAITING_STATE_CHANGE:
+            showBTConnecting();
+            break;
+        case Buddy::CONNECTED:
+            currentState = playlist_selector;
+            break;
+        case Buddy::DISCONNECTED:
+            showBTProcessing("Disconnected");
+            buddy->refreshDeviceList();
+            busy_wait_ms(2000);
+            break;
+        case Buddy::AWAITING_DISCONNECT_CONFIRMATION:
+            showBTDisconnectConfirmation();
+            break;
+    }
+}
+
+void UI::showBTConnecting() {
+    ssd1306_clear(&disp);
+    drawHeader("BLUETOOTH");
+    auto selectedDeviceName = buddy->getSelectedDeviceName();
+    char connectingMessage[64];
+    snprintf(connectingMessage, sizeof(connectingMessage), "Connecting %.*s",
+             static_cast<int>(strlen(selectedDeviceName) - 1), selectedDeviceName);
+    animateLongText(connectingMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
+    ssd1306_show(&disp);
+}
+
+void UI::showBTDisconnectConfirmation() {
+    ssd1306_clear(&disp);
+    drawHeader("BLUETOOTH");
+    auto connectedDeviceName = buddy->getConnectedDeviceName();
+    char disconnectMessage[64];
+    snprintf(disconnectMessage, sizeof(disconnectMessage), "Disconnect %.*s?",
+             static_cast<int>(strlen(connectedDeviceName) - 1), connectedDeviceName);
+    animateLongText(disconnectMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
+    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 2, 1, yesLabel);
+    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 3, 1, noLabel);
+    if (disconnectAffirmative) {
+        drawOpenSymbol(FONT_HEIGHT * 2);
+    } else {
+        drawOpenSymbol(FONT_HEIGHT * 3);
+    }
+    ssd1306_show(&disp);
+}
+
+void UI::showBTProcessing(const char *text) {
+    ssd1306_clear(&disp);
+    drawHeader("BLUETOOTH");
+    ssd1306_draw_string(&disp, 0, 16, 1, text);
+    ssd1306_show(&disp);
+}
+
+void UI::showBTDeviceList() {
+    ssd1306_clear(&disp);
+    drawHeader("SELECT BLUETOOTH DEVICE");
+    uint8_t y = FONT_HEIGHT;
+    for (const auto &device: *buddy->getWindow()) {
+        if (device.selected) {
+            animateLongText(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            drawOpenSymbol(y);
+        } else {
+            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, device.name);
+        }
+        y += FONT_HEIGHT;
+    }
+    ssd1306_show(&disp);
+}
+
+void UI::adjustVolume(const bool up) {
+    if (currentState == volume_control) {
+        resetVolumeControlSessionTimer();
+    } else {
+        startVolumeControlSession();
+        resetVolumeControlSessionTimer();
+    }
+    if (up) {
+        SIDPlayer::volumeUp();
+    } else {
+        SIDPlayer::volumeDown();
+    }
+}
+
+#endif
+
+void UI::danceFloorStop() {
+    danceFloor->stop();
+}
+
+UI::State UI::getState() {
+    return currentState;
+}
+
+void UI::screenshotToPBM() {
+    ssd1306_dump_pbm(&disp);
+}
+
+void UI::verticalMovement(const int delta) {
+    danceFloor->stop();
+#if (!USE_BUDDY)
+    if (currentState == visualization) {
+        startVolumeControlSession();
+        resetVolumeControlSessionTimer();
+    } else if (currentState == volume_control) {
+        resetVolumeControlSessionTimer();
+    }
+#endif
+
+    if (delta > 0) {
+        for (int i = 0; i < delta; i++) {
+            if (currentState == volume_control) {
+                SIDPlayer::volumeUp();
+#ifdef USE_BUDDY
+            } else if (currentState == bluetooth_interaction) {
+                if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
+                    disconnectAffirmative = false;
+                } else {
+                    buddy->selectNext();
+                }
+#endif
+            } else {
+                if (Catalog::playlistIsOpen()) {
+                    Catalog::getCurrentPlaylist()->selectNext();
+                } else {
+                    Catalog::selectNext();
+                }
+                longTitleScrollOffset = 0;
+            }
+        }
+    } else if (delta < 0) {
+        for (int i = 0; i < delta * -1; i++) {
+            if (currentState == volume_control) {
+                SIDPlayer::volumeDown();
+#ifdef USE_BUDDY
+            } else if (currentState == bluetooth_interaction) {
+                if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
+                    disconnectAffirmative = true;
+                } else {
+                    buddy->selectPrevious();
+                }
+#endif
+            } else {
+                if (Catalog::playlistIsOpen()) {
+                    Catalog::getCurrentPlaylist()->selectPrevious();
+                } else {
+                    Catalog::selectPrevious();
+                }
+                longTitleScrollOffset = 0;
+            }
+        }
+    }
+}
+
 int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
-    (void) id;
     (void) user_data;
     endDoubleClickSession();
-    if (!inLongPressSession && currentState != UI::sleeping) {
-        switch (currentState) {
-            case UI::visualization:
-                currentState = UI::song_selector;
-                danceFloor->stop();
-                break;
-            case UI::volume_control:
-                SIDPlayer::toggleLineLevel();
-                resetVolumeControlSessionTimer();
-                break;
-            default:
-                if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                           PSIDCatalog::getCurrentEntry()->fileName) != 0) {
-                    SIDPlayer::togglePlayPause();
-                }
-                currentState = UI::visualization;
+    if (!inLongPressSession && currentState != sleeping) {
+#ifdef USE_BUDDY
+        if (id) {
+            disconnectAffirmative = false;
+            buddy->askToDisconnect();
+            lastState = currentState;
+            currentState = bluetooth_interaction;
+            danceFloor->stop();
+        } else {
+#endif
+
+            switch (currentState) {
+                case visualization:
+                    currentState = song_selector;
+                    danceFloor->stop();
+                    break;
+                case playlist_selector:
+                    Catalog::openSelected();
+                    currentState = song_selector;
+                    break;
+#ifdef USE_BUDDY
+                case refreshing_playlist:
+                    break;
+                case bluetooth_interaction:
+                    if (buddy->getState() == Buddy::AWAITING_DISCONNECT_CONFIRMATION) {
+                        if (disconnectAffirmative) {
+                            buddy->disconnect();
+                        } else {
+                            buddy->setConnected();
+                            currentState = lastState;
+                        }
+                    } else {
+                        buddy->connectSelected();
+                    }
+                    break;
+#endif
+                default:
+                    auto playlist = Catalog::getCurrentPlaylist();
+                    if (playlist->isAtReturnEntry()) {
+                        Catalog::closeSelected();
+                        currentState = playlist_selector;
+                        break;
+                    }
+                    if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                               playlist->getCurrentEntry()
+                               ->fileName) != 0) {
+                        SIDPlayer::togglePlayPause();
+                        initDanceFloor();
+                    }
+                    currentState = visualization;
+            }
+#ifdef USE_BUDDY
         }
+#endif
     }
     return 0;
 }
@@ -305,38 +603,44 @@ int64_t UI::longPressCallback(alarm_id_t id, void *user_data) {
     endDoubleClickSession();
     screenOff();
     int i = 0;
-    while (!gpio_get(ENC_SW_PIN)) {
+    while (!gpio_get(SWITCH_PIN)) {
         busy_wait_ms(1);
-        i++;
-    }
-    if (i > DORMANT_ADDITIONAL_DURATION_MS) {
-        goToSleep();
+        if (i++ > DORMANT_ADDITIONAL_DURATION_MS) {
+            goToSleep();
+        }
     }
     return 0;
 }
 
-void UI::doubleClickCallback() {
-    if (currentState == UI::sleeping) {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::doubleClickCallback() {
+    if (currentState == sleeping) {
         screenOn();
-    } else if (currentState == UI::visualization || UI::volume_control) {
+    } else if (currentState == visualization
+               || currentState == volume_control
+               || currentState == song_selector) {
         SIDPlayer::togglePlayPause();
     }
 }
 
-void UI::startSingleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startSingleClickSession() {
     singleClickTimer = add_alarm_in_ms(DOUBLE_CLICK_SPEED_MS, singleClickCallback, nullptr, false);
 }
 
-void UI::startDoubleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startDoubleClickSession() {
     inDoubleClickSession = true;
 }
 
-void UI::startLongPressSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startLongPressSession() {
     inLongPressSession = true;
     longPressTimer = add_alarm_in_ms(LONG_PRESS_DURATION_MS, longPressCallback, nullptr, false);
 }
 
-void UI::endSingleClickSession() {
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::endSingleClickSession() {
     if (singleClickTimer) cancel_alarm(singleClickTimer);
 }
 
@@ -353,12 +657,14 @@ int64_t UI::endVolumeControlSessionCallback(alarm_id_t id, void *user_data) {
     (void) user_data;
     (void) id;
     endVolumeControlSession();
-    currentState = UI::visualization;
+    currentState = lastState;
     return 0;
 }
 
-void UI::startVolumeControlSession() {
-    currentState = UI::volume_control;
+// ReSharper disable once CppDFAUnreachableFunctionCall
+volatile void UI::startVolumeControlSession() {
+    lastState = currentState;
+    currentState = volume_control;
     danceFloor->stop();
 }
 
@@ -378,13 +684,33 @@ void UI::endVolumeControlSession() {
     }
 }
 
+void UI::animateShutdown() {
+    const int labelWidth = (int) strlen(goingDormantLabel) * FONT_WIDTH;
+    constexpr int displayCenter = DISPLAY_WIDTH / 2;
+    screenOn();
+    ssd1306_clear(&disp);
+    ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+    ssd1306_show(&disp);
+    busy_wait_ms(SPLASH_DISPLAY_DURATION);
+
+    for (int i = 0; i < DISPLAY_HEIGHT / 2; i += 4) {
+        ssd1306_clear(&disp);
+        ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+        ssd1306_clear_square(&disp, 0, 0, DISPLAY_WIDTH - 1, i);
+        ssd1306_draw_line(&disp, 0, i, DISPLAY_WIDTH - 1, i);
+        ssd1306_clear_square(&disp, 0, DISPLAY_HEIGHT, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
+        ssd1306_draw_line(&disp, 0, DISPLAY_HEIGHT - i, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
+        ssd1306_show(&disp);
+        System::virtualVBLSync();
+    }
+
+    screenOff();
+}
+
 void UI::goToSleep() {
     cancel_repeating_timer(&userControlTimer);
     danceFloor->stop();
     SIDPlayer::resetState();
+    animateShutdown();
     System::goDormant();
-    lastSwitchState = false;
-    lastState = UI::splash;
-    screenOn();
-    start();
 }

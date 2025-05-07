@@ -1,24 +1,34 @@
 #ifndef SIDPOD_SYSTEM_H
 #define SIDPOD_SYSTEM_H
+#include "ff.h"
 
 class System {
 public:
-    static void configureClocks();
+    static uint32_t millis_now();
 
     static void goDormant();
 
     static void softReset();
 
-    static void enableUsb();
+    static void hardReset();
 
-    static void runExclusiveUsbDBurst();
+    static void virtualVBLSync();
+
+    static void enableUsb();
 
     static bool usbConnected();
 
-private:
-    static void sleepUntilDoubleClick();
+    static void deleteSettingsFile(const char *fileName);
 
+    static bool openSettingsFile(FIL *fil, const char *fileName);
+
+    static bool prepareFilesystem();
+
+private:
+    // ReSharper disable once CppRedundantElaboratedTypeSpecifier
     static bool repeatingTudTask(struct repeating_timer *t);
+
+    static bool createSettingsDirectoryIfNotExists();
 };
 
 #endif //SIDPOD_SYSTEM_H

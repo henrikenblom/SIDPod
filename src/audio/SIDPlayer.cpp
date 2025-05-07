@@ -4,39 +4,50 @@
 #include <pico/util/queue.h>
 #include <hardware/gpio.h>
 #include "SIDPlayer.h"
-#include "../platform_config.h"
-#include "sid.h"
 
-struct repeating_timer reapCommandTimer{};
+#include <algorithm>
+#include <pico/audio.h>
+#include <pico/audio_i2s.h>
+
+#include "../platform_config.h"
+#include "C64.h"
+#include "../Catalog.h"
+
+repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
-uint8_t volume = VOLUME_STEPS;
-static sid_info sidInfo{};
-uint16_t intermediateBuffer[SAMPLES_PER_BUFFER];
-bool playPauseQueued = false;
+uint8_t volume = INITIAL_VOLUME;
+float volumeFactor;
+short visualizationBuffer[FFT_SAMPLES];
+volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
-CatalogEntry *lastCatalogEntry = {};
+PlaylistEntry *lastCatalogEntry = {};
 static audio_format_t audio_format = {
-        .sample_freq = SAMPLE_RATE,
-        .format = AUDIO_BUFFER_FORMAT_PCM_S16,
-        .channel_count = 1,
+    .sample_freq = SAMPLE_RATE,
+    .format = AUDIO_BUFFER_FORMAT_PCM_S16,
+    .channel_count = 1,
 };
-static struct audio_buffer_format producer_format = {
-        .format = &audio_format,
-        .sample_stride = 2
+static audio_buffer_format producer_format = {
+    .format = &audio_format,
+    .sample_stride = 2
 };
-static struct audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, SAMPLES_PER_BUFFER);
-struct audio_i2s_config config = {
-        .data_pin = PICO_AUDIO_I2S_DATA_PIN,
-        .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
-        .dma_channel = 0,
-        .pio_sm = 0,
+static audio_buffer_pool *audioBufferPool = audio_new_producer_pool(&producer_format, 2, MAX_SAMPLES_PER_BUFFER);
+audio_i2s_config config = {
+    .data_pin = PICO_AUDIO_I2S_DATA_PIN,
+    .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
+    .dma_channel = 2,
+    .pio_sm = 0,
 };
 
 // core0 functions
 
 void SIDPlayer::initAudio() {
+    updateVolumeFactor();
+    audio_i2s_setup(&audio_format, &config);
+    audio_i2s_connect(audioBufferPool);
+    audio_i2s_set_enabled(true);
+    C64::begin();
     multicore_launch_core1(core1Main);
     multicore_fifo_pop_blocking();
 }
@@ -46,8 +57,21 @@ void SIDPlayer::resetState() {
     rendering = false;
     loadingSuccessful = true;
     lastCatalogEntry = {};
-    memset(intermediateBuffer, 0, SAMPLES_PER_BUFFER);
-    c64Init(SAMPLE_RATE);
+    memset(visualizationBuffer, 0, FFT_SAMPLES);
+    C64::c64Init();
+    busy_wait_ms(200);
+}
+
+void SIDPlayer::playIfPaused() {
+    if (!rendering) {
+        togglePlayPause();
+    }
+}
+
+void SIDPlayer::pauseIfPlaying() {
+    if (rendering) {
+        togglePlayPause();
+    }
 }
 
 void SIDPlayer::togglePlayPause() {
@@ -59,9 +83,11 @@ void SIDPlayer::ampOn() {
 }
 
 void SIDPlayer::ampOff() {
-    if (!getLineLevelOn()) {
-        gpio_pull_down(AMP_CONTROL_PIN);
-    }
+    gpio_pull_down(AMP_CONTROL_PIN);
+}
+
+void SIDPlayer::updateVolumeFactor() {
+    volumeFactor = static_cast<float>(volume) / VOLUME_STEPS;
 }
 
 void SIDPlayer::volumeUp() {
@@ -71,6 +97,7 @@ void SIDPlayer::volumeUp() {
         }
         volume++;
     }
+    updateVolumeFactor();
 }
 
 void SIDPlayer::volumeDown() {
@@ -80,14 +107,14 @@ void SIDPlayer::volumeDown() {
         }
         volume--;
     }
+    updateVolumeFactor();
 }
 
 uint8_t SIDPlayer::getVolume() {
     return volume;
 }
 
-
-CatalogEntry *SIDPlayer::getCurrentlyLoaded() {
+PlaylistEntry *SIDPlayer::getCurrentlyLoaded() {
     return lastCatalogEntry;
 }
 
@@ -95,29 +122,53 @@ bool SIDPlayer::isPlaying() {
     return rendering;
 }
 
-void SIDPlayer::toggleLineLevel() {
-    if (getLineLevelOn()) {
-        setLineLevel(false);
-    } else {
-        setLineLevel(true);
-    }
-}
-
-bool SIDPlayer::lineLevelOn() {
-    return getLineLevelOn();
-}
-
-sid_info *SIDPlayer::getSidInfo() {
-    return &sidInfo;
+SidInfo *SIDPlayer::getSidInfo() {
+    return C64::getSidInfo();
 }
 
 bool SIDPlayer::loadingWasSuccessful() {
     return loadingSuccessful;
 }
 
+int SIDPlayer::getCurrentSong() {
+    return C64::getCurrentSong();
+}
+
+int SIDPlayer::getSongCount() {
+    return C64::getSidInfo()->songs;
+}
+
+void SIDPlayer::playNextSong() {
+    if (C64::songIsLoaded()) {
+        int song = getCurrentSong();
+        if (song++ >= getSongCount() - 1) {
+            song = 0;
+        }
+        C64::playSong(song);
+        playIfPaused();
+    }
+}
+
+void SIDPlayer::playPreviousSong() {
+    if (C64::songIsLoaded()) {
+        int song = getCurrentSong();
+        if (millisSinceSongStart() < SONG_SKIP_TIME_MS) {
+            if (--song < 0) {
+                song = getSongCount() - 1;
+            }
+        }
+        C64::playSong(song);
+        playIfPaused();
+    }
+}
+
+uint32_t SIDPlayer::millisSinceSongStart() {
+    return C64::millisSinceSongStart();
+}
+
 // core1 functions
 
-bool SIDPlayer::reapCommand(struct repeating_timer *t) {
+volatile bool SIDPlayer::reapCommand(repeating_timer *t) {
     (void) t;
     uint8_t value = 0;
     queue_try_remove(&txQueue, &value);
@@ -127,78 +178,48 @@ bool SIDPlayer::reapCommand(struct repeating_timer *t) {
     return true;
 }
 
-bool SIDPlayer::loadPSID(CatalogEntry *psidFile) {
-    return sid_load_from_file(psidFile->fileName, &sidInfo);
-}
-
-void SIDPlayer::generateSamples() {
-    int samples_rendered = 0;
-    int samples_to_render = 0;
-
-    while (samples_rendered < SAMPLES_PER_BUFFER) {
-        if (samples_to_render == 0) {
-            cpuJSR(sidInfo.play_addr, 0);
-
-            int n_refresh_cia = (int) (20000 * (memory[0xdc04] | (memory[0xdc05] << 8)) / 0x4c00);
-            if ((n_refresh_cia == 0) || (sidInfo.speed == 0))
-                n_refresh_cia = 20000;
-
-            samples_to_render = SAMPLE_RATE * n_refresh_cia / 1000000;
-        }
-        if (samples_rendered + samples_to_render > SAMPLES_PER_BUFFER) {
-            sid_synth_render(intermediateBuffer + samples_rendered, SAMPLES_PER_BUFFER - samples_rendered);
-            samples_to_render -= SAMPLES_PER_BUFFER - samples_rendered;
-            samples_rendered = SAMPLES_PER_BUFFER;
-        } else {
-            sid_synth_render(intermediateBuffer + samples_rendered, samples_to_render);
-            samples_rendered += samples_to_render;
-            samples_to_render = 0;
-        }
-    }
+volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
+    return C64::sid_load_from_file(fullPath);
 }
 
 [[noreturn]] void SIDPlayer::core1Main() {
     ampOff();
-    audio_i2s_setup(&audio_format, &config);
-    audio_i2s_connect(audioBufferPool);
-    audio_i2s_set_enabled(true);
     queue_init(&txQueue, 1, 1);
-    add_repeating_timer_ms(50, reapCommand, nullptr, &reapCommandTimer);
+    add_repeating_timer_ms(50, reinterpret_cast<repeating_timer_callback_t>(reapCommand), nullptr, &reapCommandTimer);
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            CatalogEntry *currentCatalogEntry = PSIDCatalog::getCurrentEntry();
-            if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
-                resetState();
-                if (loadPSID(PSIDCatalog::getCurrentEntry())) {
-                    loadingSuccessful = true;
-                    sidPoke(24, 15);
-                    cpuJSR(sidInfo.init_addr, sidInfo.start_song);
+            if (Catalog::playlistIsOpen()) {
+                Playlist *playlist = Catalog::getCurrentPlaylist();
+                PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
+                if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
+                    resetState();
+                    TCHAR fullPath[FF_LFN_BUF + 1];
+                    playlist->getFullPathForSelectedEntry(fullPath);
+                    if (loadPSID(fullPath)) {
+                        Catalog::setPlaying(playlist->getName());
+                        loadingSuccessful = true;
+                        rendering = true;
+                        ampOn();
+                    } else {
+                        loadingSuccessful = false;
+                    }
+                    lastCatalogEntry = currentCatalogEntry;
+                } else if (rendering) {
+                    memset(visualizationBuffer, 0, sizeof(visualizationBuffer));
+                    rendering = false;
+                    ampOff();
+                } else {
                     rendering = true;
                     ampOn();
-                } else {
-                    loadingSuccessful = false;
                 }
-                lastCatalogEntry = currentCatalogEntry;
-            } else if (rendering) {
-                memset(intermediateBuffer, 0, sizeof(intermediateBuffer));
-                rendering = false;
-                ampOff();
-            } else {
-                rendering = true;
-                ampOn();
+                playPauseQueued = false;
             }
-            playPauseQueued = false;
         }
-        if (rendering && sidInfo.play_addr != 0) {
-            float volumeFactor = (float) volume / VOLUME_STEPS;
-            struct audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
-            auto *samples = (int16_t *) buffer->buffer->bytes;
-            generateSamples();
-            for (uint i = 0; i < buffer->max_sample_count; i++) {
-                samples[i] = (int16_t) ((float) intermediateBuffer[i] * volumeFactor);
-            }
-            buffer->sample_count = buffer->max_sample_count;
+
+        if (rendering) {
+            audio_buffer *buffer = take_audio_buffer(audioBufferPool, true);
+            C64::clock(buffer, volumeFactor);
             give_audio_buffer(audioBufferPool, buffer);
         }
     }
