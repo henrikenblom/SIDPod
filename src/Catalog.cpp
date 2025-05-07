@@ -129,6 +129,41 @@ Playlist *Catalog::getCurrentPlaylist() {
     return currentPlaylist;
 }
 
+bool Catalog::isPSID(char *fullPath) {
+    bool result = false;
+    FIL pFile;
+    BYTE header[SID_MINIMAL_HEADER_SIZE];
+    UINT bytesRead;
+    f_open(&pFile, fullPath, FA_READ);
+    f_read(&pFile, &header, SID_MINIMAL_HEADER_SIZE, &bytesRead);
+    if (bytesRead == SID_MINIMAL_HEADER_SIZE) {
+        uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
+        result = magic == PSID_ID || magic == RSID_ID;
+    }
+    f_close(&pFile);
+    return result;
+}
+
+bool Catalog::containsAtLeastOnePSID(char *name) {
+    FILINFO fno;
+    const auto dp = new DIR;
+    bool found = false;
+    f_opendir(dp, name);
+    FRESULT fr = f_readdir(dp, &fno);
+    while (fr == FR_OK && fno.fname[0] != 0) {
+        TCHAR fullPath[FF_LFN_BUF + 1];
+        snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, fno.fname);
+        if (isPSID(fullPath)) {
+            found = true;
+            break;
+        }
+        fr = f_readdir(dp, &fno);
+    }
+    f_closedir(dp);
+    delete dp;
+    return found;
+}
+
 void Catalog::updateWindow() {
     if (getSize()) {
         window.clear();

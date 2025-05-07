@@ -381,6 +381,7 @@ namespace Visualization {
             sMod = static_cast<int>(64 + (System::millis_now() - lastSceneChangeMS) / 48);
         }
 
+#ifdef USE_BUDDY
         auto millisSinceSongStart = SIDPlayer::millisSinceSongStart();
         if (SIDPlayer::getSongCount() > 1
             && millisSinceSongStart > SONG_NUMBER_DISPLAY_DELAY
@@ -390,6 +391,7 @@ namespace Visualization {
                                   millisSinceSongStart > SONG_NUMBER_DISPLAY_DURATION + SONG_NUMBER_DISPLAY_DELAY +
                                   SONG_NUMBER_SHOW_HIDE_DURATION);
         }
+#endif
 
         if (!alternativeScene && !sphereScene && transition == NO_TRANSITION
             && System::millis_now() >= lastSceneChangeMS + SPECTRUM_SCENE_DURATION_MS) {

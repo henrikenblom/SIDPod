@@ -124,18 +124,6 @@ bool SIDPlayer::isPlaying() {
     return rendering;
 }
 
-void SIDPlayer::toggleLineLevel() {
-    if (C64::getLineLevelOn()) {
-        C64::setLineLevel(false);
-    } else {
-        C64::setLineLevel(true);
-    }
-}
-
-bool SIDPlayer::lineLevelOn() {
-    return C64::getLineLevelOn();
-}
-
 SidInfo *SIDPlayer::getSidInfo() {
     return C64::getSidInfo();
 }
