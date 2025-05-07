@@ -486,7 +486,7 @@ namespace Visualization {
                          extraText);
                 scrollerInitialized = true;
             }
-            compFactor = SIDPlayer::lineLevelOn() ? LINE_LEVEL_SPECTRUM_COMPENSATION : DEFAULT_SPECTRUM_COMPENSATION;
+            compFactor = DEFAULT_SPECTRUM_COMPENSATION;
             if (SIDPlayer::isPlaying()) {
                 freeze = false;
                 int j = 0;

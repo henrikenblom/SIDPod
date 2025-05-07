@@ -83,9 +83,7 @@ void SIDPlayer::ampOn() {
 }
 
 void SIDPlayer::ampOff() {
-    if (!C64::getLineLevelOn()) {
-        gpio_pull_down(AMP_CONTROL_PIN);
-    }
+    gpio_pull_down(AMP_CONTROL_PIN);
 }
 
 void SIDPlayer::updateVolumeFactor() {

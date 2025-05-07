@@ -23,7 +23,6 @@ repeating_timer userControlTimer;
 alarm_id_t singleClickTimer, longPressTimer, showVolumeControlTimer;
 auto volumeLabel = "VOLUME";
 auto goingDormantLabel = "Shutting down...";
-auto lineLevelLabel = "Line level:";
 auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
@@ -554,10 +553,6 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                 case visualization:
                     currentState = song_selector;
                     danceFloor->stop();
-                    break;
-                case volume_control:
-                    SIDPlayer::toggleLineLevel();
-                    resetVolumeControlSessionTimer();
                     break;
                 case playlist_selector:
                     Catalog::openSelected();
