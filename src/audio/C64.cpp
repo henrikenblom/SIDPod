@@ -761,18 +761,18 @@ bool C64::playSong(uint16_t song) {
     currentSong = song;
     cpuJSR(info.init, currentSong);
     float cpuFrequency = PAL_CPU_FREQUENCY;
+    float speedFactor = info.isPAL ? PAL_SPEED_FACTOR : NTSC_SPEED_FACTOR;
 
     if (useCIA()) {
         uint_least64_t cia1TimerAValue = endian_little16(&memory[0xdc04]);
         printf("CIA1 Timer A: %llu\n", cia1TimerAValue);
         // TODO: This is a bit arbitrary. Figure out how to calculate this properly.
-        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / 19500;
-    } else if (info.isPAL) {
-        sampleCount = MAX_SAMPLES_PER_BUFFER * PAL_SPEED_FACTOR;
+        sampleCount = MAX_SAMPLES_PER_BUFFER * static_cast<float>(cia1TimerAValue) / (19500 / speedFactor);
     } else {
-        sampleCount = MAX_SAMPLES_PER_BUFFER * NTSC_SPEED_FACTOR;
-        cpuFrequency = NTSC_CPU_FREQUENCY;
+        sampleCount = MAX_SAMPLES_PER_BUFFER * speedFactor;
     }
+
+    cpuFrequency = info.isPAL ? PAL_CPU_FREQUENCY : NTSC_CPU_FREQUENCY;
 
     firstSID->set_sampling_parameters(cpuFrequency, SAMPLE_FAST, SAMPLE_RATE);
     if (secondSidAddr) {
