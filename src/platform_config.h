@@ -52,7 +52,7 @@
 #define SAMPLE_RATE                         ((uint32_t)44100)
 #define MAX_SAMPLES_PER_BUFFER              880
 #define PAL_SPEED_FACTOR                    1.0f
-#define NTSC_SPEED_FACTOR                   0.824f
+#define NTSC_SPEED_FACTOR                   0.96f
 #define NTSC_CPU_FREQUENCY                  1022730
 #define PAL_CPU_FREQUENCY                   985248
 
