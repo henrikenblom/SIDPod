@@ -38,7 +38,7 @@ static sd_sdio_if_t sdio_if = {
     */
     .CMD_gpio = 17,
     .D0_gpio = 18,
-    .baud_rate = 125 * 1000 * 1000 / 4,
+    .baud_rate = 125 * 1000 * 1000 / 6,
     .SDIO_PIO = pio0,
     .set_drive_strength = true,
     .CMD_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
