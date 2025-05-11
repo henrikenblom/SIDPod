@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
-set(PICO_BOARD solderparty_rp2040_stamp)
-#set(PICO_BOARD pico)
+#set(PICO_BOARD solderparty_rp2040_stamp)
+set(PICO_BOARD pico)
 #set(PICO_BOARD pico_w)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
@@ -9,8 +9,8 @@ set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
-#set(USE_SDCARD 1)
-#set(USE_BUDDY 1)
+set(USE_SDCARD 1)
+set(USE_BUDDY 1)
 
 include(bin2h.cmake)
 include(pico_sdk_import.cmake)
@@ -60,12 +60,6 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
         src/Catalog.cpp
-        src/io/flash/diskio.c
-        src/io/flash/ff.c
-        src/io/flash/ffunicode.c
-        src/io/flash/ffsystem.c
-        src/io/flash/ff_util.c
-        src/io/flash/ff_util.h
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
@@ -127,6 +121,14 @@ if (DEFINED USE_SDCARD)
 else ()
     message("Using SPI Flash for internal storage")
     target_link_libraries(${PROJECT_NAME} hardware_flash)
+    target_sources(${PROJECT_NAME} PRIVATE
+            src/io/flash/diskio.c
+            src/io/flash/ff.c
+            src/io/flash/ffunicode.c
+            src/io/flash/ffsystem.c
+            src/io/flash/ff_util.c
+            src/io/flash/ff_util.h
+    )
     target_include_directories(${PROJECT_NAME} PUBLIC
             ${CMAKE_CURRENT_LIST_DIR}/src/io/flash/
     )
@@ -145,9 +147,9 @@ if (DEFINED USE_BUDDY)
     )
 endif ()
 
-    set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS
-            "-Wl,--print-memory-usage"
-    )
+set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS
+        "-Wl,--print-memory-usage"
+)
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
