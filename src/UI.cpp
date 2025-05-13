@@ -26,7 +26,7 @@ auto goingDormantLabel = "Shutting down...";
 auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
-Visualization::DanceFloor *danceFloor;
+auto danceFloor = new Visualization::DanceFloor(&disp);
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 #ifdef USE_BUDDY
@@ -40,7 +40,6 @@ void UI::initUI() {
     gpio_init(SWITCH_PIN);
     gpio_set_dir(SWITCH_PIN, GPIO_IN);
     gpio_pull_up(SWITCH_PIN);
-    danceFloor = new Visualization::DanceFloor(&disp);
 }
 
 void UI::screenOn() {

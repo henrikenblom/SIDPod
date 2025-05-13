@@ -51,7 +51,7 @@ static sd_sdio_if_t sdio_if = {
 
 
 /* Configuration of the SD Card socket object */
-static sd_card_t sd_card = {.type = SD_IF_SDIO, .sdio_if_p = &sdio_if};
+static __scratch_y("sd_card") sd_card_t sd_card = {.type = SD_IF_SDIO, .sdio_if_p = &sdio_if};
 
 /* ********************************************************************** */
 
