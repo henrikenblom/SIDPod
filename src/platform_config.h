@@ -64,11 +64,7 @@
 
 #define I2C_BAUDRATE                        400000
 #define DISPLAY_I2C_BLOCK                   i2c1
-#ifdef USE_SDCARD
-#define DISPLAY_GPIO_BASE_PIN               6
-#else
 #define DISPLAY_GPIO_BASE_PIN               2
-#endif
 #define DISPLAY_EXTERNAL_VCC                0
 #define DISPLAY_WIDTH                       128
 #define DISPLAY_HEIGHT                      32

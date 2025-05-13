@@ -113,7 +113,8 @@ bool System::prepareFilesystem() {
 #ifdef USE_SDCARD
     sd_card_t *sd_card_p = sd_get_by_drive_prefix("0:");
     FATFS *fs_p = &sd_card_p->state.fatfs;
-    f_mount(fs_p, "0:", 1);
+    FRESULT fr = f_mount(fs_p, "0:", 1);
+    printf("fr: %d\n", fr);
     sd_card_p->state.mounted = true;
 #else
     filesystem_init();

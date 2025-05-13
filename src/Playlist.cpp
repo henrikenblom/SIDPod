@@ -4,7 +4,9 @@
 #include "Playlist.h"
 
 #include <algorithm>
+#ifndef USE_SDCARD
 #include "ff_util.h"
+#endif
 
 #include "platform_config.h"
 

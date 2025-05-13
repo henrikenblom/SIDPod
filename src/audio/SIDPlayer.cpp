@@ -37,7 +37,7 @@ audio_i2s_config config = {
     .data_pin = PICO_AUDIO_I2S_DATA_PIN,
     .clock_pin_base = PICO_AUDIO_I2S_CLOCK_PIN_BASE,
     .dma_channel = 2,
-    .pio_sm = 0,
+    .pio_sm = 2,
 };
 
 // core0 functions

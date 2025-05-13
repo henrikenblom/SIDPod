@@ -26,7 +26,7 @@ auto goingDormantLabel = "Shutting down...";
 auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
-Visualization::DanceFloor *danceFloor;
+auto danceFloor = new Visualization::DanceFloor(&disp);
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 #ifdef USE_BUDDY
@@ -35,13 +35,11 @@ Buddy *buddy = Buddy::getInstance();
 
 void UI::initUI() {
 #if (!USE_BUDDY)
-    uint offset = pio_add_program(pio1, &quadrature_encoder_program);
-    quadrature_encoder_program_init(pio1, ENC_SM, offset, ENC_BASE_PIN, 0);
+    quadrature_encoder_program_init(pio1, ENC_SM, ENC_BASE_PIN, 0);
 #endif
     gpio_init(SWITCH_PIN);
     gpio_set_dir(SWITCH_PIN, GPIO_IN);
     gpio_pull_up(SWITCH_PIN);
-    danceFloor = new Visualization::DanceFloor(&disp);
 }
 
 void UI::screenOn() {

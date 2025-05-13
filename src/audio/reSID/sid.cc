@@ -683,8 +683,8 @@ RESID_INLINE int SID::clock_and_mix_fast(cycle_count &delta_t, short *buf, int n
         sample_offset = (next_sample_offset & FIXP_MASK) - (1 << (FIXP_SHIFT - 1));
         interp0->base[0] = buf[s];
         interp0->base[1] = output();
-        interp0->accum[1] = 127;
-        buf[s++] = static_cast<short>(interp0->pop[1]);
+        interp0->accum[1] = 128;
+        buf[s++] = static_cast<short>(interp0->peek[1]);
     }
 
     clock(delta_t);
