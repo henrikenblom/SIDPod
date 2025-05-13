@@ -52,6 +52,7 @@ void initUart() {
 }
 #endif
 
+
 [[noreturn]] int main() {
     set_sys_clock_khz(CLOCK_SPEED_KHZ, true);
     stdio_init_all();
@@ -70,6 +71,14 @@ void initUart() {
         Catalog::refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();
+        Catalog::selectNext();
+        Catalog::selectNext();
+        Catalog::openSelected();
+        auto playlist = Catalog::getCurrentPlaylist();
+        playlist->refresh();
+        playlist->selectNext();
+        SIDPlayer::togglePlayPause();
+        UI::startDanceFloor();
     }
     while (true) {
         UI::updateUI();

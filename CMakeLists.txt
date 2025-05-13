@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
-set(PICO_BOARD solderparty_rp2040_stamp)
+#set(PICO_BOARD solderparty_rp2040_stamp)
 set(PICO_BOARD pico)
 #set(PICO_BOARD pico_w)
 set(BOARD pico_sdk)
@@ -9,8 +9,8 @@ set(FAMILY rp2040)
 set(CMAKE_C_STANDARD 11)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
-#set(USE_SDCARD 1)
-#set(USE_BUDDY 1)
+set(USE_SDCARD 1)
+set(USE_BUDDY 1)
 
 include(bin2h.cmake)
 include(pico_sdk_import.cmake)
