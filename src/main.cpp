@@ -78,7 +78,6 @@ void initUart() {
         playlist->refresh();
         playlist->selectNext();
         SIDPlayer::togglePlayPause();
-        UI::startDanceFloor();
     }
     while (true) {
         UI::updateUI();

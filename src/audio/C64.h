@@ -9,11 +9,10 @@
 #include <pico/audio.h>
 
 #include "ff.h"
+#include "platform_config.h"
 #include "reSID/siddefs.h"
 
 extern unsigned char memory[];
-
-constexpr int PSID_MAXSTRLEN = 32;
 
 constexpr int psid_headerSize = 118;
 constexpr int psidv2_headerSize = psid_headerSize + 6;

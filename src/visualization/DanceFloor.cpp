@@ -465,7 +465,7 @@ namespace Visualization {
         while (running) {
             if (!scrollerInitialized && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
                                                SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
-                SidInfo *entry = SIDPlayer::getSidInfo();
+                TuneInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
                 char extraText[50] = {};
                 char name[44] = {};
@@ -480,9 +480,8 @@ namespace Visualization {
                     sprintf(extraText, "Fun fact: This song uses two SID chips!");
                 }
                 snprintf(scrollText, sizeof(scrollText),
-                         "This is %s by %s (%s) and you are %s %s on a SIDPod. %s",
+                         "This is %s by %s (%s) and you are %s it on a SIDPod. %s",
                          name, entry->author, entry->released, experience,
-                         entry->isPSID ? "it" : "this RSID",
                          extraText);
                 scrollerInitialized = true;
             }

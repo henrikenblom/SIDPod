@@ -28,8 +28,6 @@ add_executable(${PROJECT_NAME}
         src/main.cpp
         src/io/msc_disk.c
         src/io/usb_descriptors.c
-        src/audio/c64.cpp
-        src/audio/c64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c
@@ -58,6 +56,23 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter6581.h
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
+        src/audio/c64/VIC_II/mos656x.cpp
+        src/audio/c64/CPU/mos6510.cpp
+        src/audio/c64/CPU/mos6510debug.cpp
+        src/audio/c64/c64.cpp
+        src/audio/c64/mmu.cpp
+        src/audio/c64/CIA/mos652x.cpp
+        src/audio/c64/CIA/tod.cpp
+        src/audio/c64/CIA/SerialPort.cpp
+        src/audio/c64/CIA/interrupt.cpp
+        src/audio/c64/CIA/timer.cpp
+        src/audio/psiddrv.cpp
+        src/audio/TuneInfo.cpp
+        src/audio/EventScheduler.cpp
+        src/audio/reloc65.cpp
+        src/audio/mixer.cpp
+        src/audio/sidemu.cpp
+        src/audio/resid-emu.cpp
         src/Catalog.cpp
 )
 
@@ -84,6 +99,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/
         ${CMAKE_CURRENT_LIST_DIR}/src/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/visualization/include/
+        ${CMAKE_CURRENT_LIST_DIR}/src/audio/
         ${CMAKE_CURRENT_LIST_DIR}/src/audio/include/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/
         ${CMAKE_CURRENT_LIST_DIR}/src/io/include/

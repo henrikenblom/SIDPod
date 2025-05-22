@@ -1,9 +1,10 @@
 #ifndef SIDPOD_SIDPLAYER_H
 #define SIDPOD_SIDPLAYER_H
 
+#include <TuneInfo.h>
+#include <c64/c64.h>
 #include <pico/audio.h>
 
-#include "C64.h"
 #include "../Playlist.h"
 
 #define PLAY_PAUSE_COMMAND_CODE     123
@@ -32,29 +33,31 @@ public:
 
     static bool isPlaying();
 
-    static SidInfo *getSidInfo();
+    static TuneInfo *getSidInfo();
 
     static bool loadingWasSuccessful();
 
-    static int getCurrentSong();
-
-    static int getSongCount();
-
-    static void playNextSong();
-
-    static void playPreviousSong();
-
-    static uint32_t millisSinceSongStart();
-
     static void resetState();
 
-    static void playIfPaused();
+    static void playNextSong() {}
 
-    static void pauseIfPlaying();
+    static void playPreviousSong() {}
+
+    static void pauseIfPlaying() {}
+
+    static int getCurrentSong() {
+        return 1;
+    }
+
+    static int getSongCount() {
+        return 1;
+    }
+
+    static uint32_t millisSinceSongStart() {
+        return 0;
+    }
 
 private:
-    static volatile void tryJSRToPlayAddr();
-
     static void updateVolumeFactor();
 
     static volatile void generateSamples(audio_buffer *buffer);
@@ -62,6 +65,20 @@ private:
     [[noreturn]] static void core1Main();
 
     static volatile bool reapCommand(struct repeating_timer *t);
+
+    libsidplayfp::c64::model_t c64model();
+
+    static void readHeader(BYTE *buffer, TuneInfo &info);
+
+    static void print_sid_info();
+
+    static bool initialiseC64();
+
+    static void placeSidTuneInC64mem(libsidplayfp::sidmemory &mem, FIL pFile);
+
+    static void run(unsigned int events);
+
+    static uint_least32_t play(short *buffer, uint_least32_t count);
 };
 
 #endif //SIDPOD_SIDPLAYER_H

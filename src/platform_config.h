@@ -48,6 +48,7 @@
 #define RSID_ID                             0x52534944
 #define SID_LOAD_BUFFER_SIZE                ((int) 256)
 #define CPU_JSR_WATCHDOG_ABORT_LIMIT        0xffff
+#define PSID_MAXSTRLEN                      32
 
 #define SAMPLE_RATE                         ((uint32_t)44100)
 #define MAX_SAMPLES_PER_BUFFER              880
