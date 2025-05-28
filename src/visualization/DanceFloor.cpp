@@ -408,11 +408,9 @@ namespace Visualization {
                     } else {
                         gl->drawDialog(pausedLabel);
                     }
-                    gl->update();
                     freeze = true;
                 }
             }
-            System::virtualVBLSync();
             gl->update();
         }
     }

@@ -4,6 +4,7 @@
 
 #include "GL.h"
 
+#include <cstdio>
 #include <cstring>
 #include <math.h>
 
@@ -48,11 +49,17 @@ void GL::showRawImage(uint8_t width,
                       int32_t yOffset,
                       bool frame) const {
     clearSquare(xOffset - 1, yOffset - 1, width + 2, height + 2);
-    for (uint8_t y = 0; y < height; ++y) {
-        for (uint8_t x = 0; x < width; ++x) {
-            uint8_t byte = data[y * ((width + 7) / 8) + x / 8];
-            if (byte & 0x80 >> x % 8) {
+    int32_t x = 0;
+    int32_t y = 0;
+    for (int i = 0; i < width * height / 8; i++) {
+        uint8_t byte = data[i];
+        for (int bit = 0; bit < 8; bit++) {
+            if (IS_BIT_SET(byte, bit)) {
                 drawPixel(x + xOffset, y + yOffset);
+            }
+            if (x++ == width - 1) {
+                x = 0;
+                y++;
             }
         }
     }
@@ -226,9 +233,9 @@ void GL::animateLongText(const char *title, int32_t y, int32_t xMargin, float *o
     this->drawString(xMargin - static_cast<int32_t>(*offsetCounter), y, title);
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
     float advancement =
-            *offsetCounter > 1 && (int) *offsetCounter < scrollRange
-                ? 0.4
-                : 0.02;
+            *offsetCounter > 1 && static_cast<int>(*offsetCounter) < scrollRange
+                ? 0.8
+                : 0.04;
     if (static_cast<int>(*offsetCounter += advancement) > scrollRange)
         *offsetCounter = 0;
     this->clearSquare(0, y, xMargin - 1, y + FONT_HEIGHT);

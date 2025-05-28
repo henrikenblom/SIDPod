@@ -125,7 +125,7 @@ public:
     }
 
     [[nodiscard]] bool scribbleDataIsFresh() const {
-        return millis() > lastScribbleUpdate + 1000;
+        return millis() < lastScribbleUpdate + SCRIBBLE_TIMEOUT_MS;
     }
 
     const char *getConnectedDeviceName() {
