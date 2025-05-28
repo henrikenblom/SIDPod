@@ -113,6 +113,8 @@
 #define ENC_PIO                             pio1
 #define ENC_SM                              1
 #define ENC_BASE_PIN                        10
+#else
+#define SCRIBBLE_TIMEOUT_MS                 500
 #endif
 
 #define SWITCH_PIN                          12

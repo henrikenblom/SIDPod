@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13...3.27)
 
 set(PICO_BOARD solderparty_rp2040_stamp)
-set(PICO_BOARD pico)
+#set(PICO_BOARD pico)
 #set(PICO_BOARD pico_w)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
@@ -59,6 +59,8 @@ add_executable(${PROJECT_NAME}
         src/audio/reSID/filter8580.h
         src/audio/sidendian.h
         src/Catalog.cpp
+        src/GL.cpp
+        src/GL.h
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)

@@ -11,8 +11,8 @@
 char experience[20];
 
 namespace Visualization {
-    DanceFloor::DanceFloor(ssd1306_t *_pDisp) {
-        pDisp = _pDisp;
+    DanceFloor::DanceFloor(GL *_gl) {
+        gl = _gl;
         fibonacci[0] = 0;
         fibonacci[1] = 1;
         for (int i = 2; i < HORIZONTAL_LANDSCAPE_LINES; i++) {
@@ -21,24 +21,9 @@ namespace Visualization {
         fft_cfg = kiss_fftr_alloc(FFT_SAMPLES, false, nullptr, nullptr);
     }
 
-    void DanceFloor::drawDottedHorizontalLine(uint8_t y) {
-        if (y <= DISPLAY_HEIGHT) {
-            for (int x = 0; x < DISPLAY_WIDTH - 1; x += 2) {
-                ssd1306_draw_pixel(pDisp, x + horizontalLineDitherOffset, y);
-            }
-        }
-        horizontalLineDitherOffset ^= 1;
-    }
-
-    void DanceFloor::drawHorizontalLine(uint8_t y) const {
-        if (y <= DISPLAY_HEIGHT) {
-            ssd1306_draw_line(pDisp, 0, y, DISPLAY_WIDTH - 1, y);
-        }
-    }
-
     void DanceFloor::drawScroller() {
         if (showScroller) {
-            ssd1306_draw_string(pDisp, rsOffset--, 1, 1, scrollText);
+            gl->drawString(rsOffset--, 1, scrollText);
             if (rsOffset < SCROLL_LIMIT) {
                 rsOffset = DISPLAY_WIDTH + 1;
                 showScroller = false;
@@ -50,7 +35,7 @@ namespace Visualization {
         for (auto &sprite: starSprites) {
             if (random() % 100 != 1) {
                 if (ignoreHorizon || sprite.y < horizon) {
-                    ssd1306_draw_pixel(pDisp, sprite.x, sprite.y);
+                    gl->drawPixel(sprite.x, sprite.y);
                 } else {
                     drawHorizonAwarePixel(sprite.x, sprite.y);
                 }
@@ -60,63 +45,20 @@ namespace Visualization {
 
     void DanceFloor::drawHorizonAwarePixel(int32_t x, int32_t y) const {
         if (x >= 0 && x < DISPLAY_WIDTH && y >= 0 && y < DISPLAY_HEIGHT && y < horizon) {
-            ssd1306_draw_pixel(pDisp, x, y);
-        }
-    }
-
-    void DanceFloor::drawCircle(const int32_t x, const int32_t y, const int32_t radius) const {
-        int32_t f = 1 - radius;
-        int32_t ddF_x = 1;
-        int32_t ddF_y = -2 * radius;
-        int32_t xi = 0;
-        int32_t yi = radius;
-
-        drawHorizonAwarePixel(x, y + radius);
-        drawHorizonAwarePixel(x, y - radius);
-        drawHorizonAwarePixel(x + radius, y);
-        drawHorizonAwarePixel(x - radius, y);
-
-        while (xi < yi) {
-            if (f >= 0) {
-                yi--;
-                ddF_y += 2;
-                f += ddF_y;
-            }
-            xi++;
-            ddF_x += 2;
-            f += ddF_x;
-
-            drawHorizonAwarePixel(x + xi, y + yi);
-            drawHorizonAwarePixel(x - xi, y + yi);
-            drawHorizonAwarePixel(x + xi, y - yi);
-            drawHorizonAwarePixel(x - xi, y - yi);
-            drawHorizonAwarePixel(x + yi, y + xi);
-            drawHorizonAwarePixel(x - yi, y + xi);
-            drawHorizonAwarePixel(x + yi, y - xi);
-            drawHorizonAwarePixel(x - yi, y - xi);
-        }
-    }
-
-    void DanceFloor::drawFilledCircle(int32_t x, int32_t y, int32_t radius) const {
-        for (int32_t i = -radius; i <= radius; i++) {
-            for (int32_t j = -radius; j <= radius; j++) {
-                if (i * i + j * j <= radius * radius) {
-                    drawHorizonAwarePixel(x + i, y + j);
-                }
-            }
+            gl->drawPixel(x, y);
         }
     }
 
     void DanceFloor::drawFibonacciLandscape() {
-        drawDottedHorizontalLine(horizon);
+        gl->drawDottedHorizontalLine(horizon);
         for (const unsigned short i: fibonacci) {
-            drawDottedHorizontalLine(horizon + i / (20 - rvOffset));
+            gl->drawDottedHorizontalLine(horizon + i / (20 - rvOffset));
         }
         if (horizon < 20) {
-            ssd1306_draw_line(pDisp, 0, 25, 23, horizon);
-            ssd1306_draw_line(pDisp, 42, 31, 48, horizon);
-            ssd1306_draw_line(pDisp, 79, horizon, 86, 31);
-            ssd1306_draw_line(pDisp, 104, horizon, 127, 25);
+            gl->drawLine(0, 25, 23, horizon);
+            gl->drawLine(42, 31, 48, horizon);
+            gl->drawLine(79, horizon, 86, 31);
+            gl->drawLine(104, horizon, 127, 25);
         }
         if (rvOffset++ > 4) rvOffset = 0;
     }
@@ -136,7 +78,7 @@ namespace Visualization {
             perspectiveComp = static_cast<int>((sprite.frequency_bin - displayCenter) * (sprite.distance * f));
             x = sprite.frequency_bin - perspectiveComp;
         }
-        ssd1306_draw_line(pDisp, x, std::max(0, y1), x, std::min(DISPLAY_HEIGHT - 1, y2));
+        gl->drawLine(x, std::max(0, y1), x, std::min(DISPLAY_HEIGHT - 1, y2));
     }
 
     void DanceFloor::updateSoundSprites() {
@@ -155,7 +97,7 @@ namespace Visualization {
             auto sprite = roundSprite;
             int32_t radius = sprite.distance / 2.5 - (40 - (instantImplosion ? 10 : horizon));
             if (sprite.distance > -16 && sprite.y < horizon) {
-                drawCircle(sprite.x, sprite.y, radius);
+                gl->drawCircle(sprite.x, sprite.y, radius, horizon);
                 sprite.distance -= 4;
                 sprite.x += roundSpriteXVelocity;
             }
@@ -182,15 +124,15 @@ namespace Visualization {
     // TODO: Refactor this to use the same logic as the other sprites
     void DanceFloor::drawStarShip() {
         if (starShipX > -20) {
-            ssd1306_draw_line(pDisp, starShipX, starShipY, starShipX + 7, starShipY); // Left gondola
-            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 1);
-            ssd1306_draw_pixel(pDisp, starShipX + 6, starShipY + 2);
-            ssd1306_draw_line(pDisp, starShipX + 5, starShipY + 3, starShipX + 10, starShipY + 3); // Body
-            ssd1306_draw_pixel(pDisp, starShipX + 6, starShipY + 4);
-            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 5);
-            ssd1306_draw_pixel(pDisp, starShipX + 5, starShipY + 5);
-            ssd1306_draw_line(pDisp, starShipX, starShipY + 6, starShipX + 7, starShipY + 6); // Right gondola
-            drawFilledCircle(starShipX + 15, starShipY + 3, 4);
+            gl->drawLine(starShipX, starShipY, starShipX + 7, starShipY); // Left gondola
+            gl->drawPixel(starShipX + 5, starShipY + 1);
+            gl->drawPixel(starShipX + 6, starShipY + 2);
+            gl->drawLine(starShipX + 5, starShipY + 3, starShipX + 10, starShipY + 3); // Body
+            gl->drawPixel(starShipX + 6, starShipY + 4);
+            gl->drawPixel(starShipX + 5, starShipY + 5);
+            gl->drawPixel(starShipX + 5, starShipY + 5);
+            gl->drawLine(starShipX, starShipY + 6, starShipX + 7, starShipY + 6); // Right gondola
+            gl->drawFilledCircle(starShipX + 15, starShipY + 3, 4, horizon);
         }
         starShipX += starShipVelocity;
         starShipY += starShipVelocity * 0.05;
@@ -237,9 +179,9 @@ namespace Visualization {
         char songNumber[14];
         snprintf(songNumber, sizeof(songNumber), "Song %d/%d", currentSong + 1, songCount);
         const int width = static_cast<int>(strlen(songNumber)) * FONT_WIDTH;
-        ssd1306_clear_square(pDisp, DISPLAY_WIDTH - width - 2, DISPLAY_HEIGHT + songNumberOffset, width + 2,
-                             FONT_HEIGHT);
-        ssd1306_draw_string(pDisp, DISPLAY_WIDTH - width, DISPLAY_HEIGHT + songNumberOffset, 1, songNumber);
+        gl->clearSquare(DISPLAY_WIDTH - width - 2, DISPLAY_HEIGHT + songNumberOffset, width + 2,
+                        FONT_HEIGHT);
+        gl->drawString(DISPLAY_WIDTH - width, DISPLAY_HEIGHT + songNumberOffset, songNumber);
         if (show) {
             songNumberOffset -= 0.5;
         }
@@ -248,51 +190,8 @@ namespace Visualization {
         }
     }
 
-
-    void DanceFloor::draw3DPixelSphere(const int32_t x,
-                                       const int32_t y,
-                                       const float size,
-                                       const int16_t xAxisRotation,
-                                       const int16_t yAxisRotation) const {
-        if (size < 1) {
-            drawHorizonAwarePixel(x, y);
-            return;
-        }
-        if (size <= 6) {
-            drawFilledCircle(x, y, static_cast<int>(size));
-            return;
-        }
-        float theta = 0;
-        while (theta < 2 * M_PI) {
-            float phi = 0;
-            while (phi < M_PI) {
-                // Latitude
-                // Calculate 3D sphere coordinates
-                float x3D = size * sin(phi) * cos(theta);
-                float y3D = size * sin(phi) * sin(theta);
-                float z3D = size * cos(phi);
-
-                // Apply rotation around the X-axis
-                const auto tempY = static_cast<float>(y3D * cos(xAxisRotation * M_PI / 180) - z3D
-                                                      * sin(xAxisRotation * M_PI / 180));
-                z3D = static_cast<float>(y3D * sin(xAxisRotation * M_PI / 180) + z3D * cos(xAxisRotation * M_PI / 180));
-                y3D = tempY;
-
-                // Apply rotation around the Y-axis
-                x3D = static_cast<float>(x3D * cos(yAxisRotation * M_PI / 180) + z3D * sin(yAxisRotation * M_PI / 180));
-
-                // Project 3D coordinates onto 2D plane
-                drawHorizonAwarePixel(static_cast<int32_t>(static_cast<float>(x) + x3D),
-                                      static_cast<int32_t>(static_cast<float>(y) + y3D));
-
-                phi += 0.3;
-            }
-            theta += 0.3;
-        }
-    }
-
     void DanceFloor::drawSphereScene(const int totalY) {
-        draw3DPixelSphere(sphereX, DISPLAY_Y_CENTER, sphereSize, sphereRotationX, sphereRotationY);
+        gl->draw3DPixelSphere(sphereX, DISPLAY_Y_CENTER, sphereSize, sphereRotationX, sphereRotationY, horizon);
         sphereRotationY += 1 + std::min(90, totalY / 8);
         sphereRotationX -= 1;
         sphereSize += sphereSizeInc;
@@ -354,7 +253,7 @@ namespace Visualization {
             }
         }
 
-        ssd1306_clear(pDisp);
+        gl->clear();
         if (shouldUpdateRoundSprites()) {
             updateRoundSprites(transition == FROM_ALTERNATIVE);
         }
@@ -499,25 +398,20 @@ namespace Visualization {
             } else if (!SIDPlayer::loadingWasSuccessful()) {
                 stop();
             } else if (!freeze) {
-                ssd1306_clear(pDisp);
+                gl->clear();
                 drawStarrySky(true);
-                ssd1306_show(pDisp);
+                gl->update();
                 busy_wait_ms(500);
                 if (!SIDPlayer::isPlaying()) {
                     if (!SIDPlayer::loadingWasSuccessful()) {
-                        UI::drawDialog(failedLabel);
+                        gl->drawDialog(failedLabel);
                     } else {
-                        UI::drawDialog(pausedLabel);
+                        gl->drawDialog(pausedLabel);
                     }
-                    ssd1306_show(pDisp);
                     freeze = true;
                 }
             }
-            System::virtualVBLSync();
-            ssd1306_show(pDisp);
-            if (screenDump) {
-                ssd1306_dump_pbm(pDisp);
-            }
+            gl->update();
         }
     }
 

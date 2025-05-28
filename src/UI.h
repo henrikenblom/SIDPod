@@ -20,8 +20,6 @@ public:
 
     static void updateUI();
 
-    static void drawHeader(const char *title);
-
     static void start(bool quickStart);
 
     static void stop();
@@ -31,8 +29,6 @@ public:
     static void screenOff();
 
     static void goToSleep();
-
-    static void drawDialog(const char *text);
 
     volatile static void startVolumeControlSession();
 
@@ -68,16 +64,6 @@ private:
     static void showSongSelector();
 
     static void showPlaylistSelector();
-
-    static void drawOpenSymbol(int32_t y);
-
-    static void drawNowPlayingSymbol(int32_t y);
-
-    static void crossOutLine(int32_t y);
-
-    static void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter);
-
-    static void drawRSIDSymbol(int32_t y);
 
     static void showVolumeControl();
 
