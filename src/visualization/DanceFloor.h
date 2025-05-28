@@ -1,7 +1,7 @@
 #ifndef SIDPOD_DANCEFLOOR_H
 #define SIDPOD_DANCEFLOOR_H
 
-#include "../display/include/ssd1306.h"
+#include "GL.h"
 #include "../platform_config.h"
 #include "kiss_fft.h"
 #include "../Playlist.h"
@@ -11,7 +11,7 @@
 namespace Visualization {
     class DanceFloor {
     public:
-        explicit DanceFloor(ssd1306_t *disp);
+        explicit DanceFloor(GL *gl);
 
         void start();
 
@@ -51,19 +51,11 @@ namespace Visualization {
         };
 
     private:
-        void drawDottedHorizontalLine(uint8_t y);
-
-        void drawHorizontalLine(uint8_t y) const;
-
         void drawScroller();
 
         void drawStarrySky(bool ignoreHorizon);
 
         void drawHorizonAwarePixel(int32_t x, int32_t y) const;
-
-        void drawCircle(int32_t x, int32_t y, int32_t radius) const;
-
-        void drawFilledCircle(int32_t x, int32_t y, int32_t radius) const;
 
         void drawFibonacciLandscape();
 
@@ -83,11 +75,7 @@ namespace Visualization {
 
         void showCurrentSongNumber(bool show, bool hide);
 
-        void draw3DPixelSphere(int32_t x, int32_t y, float size, int16_t xAxisRotation, int16_t yAxisRotation) const;
-
         void drawSphereScene(int totalY);
-
-        void draw3DPixelBall(int32_t x, int32_t y, int32_t size, int16_t xAxisRotation, int16_t yAxisRotation) const;
 
         void updateSoundSprites();
 
@@ -143,7 +131,6 @@ namespace Visualization {
         uint16_t sphereZComp = 0;
         uint8_t minSphereSize = 6;
         uint8_t maxSphereSize = 64;
-        volatile bool screenDump = false;
 
         void (*stopCallback)() = nullptr;
 
@@ -179,7 +166,7 @@ namespace Visualization {
         uint16_t fibonacci[HORIZONTAL_LANDSCAPE_LINES]{};
         kiss_fft_scalar fftIn[FFT_SAMPLES]{};
         kiss_fft_cpx fftOut[FFT_SAMPLES]{};
-        ssd1306_t *pDisp;
+        GL *gl;
     };
 }
 #endif //SIDPOD_DANCEFLOOR_H

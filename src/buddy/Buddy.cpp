@@ -107,6 +107,17 @@ void buddyCallback() {
                     break;
                 default: ;
             }
+        } else if (notificationType == NT_BITMAP_CHANGED) {
+            auto buddy = Buddy::getInstance();
+            char width = uart_getc(UART_ID);
+            char height = uart_getc(UART_ID);
+            int dataLen = (width * height + 7) / 8;
+            for (int i = 0; i < dataLen; ++i) {
+                buddy->scribbleBuffer[i] = uart_getc(UART_ID);
+            }
+            buddy->scribbleBufferUpdated();
+        } else if (notificationType == NT_BT_DEVICE_LIST_CHANGED) {
+            Buddy::getInstance()->refreshDeviceList();
         } else {
             auto buddy = Buddy::getInstance();
             switch (notificationType) {

@@ -7,6 +7,7 @@
 
 #include "buddy/Buddy.h"
 #include "Catalog.h"
+#include "GL.h"
 #include "platform_config.h"
 #include "display/include/ssd1306.h"
 #include "Playlist.h"
@@ -17,6 +18,7 @@
 #include "System.h"
 
 ssd1306_t disp;
+GL gl(&disp);
 bool lastSwitchState, inDoubleClickSession, inLongPressSession, disconnectAffirmative = false;
 int encNewValue, encDelta, encOldValue, showSplashCycles = 0;
 repeating_timer userControlTimer;
@@ -26,7 +28,7 @@ auto goingDormantLabel = "Shutting down...";
 auto yesLabel = "Yes";
 auto noLabel = "No";
 float longTitleScrollOffset, headerScrollOffset, playingSymbolAnimationCounter = 0;
-auto danceFloor = new Visualization::DanceFloor(&disp);
+auto danceFloor = new Visualization::DanceFloor(&gl);
 UI::State currentState = UI::splash;
 UI::State lastState = currentState;
 #ifdef USE_BUDDY
@@ -43,34 +45,23 @@ void UI::initUI() {
 }
 
 void UI::screenOn() {
-    i2c_init(DISPLAY_I2C_BLOCK, I2C_BAUDRATE);
-    gpio_set_function(DISPLAY_GPIO_BASE_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(DISPLAY_GPIO_BASE_PIN + 1, GPIO_FUNC_I2C);
-    gpio_pull_up(DISPLAY_GPIO_BASE_PIN);
-    gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
-    disp.external_vcc = DISPLAY_EXTERNAL_VCC;
-    ssd1306_init(&disp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
-    ssd1306_poweron(&disp);
-    busy_wait_ms(DISPLAY_STATE_CHANGE_DELAY_MS);
+    gl.displayOn();
     currentState = lastState;
 }
 
 void UI::screenOff() {
     lastState = currentState;
     currentState = sleeping;
-    ssd1306_clear(&disp);
-    ssd1306_show(&disp);
-    ssd1306_poweroff(&disp);
-    i2c_deinit(DISPLAY_I2C_BLOCK);
+    gl.displayOff();
 }
 
 void UI::showSplash() {
     currentState = splash;
-    ssd1306_clear(&disp);
-    ssd1306_bmp_show_image(&disp, SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
-    ssd1306_draw_string(&disp, 0, 25, 1, "2.0beta");
-    ssd1306_draw_string(&disp, 64, 25, 1, "\"Residious\"");
-    ssd1306_show(&disp);
+    gl.clear();
+    gl.showBMPImage(SIDPOD_24H_BMP, SIDPOD_24H_BMP_SIZE);
+    gl.drawString(0, 25, "2.0beta");
+    gl.drawString(64, 25, "\"Residious\"");
+    gl.update();
 }
 
 void UI::initDanceFloor() {
@@ -140,24 +131,6 @@ void UI::updateUI() {
 #endif
 }
 
-void UI::drawHeader(const char *title) {
-    const size_t stringWidth = strlen(title) * FONT_WIDTH;
-    if (stringWidth > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-        animateLongText(title, 0, 12, &headerScrollOffset);
-        ssd1306_draw_line(&disp, 0, 0, 8, 0);
-        ssd1306_draw_line(&disp, 0, 2, 8, 2);
-        ssd1306_draw_line(&disp, 0, 4, 8, 4);
-        ssd1306_draw_line(&disp, 0, 6, 8, 6);
-    } else {
-        ssd1306_draw_line(&disp, 0, 0, DISPLAY_WIDTH, 0);
-        ssd1306_draw_line(&disp, 0, 2, DISPLAY_WIDTH, 2);
-        ssd1306_draw_line(&disp, 0, 4, DISPLAY_WIDTH, 4);
-        ssd1306_draw_line(&disp, 0, 6, DISPLAY_WIDTH, 6);
-        ssd1306_clear_square(&disp, 8, 0, stringWidth + FONT_WIDTH, FONT_HEIGHT);
-        ssd1306_draw_string(&disp, 12, 0, 1, title);
-    }
-}
-
 void UI::showSongSelector() {
     Playlist *playlist = Catalog::getCurrentPlaylist();
     auto playlistState = playlist->getState();
@@ -169,127 +142,71 @@ void UI::showSongSelector() {
                 playlist->markCurrentEntryAsUnplayable();
                 SIDPlayer::resetState();
             }
-            ssd1306_clear(&disp);
-            drawHeader(Catalog::getSelected().c_str());
+            gl.clear();
+            gl.drawHeader(Catalog::getSelected().c_str());
             uint8_t y = 8;
             for (const auto entry: playlist->getWindow()) {
                 if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                    animateLongText(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                    gl.animateLongText(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
                 } else {
-                    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->title);
+                    gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->title);
                 }
                 if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
                                                                            SIDPlayer::getCurrentlyLoaded()->fileName) ==
                     0
                     && SIDPlayer::loadingWasSuccessful()) {
-                    drawNowPlayingSymbol(y);
+                    gl.drawNowPlayingSymbol(y);
                 } else if (entry->selected) {
-                    drawOpenSymbol(y);
+                    gl.drawOpenSymbol(y);
                 }
-                if (entry->unplayable) crossOutLine(y);
+                if (entry->unplayable) gl.crossOutLine(y);
                 y += 8;
             }
-            ssd1306_show(&disp);
+            gl.update();
         }
     } else if (playlistState == Playlist::State::OUTDATED) {
         currentState = refreshing_playlist;
-        ssd1306_clear(&disp);
-        drawHeader(Catalog::getSelected().c_str());
-        ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, 16, 1, "Loading...");
-        ssd1306_show(&disp);
+        gl.clear();
+        gl.drawHeader(Catalog::getSelected().c_str());
+        gl.drawString(SONG_LIST_LEFT_MARGIN, 16, "Loading...");
+        gl.update();
         playlist->refresh();
         busy_wait_ms(200);
     }
 }
 
 void UI::showPlaylistSelector() {
-    ssd1306_clear(&disp);
-    drawHeader("PLAYLISTS");
+    gl.clear();
+    gl.drawHeader("PLAYLISTS");
     uint8_t y = FONT_HEIGHT;
     for (const auto &entry: Catalog::getWindow()) {
         const bool selected = *entry == Catalog::getSelected();
         const bool playing = *entry == Catalog::getPlaying();
         if (selected && entry->length() * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-            animateLongText(entry->c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            gl.animateLongText(entry->c_str(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
         } else {
-            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, entry->c_str());
+            gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->c_str());
         }
         if (selected) {
-            drawOpenSymbol(y);
+            gl.drawOpenSymbol(y);
         } else if (playing && SIDPlayer::loadingWasSuccessful()) {
-            drawNowPlayingSymbol(y);
+            gl.drawNowPlayingSymbol(y);
         }
         y += 8;
     }
-    ssd1306_show(&disp);
-}
-
-
-void UI::animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) {
-    ssd1306_draw_string(&disp, xMargin - static_cast<int32_t>(*offsetCounter), y, 1, title);
-    int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
-    float advancement =
-            *offsetCounter > 1 && (int) *offsetCounter < scrollRange
-                ? 0.4
-                : 0.02;
-    if (static_cast<int>(*offsetCounter += advancement) > scrollRange)
-        *offsetCounter = 0;
-    ssd1306_clear_square(&disp, 0, y, xMargin - 1, y + FONT_HEIGHT);
-}
-
-void UI::drawOpenSymbol(int32_t y) {
-    ssd1306_draw_pixel(&disp, 0, y + 2);
-    ssd1306_draw_line(&disp, 0, y + 3, 2, y + 3);
-    ssd1306_draw_pixel(&disp, 0, y + 4);
-}
-
-void UI::drawNowPlayingSymbol(int32_t y) {
-    int bar1 = 4;
-    int bar2 = 1;
-    int bar3 = 5;
-    int bar4 = 3;
-    if (SIDPlayer::isPlaying()) {
-        bar1 = (int) playingSymbolAnimationCounter;
-        bar2 = random() % (NOW_PLAYING_SYMBOL_HEIGHT);
-        bar3 = (int) (sin(playingSymbolAnimationCounter) * (NOW_PLAYING_SYMBOL_HEIGHT - 2))
-               + NOW_PLAYING_SYMBOL_HEIGHT - 3;
-        bar4 = (int) ((NOW_PLAYING_SYMBOL_HEIGHT - bar1) * 0.5 + (bar2 * 0.5));
-        if ((playingSymbolAnimationCounter += NOW_PLAYING_SYMBOL_ANIMATION_SPEED) >
-            NOW_PLAYING_SYMBOL_HEIGHT)
-            playingSymbolAnimationCounter = 0;
-    }
-    ssd1306_draw_line(&disp, 0, y + NOW_PLAYING_SYMBOL_HEIGHT - bar1, 0, y + NOW_PLAYING_SYMBOL_HEIGHT);
-    ssd1306_draw_line(&disp, 1, y + NOW_PLAYING_SYMBOL_HEIGHT - bar2, 1, y + NOW_PLAYING_SYMBOL_HEIGHT);
-    ssd1306_draw_line(&disp, 2, y + NOW_PLAYING_SYMBOL_HEIGHT - bar3, 2, y + NOW_PLAYING_SYMBOL_HEIGHT);
-    ssd1306_draw_line(&disp, 3, y + NOW_PLAYING_SYMBOL_HEIGHT - bar4, 3, y + NOW_PLAYING_SYMBOL_HEIGHT);
-}
-
-void UI::crossOutLine(int32_t y) {
-    ssd1306_draw_line(&disp, SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
-}
-
-void UI::drawDialog(const char *text) {
-    int labelWidth = static_cast<int>(strlen(text)) * FONT_WIDTH;
-    int windowWidth = labelWidth + 4;
-    int windowHeight = FONT_HEIGHT + 1;
-    ssd1306_clear_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
-                         windowWidth, windowHeight + 1);
-    ssd13606_draw_empty_square(&disp, DISPLAY_X_CENTER - (windowWidth / 2), DISPLAY_Y_CENTER - (windowHeight / 2) - 1,
-                               windowWidth, windowHeight + 1);
-    ssd1306_draw_string(&disp, DISPLAY_X_CENTER - (labelWidth / 2) + 1, DISPLAY_Y_CENTER - FONT_HEIGHT / 2 + 1, 1,
-                        text);
+    gl.update();
 }
 
 void UI::showVolumeControl() {
-    ssd1306_clear(&disp);
-    drawHeader(volumeLabel);
+    gl.clear();
+    gl.drawHeader(volumeLabel);
     ssd13606_draw_empty_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
                                DISPLAY_WIDTH - 1, 8);
     ssd1306_draw_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
                         static_cast<int>(
                             (DISPLAY_WIDTH - 1) * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
                                                        VOLUME_STEPS))), 8);
-    ssd1306_show(&disp);
+    gl.update();
 }
 
 void UI::stop() {
@@ -308,7 +225,7 @@ void UI::start(bool quickStart) {
 }
 
 inline void UI::showRasterBars() {
-    ssd1306_clear(&disp);
+    gl.clear();
     int y = random() % (DISPLAY_HEIGHT);
     ssd1306_draw_line(&disp, 0, y, DISPLAY_WIDTH - 1, y);
     ssd1306_show_unacked(&disp);
@@ -398,55 +315,55 @@ void UI::showBluetoothInteraction() {
 }
 
 void UI::showBTConnecting() {
-    ssd1306_clear(&disp);
-    drawHeader("BLUETOOTH");
+    gl.clear();
+    gl.drawHeader("BLUETOOTH");
     auto selectedDeviceName = buddy->getSelectedDeviceName();
     char connectingMessage[64];
     snprintf(connectingMessage, sizeof(connectingMessage), "Connecting %.*s",
              static_cast<int>(strlen(selectedDeviceName) - 1), selectedDeviceName);
-    animateLongText(connectingMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
-    ssd1306_show(&disp);
+    gl.animateLongText(connectingMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
+    gl.update();
 }
 
 void UI::showBTDisconnectConfirmation() {
-    ssd1306_clear(&disp);
-    drawHeader("BLUETOOTH");
+    gl.clear();
+    gl.drawHeader("BLUETOOTH");
     auto connectedDeviceName = buddy->getConnectedDeviceName();
     char disconnectMessage[64];
     snprintf(disconnectMessage, sizeof(disconnectMessage), "Disconnect %.*s?",
              static_cast<int>(strlen(connectedDeviceName) - 1), connectedDeviceName);
-    animateLongText(disconnectMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 2, 1, yesLabel);
-    ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 3, 1, noLabel);
+    gl.animateLongText(disconnectMessage, FONT_HEIGHT, SONG_LIST_LEFT_MARGIN, &headerScrollOffset);
+    gl.drawString(SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 2, yesLabel);
+    gl.drawString(SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 3, noLabel);
     if (disconnectAffirmative) {
-        drawOpenSymbol(FONT_HEIGHT * 2);
+        gl.drawOpenSymbol(FONT_HEIGHT * 2);
     } else {
-        drawOpenSymbol(FONT_HEIGHT * 3);
+        gl.drawOpenSymbol(FONT_HEIGHT * 3);
     }
-    ssd1306_show(&disp);
+    gl.update();
 }
 
 void UI::showBTProcessing(const char *text) {
-    ssd1306_clear(&disp);
-    drawHeader("BLUETOOTH");
-    ssd1306_draw_string(&disp, 0, 16, 1, text);
-    ssd1306_show(&disp);
+    gl.clear();
+    gl.drawHeader("BLUETOOTH");
+    gl.drawString(0, 16, text);
+    gl.update();
 }
 
 void UI::showBTDeviceList() {
-    ssd1306_clear(&disp);
-    drawHeader("SELECT BLUETOOTH DEVICE");
+    gl.clear();
+    gl.drawHeader("SELECT BLUETOOTH DEVICE");
     uint8_t y = FONT_HEIGHT;
     for (const auto &device: *buddy->getWindow()) {
         if (device.selected) {
-            animateLongText(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
-            drawOpenSymbol(y);
+            gl.animateLongText(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            gl.drawOpenSymbol(y);
         } else {
-            ssd1306_draw_string(&disp, SONG_LIST_LEFT_MARGIN, y, 1, device.name);
+            gl.drawString(SONG_LIST_LEFT_MARGIN, y, device.name);
         }
         y += FONT_HEIGHT;
     }
-    ssd1306_show(&disp);
+    gl.update();
 }
 
 void UI::adjustVolume(const bool up) {
@@ -686,22 +603,20 @@ void UI::animateShutdown() {
     const int labelWidth = (int) strlen(goingDormantLabel) * FONT_WIDTH;
     constexpr int displayCenter = DISPLAY_WIDTH / 2;
     screenOn();
-    ssd1306_clear(&disp);
-    ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
-    ssd1306_show(&disp);
+    gl.clear();
+    gl.drawString(displayCenter - (labelWidth / 2) + 1, 13, goingDormantLabel);
+    gl.update();
     busy_wait_ms(SPLASH_DISPLAY_DURATION);
 
     for (int i = 0; i < DISPLAY_HEIGHT / 2; i += 4) {
-        ssd1306_clear(&disp);
-        ssd1306_draw_string(&disp, displayCenter - (labelWidth / 2) + 1, 13, 1, goingDormantLabel);
+        gl.clear();
+        gl.drawString(displayCenter - (labelWidth / 2) + 1, 13, goingDormantLabel);
         ssd1306_clear_square(&disp, 0, 0, DISPLAY_WIDTH - 1, i);
         ssd1306_draw_line(&disp, 0, i, DISPLAY_WIDTH - 1, i);
         ssd1306_clear_square(&disp, 0, DISPLAY_HEIGHT, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
         ssd1306_draw_line(&disp, 0, DISPLAY_HEIGHT - i, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - i);
-        ssd1306_show(&disp);
-        System::virtualVBLSync();
+        gl.update();
     }
-
     screenOff();
 }
 

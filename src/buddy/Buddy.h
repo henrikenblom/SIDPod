@@ -8,6 +8,7 @@
 #include <cstring>
 #include <vector>
 
+#include "delays.h"
 #include "../platform_config.h"
 #include "pico/types.h"
 
@@ -38,6 +39,7 @@ enum NotificationType {
     NT_BT_DISCONNECTED = 3,
     NT_BT_DEVICE_LIST_CHANGED = 4,
     NT_BT_CONNECTING = 5,
+    NT_BITMAP_CHANGED = 6,
 };
 
 enum Gesture {
@@ -76,6 +78,8 @@ public:
         AWAITING_STATE_CHANGE,
         AWAITING_DISCONNECT_CONFIRMATION,
     };
+
+    uint8_t scribbleBuffer[28 * 28]{};
 
     ~Buddy() {
         devices.clear();
@@ -116,6 +120,14 @@ public:
 
     void disconnect();
 
+    void scribbleBufferUpdated() {
+        lastScribbleUpdate = millis();
+    }
+
+    [[nodiscard]] bool scribbleDataIsFresh() const {
+        return millis() > lastScribbleUpdate + 1000;
+    }
+
     const char *getConnectedDeviceName() {
         return lastConnectedDeviceName;
     }
@@ -135,8 +147,9 @@ protected:
     uint8_t connectionAttempts = 0;
     RequestType lastGestureRequest = RT_NONE;
     const char *selectedDeviceName = nullptr;
-    char lastConnectedDeviceName[32];
-    uint8_t lastConnectedAddr[6];
+    char lastConnectedDeviceName[32]{};
+    uint8_t lastConnectedAddr[6]{};
+    uint32_t lastScribbleUpdate = 0;
     State state = READY;
 
     Buddy() = default;
