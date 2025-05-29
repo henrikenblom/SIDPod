@@ -42,8 +42,8 @@
 
 #define AUDIO_RENDERING_STARTED_FIFO_FLAG   124
 
-#define SID_HEADER_SIZE                    ((uint8_t) 0x7e)
-#define SID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x36)
+#define PSID_HEADER_SIZE                    ((uint8_t) 0x7e)
+#define PSID_MINIMAL_HEADER_SIZE            ((uint8_t) 0x56)
 #define PSID_ID                             0x50534944
 #define RSID_ID                             0x52534944
 #define SID_LOAD_BUFFER_SIZE                ((int) 256)
@@ -87,7 +87,7 @@
 #define MAX_LIST_ENTRIES                    256
 #define SONG_LIST_LEFT_MARGIN               6
 #define NOW_PLAYING_SYMBOL_HEIGHT           5
-#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.18)
+#define NOW_PLAYING_SYMBOL_ANIMATION_SPEED  ((float) 0.1)
 #define DEFAULT_SPECTRUM_COMPENSATION       ((double ) 0.00002)
 #define LINE_LEVEL_SPECTRUM_COMPENSATION    ((double ) 0.00000003)
 #define HORIZONTAL_LANDSCAPE_LINES          (DISPLAY_HEIGHT / 2)
@@ -113,8 +113,6 @@
 #define ENC_PIO                             pio1
 #define ENC_SM                              1
 #define ENC_BASE_PIN                        10
-#else
-#define SCRIBBLE_TIMEOUT_MS                 500
 #endif
 
 #define SWITCH_PIN                          12

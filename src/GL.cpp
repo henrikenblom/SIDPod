@@ -187,6 +187,21 @@ void GL::drawHeader(const char *title) {
     }
 }
 
+void GL::drawInput(const char *label, const char *text, int8_t maxLength) {
+    const int textLength = static_cast<int>(strlen(text));
+    const int textWidth = textLength * FONT_WIDTH;
+    const int labelWidth = static_cast<int>(strlen(label) * FONT_WIDTH);
+    this->drawLine(0, 0, 8, 0);
+    this->drawLine(0, 2, 8, 2);
+    this->drawLine(0, 4, 8, 4);
+    this->drawLine(0, 6, 8, 6);
+    this->drawString(12, 0, label);
+    this->drawString(12 + labelWidth, 0, text);
+    if (textLength < maxLength && showCursor()) {
+        this->drawString(12 + labelWidth + textWidth, 2, "_");
+    }
+}
+
 void GL::drawDialog(const char *text) const {
     const int labelWidth = static_cast<int>(strlen(text)) * FONT_WIDTH;
     const int windowWidth = labelWidth + 4;
@@ -234,7 +249,7 @@ void GL::animateLongText(const char *title, int32_t y, int32_t xMargin, float *o
     int scrollRange = (int) strlen(title) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
     float advancement =
             *offsetCounter > 1 && static_cast<int>(*offsetCounter) < scrollRange
-                ? 0.8
+                ? 1
                 : 0.04;
     if (static_cast<int>(*offsetCounter += advancement) > scrollRange)
         *offsetCounter = 0;
@@ -265,4 +280,11 @@ void GL::displayOff() const {
     this->clear();
     this->update();
     ssd1306_poweroff(pDisp);
+}
+
+bool GL::showCursor() {
+    if (cursorIntervalCounter++ > CURSOR_BLINK_INTERVAL_VBL * 2) {
+        cursorIntervalCounter = 0; // Reset counter
+    }
+    return cursorIntervalCounter < CURSOR_BLINK_INTERVAL_VBL;
 }

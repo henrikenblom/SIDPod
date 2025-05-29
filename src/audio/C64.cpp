@@ -793,11 +793,11 @@ bool C64::sid_load_from_file(TCHAR file_name[]) {
     info = {};
     songLoaded = false;
     FIL pFile;
-    BYTE header[SID_HEADER_SIZE];
+    BYTE header[PSID_HEADER_SIZE];
     UINT bytesRead;
     if (f_open(&pFile, file_name, FA_READ) != FR_OK) return false;
-    if (f_read(&pFile, &header, SID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
-    if (bytesRead < SID_HEADER_SIZE) return false;
+    if (f_read(&pFile, &header, PSID_HEADER_SIZE, &bytesRead) != FR_OK) return false;
+    if (bytesRead < PSID_HEADER_SIZE) return false;
 
     readHeader(header, info);
 

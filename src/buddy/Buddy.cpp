@@ -14,24 +14,35 @@
 Buddy *instance = nullptr;
 
 void Buddy::forceRotationControl() {
-    if (lastGestureRequest != RT_G_FORCE_ROTATE) {
-        lastGestureRequest = RT_G_FORCE_ROTATE;
+    if (lastRequest != RT_G_FORCE_ROTATE) {
+        lastRequest = RT_G_FORCE_ROTATE;
         uart_putc(UART_ID, RT_G_FORCE_ROTATE);
     }
 }
 
 void Buddy::forceVerticalControl() {
-    if (lastGestureRequest != RT_G_FORCE_VERTICAL) {
-        lastGestureRequest = RT_G_FORCE_VERTICAL;
+    if (lastRequest != RT_G_FORCE_VERTICAL) {
+        lastRequest = RT_G_FORCE_VERTICAL;
         uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
     }
 }
 
 void Buddy::enableGestureDetection() {
-    if (lastGestureRequest != RT_G_SET_AUTO) {
-        lastGestureRequest = RT_G_SET_AUTO;
+    if (lastRequest != RT_G_SET_AUTO) {
+        lastRequest = RT_G_SET_AUTO;
         uart_putc(UART_ID, RT_G_SET_AUTO);
     }
+}
+
+void Buddy::enableScribbleMode() {
+    if (lastRequest != RT_SCRIBBLE) {
+        lastRequest = RT_SCRIBBLE;
+        uart_putc(UART_ID, RT_SCRIBBLE);
+    }
+}
+
+RequestType Buddy::getLastRequest() const {
+    return lastRequest;
 }
 
 Buddy *Buddy::getInstance() {
@@ -43,6 +54,7 @@ Buddy *Buddy::getInstance() {
 
 void buddyCallback() {
     if (uart_is_readable(UART_ID)) {
+        char character = {};
         auto buddy = Buddy::getInstance();
         auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
         if (notificationType == NT_GESTURE) {
@@ -108,8 +120,20 @@ void buddyCallback() {
                     break;
                 default: ;
             }
-        } else if (notificationType == NT_BITMAP_CHANGED) {
-            uart_read_blocking(UART_ID, buddy->scribbleBuffer, 98);
+        } else if (notificationType == NT_SCRIBBLE_INPUT) {
+            char x = uart_getc(UART_ID);
+            char y = uart_getc(UART_ID);
+            // Draw a 3x3 square at (x, y) in the 28x28 monochrome scribbleBuffer
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    int px = x + dx;
+                    int py = y + dy;
+                    if (px >= 0 && px < 28 && py >= 0 && py < 28) {
+                        int bitIndex = py * 28 + px;
+                        buddy->scribbleBuffer[bitIndex / 8] |= (1 << (bitIndex % 8));
+                    }
+                }
+            }
             buddy->scribbleBufferUpdated();
         } else {
             switch (notificationType) {
@@ -124,6 +148,32 @@ void buddyCallback() {
                     break;
                 case NT_BT_CONNECTED:
                     buddy->setConnected();
+                    break;
+                case NT_SPACE_DETECTED:
+                    printf("Space detected\n");
+                    if (Catalog::playlistIsOpen()) {
+                        auto playlist = Catalog::getCurrentPlaylist();
+                        if (playlist->findIsEnabled()) {
+                            playlist->addToSearchString(32); // ASCII code for space
+                        } else {
+                            playlist->enableFind();
+                        }
+                        buddy->enableScribbleMode();
+                    }
+                    break;
+                case NT_BACKSPACE_DETECTED:
+                    printf("Backspace detected\n");
+                    if (Catalog::playlistIsOpen()) {
+                        Catalog::getCurrentPlaylist()->disableFind();
+                        buddy->forceVerticalControl();
+                    }
+                    break;
+                case NT_CHARACTER_DETECTED:
+                    character = uart_getc(UART_ID);
+                    printf("Character recognized: %c\n", character);
+                    if (Catalog::playlistIsOpen()) {
+                        Catalog::getCurrentPlaylist()->addToSearchString(character);
+                    }
                     break;
                 default: ;
             }

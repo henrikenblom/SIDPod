@@ -120,7 +120,9 @@ void UI::updateUI() {
 #endif
         default:
 #ifdef USE_BUDDY
-            buddy->forceVerticalControl();
+            if (Catalog::playlistIsOpen() && !Catalog::getCurrentPlaylist()->findIsEnabled()) {
+                buddy->forceVerticalControl();
+            }
 #endif
             showSongSelector();
     }
@@ -137,19 +139,23 @@ void UI::showSongSelector() {
     if (playlistState == Playlist::State::READY) {
         currentState = song_selector;
         if (playlist->getSize()) {
-            if (strcmp(playlist->getCurrentEntry()->title, SIDPlayer::getCurrentlyLoaded()->title) == 0
+            if (strcmp(playlist->getCurrentEntry()->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
                 && !SIDPlayer::loadingWasSuccessful()) {
                 playlist->markCurrentEntryAsUnplayable();
                 SIDPlayer::resetState();
             }
             gl.clear();
-            gl.drawHeader(Catalog::getSelected().c_str());
+            if (playlist->findIsEnabled()) {
+                gl.drawInput("FIND:", playlist->getSearchString(), 8);
+            } else {
+                gl.drawHeader(playlist->getName());
+            }
             uint8_t y = 8;
             for (const auto entry: playlist->getWindow()) {
-                if (entry->selected && strlen(entry->title) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                    gl.animateLongText(entry->title, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                if (entry->selected && strlen(entry->getName()) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                    gl.animateLongText(entry->getName(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
                 } else {
-                    gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->title);
+                    gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->getName());
                 }
                 if (Catalog::getPlaying() == playlist->getName() && strcmp(entry->fileName,
                                                                            SIDPlayer::getCurrentlyLoaded()->fileName) ==
@@ -491,6 +497,7 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
 #endif
                 default:
                     auto playlist = Catalog::getCurrentPlaylist();
+                    playlist->disableFind();
                     if (playlist->isAtReturnEntry()) {
                         Catalog::closeSelected();
                         currentState = playlist_selector;
