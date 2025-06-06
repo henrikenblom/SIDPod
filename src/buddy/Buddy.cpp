@@ -69,8 +69,8 @@ void buddyCallback() {
                     UI::doubleClickCallback();
                     break;
                 case G_NORTH:
-                    if (Catalog::playlistIsOpen()) {
-                        const auto playlist = Catalog::getCurrentPlaylist();
+                    if (catalog->hasOpenPlaylist()) {
+                        const auto playlist = catalog->getCurrentPlaylist();
                         if (UI::getState() == UI::visualization) {
                             playlist->selectPrevious();
                             if (playlist->isAtReturnEntry()) {
@@ -82,12 +82,12 @@ void buddyCallback() {
                             playlist->resetAccessors();
                         }
                     } else {
-                        Catalog::resetAccessors();
+                        catalog->resetAccessors();
                     }
                     break;
                 case G_SOUTH:
-                    if (Catalog::playlistIsOpen()) {
-                        const auto playlist = Catalog::getCurrentPlaylist();
+                    if (catalog->hasOpenPlaylist()) {
+                        const auto playlist = catalog->getCurrentPlaylist();
                         if (UI::getState() == UI::visualization) {
                             playlist->selectNext();
                             if (playlist->isAtLastEntry()) {
@@ -96,10 +96,10 @@ void buddyCallback() {
                             SIDPlayer::togglePlayPause();
                             UI::initDanceFloor();
                         } else {
-                            Catalog::getCurrentPlaylist()->selectLast();
+                            catalog->getCurrentPlaylist()->selectLast();
                         }
                     } else {
-                        Catalog::selectLast();
+                        catalog->selectLast();
                     }
                     break;
                 case G_EAST:
@@ -150,29 +150,36 @@ void buddyCallback() {
                     buddy->setConnected();
                     break;
                 case NT_SPACE_DETECTED:
-                    printf("Space detected\n");
-                    if (Catalog::playlistIsOpen()) {
-                        auto playlist = Catalog::getCurrentPlaylist();
+                    if (catalog->hasOpenPlaylist()) {
+                        auto playlist = catalog->getCurrentPlaylist();
                         if (playlist->findIsEnabled()) {
                             playlist->addToSearchString(32); // ASCII code for space
                         } else {
                             playlist->enableFind();
                         }
-                        buddy->enableScribbleMode();
+                    } else {
+                        if (catalog->findIsEnabled()) {
+                            catalog->addToSearchString(32);
+                        } else {
+                            catalog->enableFind();
+                        }
                     }
+                    buddy->enableScribbleMode();
                     break;
                 case NT_BACKSPACE_DETECTED:
-                    printf("Backspace detected\n");
-                    if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->disableFind();
-                        buddy->forceVerticalControl();
+                    if (catalog->hasOpenPlaylist()) {
+                        catalog->getCurrentPlaylist()->disableFind();
+                    } else {
+                        catalog->disableFind();
                     }
+                    buddy->forceVerticalControl();
                     break;
                 case NT_CHARACTER_DETECTED:
                     character = uart_getc(UART_ID);
-                    printf("Character recognized: %c\n", character);
-                    if (Catalog::playlistIsOpen()) {
-                        Catalog::getCurrentPlaylist()->addToSearchString(character);
+                    if (catalog->hasOpenPlaylist()) {
+                        catalog->getCurrentPlaylist()->addToSearchString(character);
+                    } else {
+                        catalog->addToSearchString(character);
                     }
                     break;
                 default: ;

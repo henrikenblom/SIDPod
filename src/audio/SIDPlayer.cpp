@@ -11,6 +11,7 @@
 
 #include "../platform_config.h"
 #include "C64.h"
+#include "System.h"
 #include "../Catalog.h"
 
 repeating_timer reapCommandTimer{};
@@ -189,15 +190,15 @@ volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            if (Catalog::playlistIsOpen()) {
-                Playlist *playlist = Catalog::getCurrentPlaylist();
+            if (catalog->hasOpenPlaylist()) {
+                Playlist *playlist = catalog->getCurrentPlaylist();
                 PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
                 if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
                     resetState();
                     TCHAR fullPath[FF_LFN_BUF + 1];
                     playlist->getFullPathForSelectedEntry(fullPath);
                     if (loadPSID(fullPath)) {
-                        Catalog::setPlaying(playlist->getName());
+                        catalog->setSelectedPlaying();
                         loadingSuccessful = true;
                         rendering = true;
                         ampOn();

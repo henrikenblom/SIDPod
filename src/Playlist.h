@@ -2,8 +2,10 @@
 #define SIDPOD_PLAYLIST_H
 
 #include <vector>
+#include <cstdio>
+
 #include "ff.h"
-#include "platform_config.h"
+#include "ListViewBase.h"
 
 struct PlaylistEntry {
     bool unplayable;
@@ -21,9 +23,15 @@ struct PlaylistEntry {
         }
         return name;
     }
+
+    bool operator<(const PlaylistEntry &other) const {
+        if (strcmp(title, RETURN_ENTRY_TITLE) == 0) return true;
+        if (strcmp(other.title, RETURN_ENTRY_TITLE) == 0) return false;
+        return strcasecmp(title, other.title) < 0;
+    }
 };
 
-class Playlist {
+class Playlist final : public ListViewBase<PlaylistEntry> {
 public:
     enum State {
         OUTDATED,
@@ -35,26 +43,11 @@ public:
         this->name = name;
     }
 
-    ~Playlist() {
-        entries.clear();
-        window.clear();
-    }
-
     PlaylistEntry *getCurrentEntry();
-
-    size_t getSize() const;
 
     std::vector<PlaylistEntry *> getWindow();
 
-    bool isAtLastEntry() const;
-
-    void selectNext();
-
-    void selectPrevious();
-
-    void selectFirst();
-
-    void selectLast();
+    [[nodiscard]] bool isAtLastEntry() const;
 
     void markCurrentEntryAsUnplayable();
 
@@ -62,52 +55,25 @@ public:
         return state;
     }
 
-    void refresh();
+    void refresh() override;
 
-    const char *getName() const;
+    [[nodiscard]] const char *getName() const;
 
-    bool isAtReturnEntry() const;
+    [[nodiscard]] bool isAtReturnEntry() const;
 
     void addReturnEntry();
 
     void getFullPathForSelectedEntry(TCHAR *fullPath);
 
-    void resetAccessors();
-
-    void enableFind();
-
-    void disableFind();
-
-    bool findIsEnabled() const;
-
-    void addToSearchString(char c);
-
-    void clearSearchString();
-
-    char *getSearchString();
-
 private:
-    std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_LIST_ENTRIES);
-    std::vector<PlaylistEntry *> window;
-    uint8_t windowPosition = 0;
-    uint8_t selectedPosition = 0;
-    uint8_t windowSize = CATALOG_WINDOW_SIZE;
     const char *name;
-    char searchString[9] = {};
-    bool findEnabled = false;
     State state = OUTDATED;
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 
     static bool isRegularFile(const FILINFO *fileInfo);;
 
-    void findSearchString();
-
-    void updateWindow();
-
-    void slideDown();
-
-    void slideUp();
+    char *getSearchableText(int index) override;
 };
 
 #endif //SIDPOD_PLAYLIST_H

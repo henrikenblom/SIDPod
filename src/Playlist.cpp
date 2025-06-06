@@ -23,9 +23,6 @@ void Playlist::refresh() {
         }
         f_closedir(dp);
         delete dp;
-        std::sort(entries.begin(), entries.end(), [](const PlaylistEntry &a, const PlaylistEntry &b) -> bool {
-            return strcasecmp(a.title, b.title) < 0;
-        });
         addReturnEntry();
         resetAccessors();
         state = READY;
@@ -43,16 +40,12 @@ bool Playlist::isAtReturnEntry() const {
 void Playlist::addReturnEntry() {
     PlaylistEntry entry{};
     entry.unplayable = false;
-    strcpy(entry.title, "<< Return");
+    strcpy(entry.title, RETURN_ENTRY_TITLE);
     entries.emplace(entries.begin(), entry);
 }
 
 PlaylistEntry *Playlist::getCurrentEntry() {
     return &entries.at(selectedPosition);
-}
-
-size_t Playlist::getSize() const {
-    return entries.size();
 }
 
 std::vector<PlaylistEntry *> Playlist::getWindow() {
@@ -63,95 +56,8 @@ bool Playlist::isAtLastEntry() const {
     return selectedPosition == getSize() - 1;
 }
 
-void Playlist::selectNext() {
-    if (state == READY) {
-        if (selectedPosition < getSize() - 1) {
-            selectedPosition++;
-            slideDown();
-            updateWindow();
-        }
-    }
-}
-
-void Playlist::selectPrevious() {
-    if (state == READY) {
-        if (selectedPosition > 0) {
-            selectedPosition--;
-            slideUp();
-            updateWindow();
-        }
-    }
-}
-
-void Playlist::selectFirst() {
-    if (state == READY) {
-        selectedPosition = 1;
-        windowPosition = 1;
-        updateWindow();
-    }
-}
-
-void Playlist::selectLast() {
-    if (state == READY) {
-        selectedPosition = getSize() - 1;
-        windowPosition = getSize() - windowSize;
-        updateWindow();
-    }
-}
-
-void Playlist::resetAccessors() {
-    selectedPosition = 0;
-    windowPosition = 0;
-    if (getSize() > 0) {
-        updateWindow();
-    }
-}
-
-void Playlist::enableFind() {
-    findEnabled = true;
-}
-
-void Playlist::disableFind() {
-    findEnabled = false;
-    clearSearchString();
-    updateWindow();
-    if (state == READY) {
-        state = READY;
-    }
-}
-
-bool Playlist::findIsEnabled() const {
-    return findEnabled;
-}
-
-void Playlist::addToSearchString(char c) {
-    if (const size_t len = strlen(searchString); len < sizeof(searchString) - 1) {
-        searchString[len] = c;
-        searchString[len + 1] = '\0';
-    }
-    findSearchString();
-}
-
-void Playlist::clearSearchString() {
-    searchString[0] = '\0';
-}
-
-char *Playlist::getSearchString() {
-    return searchString;
-}
-
-void Playlist::findSearchString() {
-    if (searchString[0] == '\0' || state != READY) {
-        return;
-    }
-    for (size_t i = 0; i < entries.size(); ++i) {
-        if (strncasecmp(entries[i].title, searchString, strlen(searchString)) == 0) {
-            selectedPosition = i;
-            windowPosition = std::min(i, entries.size() - windowSize);
-            updateWindow();
-            break;
-        }
-    }
+char *Playlist::getSearchableText(const int index) {
+    return entries[index].title;
 }
 
 void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath) {
@@ -179,30 +85,6 @@ void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
         }
     }
     f_close(&pFile);
-}
-
-
-void Playlist::slideDown() {
-    if (windowSize + windowPosition < getSize()) {
-        windowPosition++;
-    }
-}
-
-void Playlist::slideUp() {
-    if (windowPosition > 0) {
-        windowPosition--;
-    }
-}
-
-void Playlist::updateWindow() {
-    if (getSize()) {
-        window.clear();
-        for (int i = 0; i < std::min(windowSize, (uint8_t) getSize()); i++) {
-            auto entry = &entries.at(windowPosition + i);
-            entry->selected = windowPosition + i == selectedPosition;
-            window.push_back(entry);
-        }
-    }
 }
 
 bool Playlist::isRegularFile(const FILINFO *fileInfo) {

@@ -4,7 +4,6 @@
 
 #include "Catalog.h"
 
-#include <algorithm>
 #ifdef USE_SDCARD
 #include "sd_card.h"
 #endif
@@ -15,62 +14,43 @@
 #include "platform_config.h"
 #include "Playlist.h"
 
-std::vector<std::string> entries;
-std::vector<std::string *> window;
-Playlist *currentPlaylist = nullptr;
-uint8_t selectedPosition = 0;
-uint8_t windowPosition = 0;
-uint8_t windowSize = CATALOG_WINDOW_SIZE;
-std::string selected;
-std::string playing;
-bool playlistOpen = false;
+Catalog *catalog = new Catalog();
 bool refreshing = false;
 
 void Catalog::refresh() {
     if (!refreshing) {
         refreshing = true;
-        DIR *dp;
         FILINFO fno;
-        FRESULT fr;
-        dp = new DIR;
+        const auto dp = new DIR;
         f_opendir(dp, "");
         entries.clear();
         while (entries.size() < MAX_LIST_ENTRIES) {
-            fr = f_readdir(dp, &fno);
-            if (fr != FR_OK || fno.fname[0] == 0) break;
+            if (const FRESULT fr = f_readdir(dp, &fno); fr != FR_OK || fno.fname[0] == 0) break;
             if (isValidDirectory(&fno)) {
-                entries.emplace_back(fno.fname);
+                CatalogEntry entry = {};
+                strcpy(entry.name, fno.fname);
+                entry.selected = entries.empty();
+                entries.emplace_back(entry);
             }
         }
-
         f_closedir(dp);
         delete dp;
-        std::sort(entries.begin(), entries.end(), [](const std::string &a, const std::string &b) -> bool {
-            return strcmp(a.c_str(), b.c_str()) < 0;
-        });
         refreshing = false;
         resetAccessors();
     }
 }
 
-std::string Catalog::getPlaying() {
-    return playing;
+void Catalog::setSelectedPlaying() {
+    for (auto &entry: entries) {
+        entry.playing = false;
+    }
+    if (!entries.empty() && selectedPosition < static_cast<int>(entries.size())) {
+        entries[selectedPosition].playing = true;
+    }
 }
 
-void Catalog::setPlaying(const std::string &_playing) {
-    playing = _playing;
-}
-
-std::string Catalog::getSelected() {
-    return selected;
-}
-
-std::vector<std::string *> Catalog::getWindow() {
-    return window;
-}
-
-bool Catalog::playlistIsOpen() {
-    return playlistOpen;
+bool Catalog::hasOpenPlaylist() const {
+    return currentPlaylist != nullptr;
 }
 
 void Catalog::closeSelected() {
@@ -78,58 +58,22 @@ void Catalog::closeSelected() {
         delete currentPlaylist;
         currentPlaylist = nullptr;
     }
-    playlistOpen = false;
 }
 
 void Catalog::openSelected() {
     delete currentPlaylist;
-    currentPlaylist = new Playlist(selected.c_str());
-    playlistOpen = true;
+    currentPlaylist = new Playlist(entries.at(selectedPosition).name);
 }
 
-void Catalog::slideDown() {
-    if (windowSize + windowPosition < getSize()) {
-        windowPosition++;
-    }
-}
-
-void Catalog::slideUp() {
-    if (windowPosition > 0) {
-        windowPosition--;
-    }
-}
-
-void Catalog::selectNext() {
-    if (selectedPosition < getSize() - 1) {
-        selectedPosition++;
-        slideDown();
-        updateWindow();
-    }
-}
-
-void Catalog::selectPrevious() {
-    if (selectedPosition > 0) {
-        selectedPosition--;
-        slideUp();
-        updateWindow();
-    }
-}
-
-void Catalog::selectLast() {
-    selectedPosition = getSize() - 1;
-    windowPosition = getSize() - windowSize;
-    updateWindow();
-}
-
-size_t Catalog::getSize() {
-    return entries.size();
-}
-
-Playlist *Catalog::getCurrentPlaylist() {
+Playlist *Catalog::getCurrentPlaylist() const {
     return currentPlaylist;
 }
 
-bool Catalog::isPSID(char *fullPath) {
+bool Catalog::isValidDirectory(FILINFO *fileInfo) {
+    return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46 && containsAtLeastOnePSID(fileInfo->fname);
+}
+
+bool Catalog::isPSID(const char *fullPath) {
     bool result = false;
     FIL pFile;
     BYTE header[PSID_MINIMAL_HEADER_SIZE];
@@ -137,7 +81,7 @@ bool Catalog::isPSID(char *fullPath) {
     f_open(&pFile, fullPath, FA_READ);
     f_read(&pFile, &header, PSID_MINIMAL_HEADER_SIZE, &bytesRead);
     if (bytesRead == PSID_MINIMAL_HEADER_SIZE) {
-        uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
+        const uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
         result = magic == PSID_ID || magic == RSID_ID;
     }
     f_close(&pFile);
@@ -164,21 +108,6 @@ bool Catalog::containsAtLeastOnePSID(char *name) {
     return found;
 }
 
-void Catalog::updateWindow() {
-    if (getSize()) {
-        window.clear();
-        for (int i = 0; i < std::min(windowSize, static_cast<uint8_t>(getSize())); i++) {
-            auto entry = &entries.at(windowPosition + i);
-            window.push_back(entry);
-        }
-        selected = entries.at(selectedPosition);
-    }
-}
-
-void Catalog::resetAccessors() {
-    selectedPosition = 0;
-    windowPosition = 0;
-    if (getSize() > 0) {
-        updateWindow();
-    }
+char *Catalog::getSearchableText(const int index) {
+    return entries[index].name;
 }

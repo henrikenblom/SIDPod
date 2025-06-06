@@ -362,7 +362,7 @@ namespace Visualization {
 
     void DanceFloor::visualize() {
         while (running) {
-            if (!scrollerInitialized && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
+            if (!scrollerInitialized && strcmp(catalog->getCurrentPlaylist()->getCurrentEntry()->fileName,
                                                SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);

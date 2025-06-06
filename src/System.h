@@ -1,5 +1,6 @@
 #ifndef SIDPOD_SYSTEM_H
 #define SIDPOD_SYSTEM_H
+#include "Catalog.h"
 #include "ff.h"
 
 class System {

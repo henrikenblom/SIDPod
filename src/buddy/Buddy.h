@@ -156,7 +156,7 @@ protected:
     std::vector<BluetoothDeviceListEntry> window;
     uint8_t windowPosition = 0;
     uint8_t selectedPosition = 0;
-    uint8_t windowSize = CATALOG_WINDOW_SIZE;
+    uint8_t windowSize = LIST_WINDOW_SIZE;
     uint8_t connectionAttempts = 0;
     RequestType lastRequest = RT_NONE;
     const char *selectedDeviceName = nullptr;
