@@ -177,13 +177,13 @@ protected:
 
     void resetAccessors();
 
-    bool awaitUartReadable();
+    static bool awaitUartReadable();
 
-    bool readBTDeviceName(char *buffer);
+    static bool readBTDeviceName(char *buffer);
 
     void requestAndSetConnectedBTDeviceName();
 
-    void requestBTList();
+    static void requestBTList();
 
     bool selectBTDevice(const char *deviceName);
 

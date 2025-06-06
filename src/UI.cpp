@@ -374,6 +374,11 @@ void UI::showBTDeviceList() {
     gl.update();
 }
 
+bool UI::allowFindFunctionality() {
+    return currentState == song_selector
+           || currentState == playlist_selector;
+}
+
 void UI::adjustVolume(const bool up) {
     if (currentState == volume_control) {
         resetVolumeControlSessionTimer();

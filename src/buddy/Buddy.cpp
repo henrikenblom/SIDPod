@@ -54,13 +54,12 @@ Buddy *Buddy::getInstance() {
 
 void buddyCallback() {
     if (uart_is_readable(UART_ID)) {
-        char character = {};
-        auto buddy = Buddy::getInstance();
-        auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
-        if (notificationType == NT_GESTURE) {
+        const auto buddy = Buddy::getInstance();
+        if (const auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
+            notificationType == NT_GESTURE) {
             auto gesture = static_cast<Gesture>(uart_getc(UART_ID));
-            char flags = uart_getc(UART_ID);
-            bool mod1 = IS_BIT_SET(flags, 0);
+            const char flags = uart_getc(UART_ID);
+            const bool mod = IS_BIT_SET(flags, 0);
             switch (gesture) {
                 case G_TAP:
                     UI::singleClickCallback(0, nullptr);
@@ -111,31 +110,30 @@ void buddyCallback() {
                     SIDPlayer::playPreviousSong();
                     break;
                 case G_VERTICAL:
-                    UI::verticalMovement(mod1 ? -1 : 1);
+                    UI::verticalMovement(mod ? -1 : 1);
                     break;
                 case G_HORIZONTAL:
                     break;
                 case G_ROTATE:
-                    UI::adjustVolume(mod1);
+                    UI::adjustVolume(mod);
                     break;
                 default: ;
             }
         } else if (notificationType == NT_SCRIBBLE_INPUT) {
-            char x = uart_getc(UART_ID);
-            char y = uart_getc(UART_ID);
-            // Draw a 3x3 square at (x, y) in the 28x28 monochrome scribbleBuffer
+            const char x = uart_getc(UART_ID);
+            const char y = uart_getc(UART_ID);
             for (int dy = -1; dy <= 1; ++dy) {
                 for (int dx = -1; dx <= 1; ++dx) {
-                    int px = x + dx;
-                    int py = y + dy;
-                    if (px >= 0 && px < 28 && py >= 0 && py < 28) {
-                        int bitIndex = py * 28 + px;
-                        buddy->scribbleBuffer[bitIndex / 8] |= (1 << (bitIndex % 8));
+                    const int px = x + dx;
+                    if (const int py = y + dy; px >= 0 && px < 28 && py >= 0 && py < 28) {
+                        const int bitIndex = py * 28 + px;
+                        buddy->scribbleBuffer[bitIndex / 8] |= 1 << bitIndex % 8;
                     }
                 }
             }
             buddy->scribbleBufferUpdated();
         } else {
+            char character = {};
             switch (notificationType) {
                 case NT_BT_CONNECTING:
                     buddy->setConnecting();
@@ -150,36 +148,41 @@ void buddyCallback() {
                     buddy->setConnected();
                     break;
                 case NT_SPACE_DETECTED:
-                    if (catalog->hasOpenPlaylist()) {
-                        auto playlist = catalog->getCurrentPlaylist();
-                        if (playlist->findIsEnabled()) {
-                            playlist->addToSearchString(32); // ASCII code for space
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            if (const auto playlist = catalog->getCurrentPlaylist(); playlist->findIsEnabled()) {
+                                playlist->addToSearchString(32);
+                            } else {
+                                playlist->enableFind();
+                            }
                         } else {
-                            playlist->enableFind();
+                            if (catalog->findIsEnabled()) {
+                                catalog->addToSearchString(32);
+                            } else {
+                                catalog->enableFind();
+                            }
                         }
-                    } else {
-                        if (catalog->findIsEnabled()) {
-                            catalog->addToSearchString(32);
-                        } else {
-                            catalog->enableFind();
-                        }
+                        buddy->enableScribbleMode();
                     }
-                    buddy->enableScribbleMode();
                     break;
                 case NT_BACKSPACE_DETECTED:
-                    if (catalog->hasOpenPlaylist()) {
-                        catalog->getCurrentPlaylist()->disableFind();
-                    } else {
-                        catalog->disableFind();
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            catalog->getCurrentPlaylist()->disableFind();
+                        } else {
+                            catalog->disableFind();
+                        }
+                        buddy->forceVerticalControl();
                     }
-                    buddy->forceVerticalControl();
                     break;
                 case NT_CHARACTER_DETECTED:
                     character = uart_getc(UART_ID);
-                    if (catalog->hasOpenPlaylist()) {
-                        catalog->getCurrentPlaylist()->addToSearchString(character);
-                    } else {
-                        catalog->addToSearchString(character);
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            catalog->getCurrentPlaylist()->addToSearchString(character);
+                        } else {
+                            catalog->addToSearchString(character);
+                        }
                     }
                     break;
                 default: ;

@@ -59,6 +59,8 @@ public:
     static void showBTProcessing(const char *text);
 
     static void showBTDeviceList();
+
+    static bool allowFindFunctionality();
 #endif
 
 private:
