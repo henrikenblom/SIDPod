@@ -151,13 +151,13 @@ void buddyCallback() {
                     if (UI::allowFindFunctionality()) {
                         if (catalog->hasOpenPlaylist()) {
                             if (const auto playlist = catalog->getCurrentPlaylist(); playlist->findIsEnabled()) {
-                                playlist->addToSearchString(32);
+                                playlist->addToSearchTerm(32);
                             } else {
                                 playlist->enableFind();
                             }
                         } else {
                             if (catalog->findIsEnabled()) {
-                                catalog->addToSearchString(32);
+                                catalog->addToSearchTerm(32);
                             } else {
                                 catalog->enableFind();
                             }
@@ -179,9 +179,9 @@ void buddyCallback() {
                     character = uart_getc(UART_ID);
                     if (UI::allowFindFunctionality()) {
                         if (catalog->hasOpenPlaylist()) {
-                            catalog->getCurrentPlaylist()->addToSearchString(character);
+                            catalog->getCurrentPlaylist()->addToSearchTerm(character);
                         } else {
-                            catalog->addToSearchString(character);
+                            catalog->addToSearchTerm(character);
                         }
                     }
                     break;
@@ -258,7 +258,7 @@ void Buddy::selectPrevious() {
 void Buddy::refreshDeviceList() {
     if (state == READY || state == AWAITING_SELECTION || state == DISCONNECTED) {
         state = REFRESHING;
-        char *selectedDevice = nullptr;
+        const char *selectedDevice = nullptr;
         if (!devices.empty()) {
             selectedDevice = devices.at(selectedPosition).name;
             devices.clear();

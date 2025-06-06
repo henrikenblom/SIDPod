@@ -115,7 +115,7 @@ public:
 
     void disableFind() {
         findEnabled = false;
-        clearSearchString();
+        clearSearchTerm();
         updateWindow();
     }
 
@@ -123,7 +123,7 @@ public:
         return findEnabled;
     }
 
-    void addToSearchString(char c) {
+    void addToSearchTerm(char c) {
         if (const size_t len = strlen(searchTerm); len < sizeof(searchTerm) - 1) {
             searchTerm[len] = c;
             searchTerm[len + 1] = '\0';
@@ -131,11 +131,11 @@ public:
         findSearchTerm();
     }
 
-    void clearSearchString() {
+    void clearSearchTerm() {
         searchTerm[0] = '\0';
     }
 
-    char *getSearchString() {
+    char *getSearchTerm() {
         return searchTerm;
     }
 };

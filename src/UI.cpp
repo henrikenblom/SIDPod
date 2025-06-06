@@ -148,7 +148,7 @@ void UI::showSongSelector() {
             }
             gl.clear();
             if (playlist->findIsEnabled()) {
-                gl.drawInput("FIND:", playlist->getSearchString(), 8);
+                gl.drawInput("FIND:", playlist->getSearchTerm(), 8);
             } else {
                 gl.drawHeader(playlist->getName());
             }
@@ -184,7 +184,7 @@ void UI::showSongSelector() {
 void UI::showPlaylistSelector() {
     gl.clear();
     if (catalog->findIsEnabled()) {
-        gl.drawInput("FIND:", catalog->getSearchString(), 8);
+        gl.drawInput("FIND:", catalog->getSearchTerm(), 8);
     } else {
         gl.drawHeader("PLAYLISTS");
     }
