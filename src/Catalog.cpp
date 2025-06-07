@@ -111,3 +111,9 @@ bool Catalog::containsAtLeastOnePSID(char *name) {
 char *Catalog::getSearchableText(const int index) {
     return entries[index].name;
 }
+
+void Catalog::sort() {
+    std::sort(entries.begin(), entries.end(), [this](const CatalogEntry &a, const CatalogEntry &b) {
+        return strcasecmp(a.name, b.name) < 0;
+    });
+}

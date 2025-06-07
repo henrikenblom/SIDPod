@@ -404,9 +404,9 @@ namespace Visualization {
                 busy_wait_ms(500);
                 if (!SIDPlayer::isPlaying()) {
                     if (!SIDPlayer::loadingWasSuccessful()) {
-                        gl->drawDialog(failedLabel);
+                        gl->drawModal(failedLabel);
                     } else {
-                        gl->drawDialog(pausedLabel);
+                        gl->drawModal(pausedLabel);
                     }
                     freeze = true;
                 }

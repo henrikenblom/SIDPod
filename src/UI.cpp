@@ -165,7 +165,7 @@ void UI::showSongSelector() {
                 } else if (entry->selected) {
                     gl.drawOpenSymbol(y);
                 }
-                if (entry->unplayable) gl.crossOutLine(y);
+                if (entry->unplayable) gl.crossoutLine(y);
                 y += 8;
             }
             gl.update();
@@ -234,9 +234,10 @@ void UI::start(bool quickStart) {
 
 inline void UI::showRasterBars() {
     gl.clear();
-    int y = random() % (DISPLAY_HEIGHT);
-    ssd1306_draw_line(&disp, 0, y, DISPLAY_WIDTH - 1, y);
-    ssd1306_show_unacked(&disp);
+    const int y = random() % (DISPLAY_HEIGHT);
+    gl.drawLine(0, y, DISPLAY_WIDTH - 1, y);
+    gl.drawModal("USB CONNECTED");
+    gl.update();
 }
 
 bool UI::pollUserControls(repeating_timer *t) {

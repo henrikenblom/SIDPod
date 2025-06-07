@@ -14,11 +14,6 @@ struct CatalogEntry {
     TCHAR name[FF_LFN_BUF + 1];
     bool selected;
     bool playing;
-
-    //TODO: Move the comparison to Catalog to see if it reduces the memory footprint
-    bool operator<(const CatalogEntry &other) const {
-        return strcasecmp(name, other.name) < 0;
-    }
 };
 
 #pragma once
@@ -49,6 +44,8 @@ private:
     static bool containsAtLeastOnePSID(char *name);
 
     char *getSearchableText(int index) override;
+
+    void sort() override;
 };
 
 #endif //CATALOG_H

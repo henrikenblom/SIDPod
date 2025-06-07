@@ -127,7 +127,7 @@ void buddyCallback() {
                     const int px = x + dx;
                     if (const int py = y + dy; px >= 0 && px < 28 && py >= 0 && py < 28) {
                         const int bitIndex = py * 28 + px;
-                        buddy->scribbleBuffer[bitIndex / 8] |= 1 << bitIndex % 8;
+                        scribbleBuffer[bitIndex / 8] |= 1 << bitIndex % 8;
                     }
                 }
             }

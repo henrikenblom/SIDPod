@@ -15,19 +15,13 @@ struct PlaylistEntry {
     bool selected;
 
     [[nodiscard]] char *getName() const {
-        static char name[65];
+        static char name[67];
         if (author[0] != '\0') {
             snprintf(name, sizeof(name), "%s - %s", title, author);
         } else {
             snprintf(name, sizeof(name), "%s", title);
         }
         return name;
-    }
-
-    bool operator<(const PlaylistEntry &other) const {
-        if (strcmp(title, RETURN_ENTRY_TITLE) == 0) return true;
-        if (strcmp(other.title, RETURN_ENTRY_TITLE) == 0) return false;
-        return strcasecmp(title, other.title) < 0;
     }
 };
 
@@ -74,6 +68,8 @@ private:
     static bool isRegularFile(const FILINFO *fileInfo);;
 
     char *getSearchableText(int index) override;
+
+    void sort() override;
 };
 
 #endif //SIDPOD_PLAYLIST_H

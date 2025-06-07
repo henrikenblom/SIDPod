@@ -60,6 +60,14 @@ char *Playlist::getSearchableText(const int index) {
     return entries[index].title;
 }
 
+void Playlist::sort() {
+    std::sort(entries.begin(), entries.end(), [this](const PlaylistEntry &a, const PlaylistEntry &b) {
+        if (strcmp(a.title, RETURN_ENTRY_TITLE) == 0) return true;
+        if (strcmp(b.title, RETURN_ENTRY_TITLE) == 0) return false;
+        return strcasecmp(a.title, b.title) < 0;
+    });
+}
+
 void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath) {
     snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, entries.at(selectedPosition).fileName);
 }

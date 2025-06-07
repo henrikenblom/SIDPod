@@ -71,6 +71,8 @@ struct BluetoothDeviceListEntry {
     bool connected;
 };
 
+__scratch_y("scribble") inline uint8_t scribbleBuffer[98]{};
+
 class Buddy {
 public:
     enum State {
@@ -83,8 +85,6 @@ public:
         AWAITING_STATE_CHANGE,
         AWAITING_DISCONNECT_CONFIRMATION,
     };
-
-    uint8_t scribbleBuffer[98]{};
 
     ~Buddy() {
         devices.clear();
@@ -127,7 +127,7 @@ public:
 
     void enableScribbleMode();
 
-    RequestType getLastRequest() const;
+    [[nodiscard]] RequestType getLastRequest() const;
 
     void scribbleBufferUpdated() {
         lastScribbleUpdate = millis();
@@ -141,11 +141,11 @@ public:
         return isFresh;
     }
 
-    const char *getConnectedDeviceName() {
+    const char *getConnectedDeviceName() const {
         return lastConnectedDeviceName;
     }
 
-    const char *getSelectedDeviceName() {
+    const char *getSelectedDeviceName() const {
         return selectedDeviceName;
     }
 

@@ -23,6 +23,8 @@ protected:
 
     virtual char *getSearchableText(int index) = 0;
 
+    virtual void sort() = 0;
+
     virtual ~ListViewBase() {
         entries.clear();
         window.clear();
@@ -97,7 +99,7 @@ public:
     }
 
     void resetAccessors() {
-        std::sort(entries.begin(), entries.end());
+        sort();
         selectedPosition = 0;
         windowPosition = 0;
         if (getSize() > 0) {

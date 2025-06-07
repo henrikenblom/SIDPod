@@ -14,12 +14,16 @@
 #include "System.h"
 #include "../Catalog.h"
 
+#if FFT_SAMPLES <= 1024
+short __scratch_x("fft_samples") visualizationBuffer[FFT_SAMPLES];
+#else
+short visualizationBuffer[FFT_SAMPLES];
+#endif
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
-short visualizationBuffer[FFT_SAMPLES];
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;

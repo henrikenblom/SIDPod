@@ -59,13 +59,13 @@ public:
 
     void drawInput(const char *label, const char *text, int8_t maxLength);
 
-    void drawDialog(const char *text) const;
+    void drawModal(const char *text) const;
 
     void drawOpenSymbol(int32_t y) const;
 
     void drawNowPlayingSymbol(int32_t y, bool animate = true);
 
-    void crossOutLine(int32_t y) const;
+    void crossoutLine(int32_t y) const;
 
     void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) const;
 
