@@ -506,20 +506,22 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                     break;
 #endif
                 default:
-                    auto playlist = catalog->getCurrentPlaylist();
-                    playlist->disableFind();
-                    if (playlist->isAtReturnEntry()) {
-                        catalog->closeSelected();
-                        currentState = playlist_selector;
-                        break;
+                    if (catalog->hasOpenPlaylist()) {
+                        const auto playlist = catalog->getCurrentPlaylist();
+                        playlist->disableFind();
+                        if (playlist->isAtReturnEntry()) {
+                            catalog->closeSelected();
+                            currentState = playlist_selector;
+                            break;
+                        }
+                        if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                                   playlist->getCurrentEntry()
+                                   ->fileName) != 0) {
+                            SIDPlayer::togglePlayPause();
+                            initDanceFloor();
+                        }
+                        currentState = visualization;
                     }
-                    if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                               playlist->getCurrentEntry()
-                               ->fileName) != 0) {
-                        SIDPlayer::togglePlayPause();
-                        initDanceFloor();
-                    }
-                    currentState = visualization;
             }
 #ifdef USE_BUDDY
         }
