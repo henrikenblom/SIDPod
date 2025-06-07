@@ -10,15 +10,16 @@
 
 #include "delays.h"
 #include "../platform_config.h"
-#include "pico/types.h"
 
 #if USE_BUDDY
 
+#define SCRIBBLE_TIMEOUT_MS                 500
 #define BUDDY_ENABLE_PIN                    22
 #define BUDDY_BT_CONNECTED_PIN              15
 #define UART_READABLE_TIMEOUT_MS            100
 #define MAX_CONNECTION_ATTEMPTS             3
 #define LAST_BT_DEVICE_FILE                 "last_bt.txt"
+#define CURSOR_BLINK_INTERVAL_VBL           10
 
 enum RequestType {
     RT_NONE = 0,
@@ -30,6 +31,7 @@ enum RequestType {
     RT_G_FORCE_HORIZONTAL = 6,
     RT_G_SET_AUTO = 7,
     RT_BT_GET_CONNECTED = 8,
+    RT_SCRIBBLE = 9,
 };
 
 enum NotificationType {
@@ -39,7 +41,10 @@ enum NotificationType {
     NT_BT_DISCONNECTED = 3,
     NT_BT_DEVICE_LIST_CHANGED = 4,
     NT_BT_CONNECTING = 5,
-    NT_BITMAP_CHANGED = 6,
+    NT_SCRIBBLE_INPUT = 6,
+    NT_CHARACTER_DETECTED = 7,
+    NT_BACKSPACE_DETECTED = 8,
+    NT_SPACE_DETECTED = 9,
 };
 
 enum Gesture {
@@ -66,6 +71,8 @@ struct BluetoothDeviceListEntry {
     bool connected;
 };
 
+__scratch_y("scribble") inline uint8_t scribbleBuffer[98]{};
+
 class Buddy {
 public:
     enum State {
@@ -78,8 +85,6 @@ public:
         AWAITING_STATE_CHANGE,
         AWAITING_DISCONNECT_CONFIRMATION,
     };
-
-    uint8_t scribbleBuffer[28 * 28]{};
 
     ~Buddy() {
         devices.clear();
@@ -120,19 +125,27 @@ public:
 
     void disconnect();
 
+    void enableScribbleMode();
+
+    [[nodiscard]] RequestType getLastRequest() const;
+
     void scribbleBufferUpdated() {
         lastScribbleUpdate = millis();
     }
 
-    [[nodiscard]] bool scribbleDataIsFresh() const {
-        return millis() < lastScribbleUpdate + SCRIBBLE_TIMEOUT_MS;
+    [[nodiscard]] bool scribbleDataIsFresh() {
+        const bool isFresh = millis() < lastScribbleUpdate + SCRIBBLE_TIMEOUT_MS;
+        if (!isFresh) {
+            memset(scribbleBuffer, 0, 98);
+        }
+        return isFresh;
     }
 
-    const char *getConnectedDeviceName() {
+    const char *getConnectedDeviceName() const {
         return lastConnectedDeviceName;
     }
 
-    const char *getSelectedDeviceName() {
+    const char *getSelectedDeviceName() const {
         return selectedDeviceName;
     }
 
@@ -143,9 +156,9 @@ protected:
     std::vector<BluetoothDeviceListEntry> window;
     uint8_t windowPosition = 0;
     uint8_t selectedPosition = 0;
-    uint8_t windowSize = CATALOG_WINDOW_SIZE;
+    uint8_t windowSize = LIST_WINDOW_SIZE;
     uint8_t connectionAttempts = 0;
-    RequestType lastGestureRequest = RT_NONE;
+    RequestType lastRequest = RT_NONE;
     const char *selectedDeviceName = nullptr;
     char lastConnectedDeviceName[32]{};
     uint8_t lastConnectedAddr[6]{};
@@ -164,13 +177,13 @@ protected:
 
     void resetAccessors();
 
-    bool awaitUartReadable();
+    static bool awaitUartReadable();
 
-    bool readBTDeviceName(char *buffer);
+    static bool readBTDeviceName(char *buffer);
 
     void requestAndSetConnectedBTDeviceName();
 
-    void requestBTList();
+    static void requestBTList();
 
     bool selectBTDevice(const char *deviceName);
 

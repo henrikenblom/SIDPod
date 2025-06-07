@@ -11,14 +11,19 @@
 
 #include "../platform_config.h"
 #include "C64.h"
+#include "System.h"
 #include "../Catalog.h"
 
+#if FFT_SAMPLES <= 1024
+short __scratch_x("fft_samples") visualizationBuffer[FFT_SAMPLES];
+#else
+short visualizationBuffer[FFT_SAMPLES];
+#endif
 repeating_timer reapCommandTimer{};
 queue_t txQueue;
 uint8_t playPauseCommand = PLAY_PAUSE_COMMAND_CODE;
 uint8_t volume = INITIAL_VOLUME;
 float volumeFactor;
-short visualizationBuffer[FFT_SAMPLES];
 volatile bool playPauseQueued = false;
 bool rendering = false;
 bool loadingSuccessful = true;
@@ -189,15 +194,15 @@ volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
     multicore_fifo_push_blocking(AUDIO_RENDERING_STARTED_FIFO_FLAG);
     while (true) {
         if (playPauseQueued) {
-            if (Catalog::playlistIsOpen()) {
-                Playlist *playlist = Catalog::getCurrentPlaylist();
+            if (catalog->hasOpenPlaylist()) {
+                Playlist *playlist = catalog->getCurrentPlaylist();
                 PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
                 if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
                     resetState();
                     TCHAR fullPath[FF_LFN_BUF + 1];
                     playlist->getFullPathForSelectedEntry(fullPath);
                     if (loadPSID(fullPath)) {
-                        Catalog::setPlaying(playlist->getName());
+                        catalog->setSelectedPlaying();
                         loadingSuccessful = true;
                         rendering = true;
                         ampOn();

@@ -2,17 +2,30 @@
 #define SIDPOD_PLAYLIST_H
 
 #include <vector>
+#include <cstdio>
+
 #include "ff.h"
-#include "platform_config.h"
+#include "ListViewBase.h"
 
 struct PlaylistEntry {
     bool unplayable;
     TCHAR fileName[FF_SFN_BUF + 1];
     char title[32];
+    char author[32];
     bool selected;
+
+    [[nodiscard]] char *getName() const {
+        static char name[67];
+        if (author[0] != '\0') {
+            snprintf(name, sizeof(name), "%s - %s", title, author);
+        } else {
+            snprintf(name, sizeof(name), "%s", title);
+        }
+        return name;
+    }
 };
 
-class Playlist {
+class Playlist final : public ListViewBase<PlaylistEntry> {
 public:
     enum State {
         OUTDATED,
@@ -24,26 +37,11 @@ public:
         this->name = name;
     }
 
-    ~Playlist() {
-        entries.clear();
-        window.clear();
-    }
-
     PlaylistEntry *getCurrentEntry();
-
-    size_t getSize();
 
     std::vector<PlaylistEntry *> getWindow();
 
-    bool isAtLastEntry();
-
-    void selectNext();
-
-    void selectPrevious();
-
-    void selectFirst();
-
-    void selectLast();
+    [[nodiscard]] bool isAtLastEntry() const;
 
     void markCurrentEntryAsUnplayable();
 
@@ -51,36 +49,27 @@ public:
         return state;
     }
 
-    void refresh();
+    void refresh() override;
 
-    const char *getName() const;
+    [[nodiscard]] const char *getName() const;
 
-    bool isAtReturnEntry() const;
+    [[nodiscard]] bool isAtReturnEntry() const;
 
     void addReturnEntry();
 
     void getFullPathForSelectedEntry(TCHAR *fullPath);
 
-    void resetAccessors();
-
 private:
-    std::vector<PlaylistEntry> entries = std::vector<PlaylistEntry>(MAX_LIST_ENTRIES);
-    std::vector<PlaylistEntry *> window;
-    uint8_t windowPosition = 0;
-    uint8_t selectedPosition = 0;
-    uint8_t windowSize = CATALOG_WINDOW_SIZE;
     const char *name;
     State state = OUTDATED;
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 
-    static bool isRegularFile(FILINFO *fileInfo);;
+    static bool isRegularFile(const FILINFO *fileInfo);;
 
-    void updateWindow();
+    char *getSearchableText(int index) override;
 
-    void slideDown();
-
-    void slideUp();
+    void sort() override;
 };
 
 #endif //SIDPOD_PLAYLIST_H

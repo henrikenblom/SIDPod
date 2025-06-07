@@ -362,7 +362,7 @@ namespace Visualization {
 
     void DanceFloor::visualize() {
         while (running) {
-            if (!scrollerInitialized && strcmp(Catalog::getCurrentPlaylist()->getCurrentEntry()->fileName,
+            if (!scrollerInitialized && strcmp(catalog->getCurrentPlaylist()->getCurrentEntry()->fileName,
                                                SIDPlayer::getCurrentlyLoaded()->fileName) == 0) {
                 SidInfo *entry = SIDPlayer::getSidInfo();
                 randomizeExperience(experience);
@@ -404,9 +404,9 @@ namespace Visualization {
                 busy_wait_ms(500);
                 if (!SIDPlayer::isPlaying()) {
                     if (!SIDPlayer::loadingWasSuccessful()) {
-                        gl->drawDialog(failedLabel);
+                        gl->drawModal(failedLabel);
                     } else {
-                        gl->drawDialog(pausedLabel);
+                        gl->drawModal(pausedLabel);
                     }
                     freeze = true;
                 }

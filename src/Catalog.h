@@ -5,57 +5,47 @@
 #ifndef CATALOG_H
 #define CATALOG_H
 
-#include <vector>
-#include <bits/basic_string.h>
+#include <cstring>
 
 #include "ff.h"
 #include "Playlist.h"
 
-class Catalog {
+struct CatalogEntry {
+    TCHAR name[FF_LFN_BUF + 1];
+    bool selected;
+    bool playing;
+};
+
+#pragma once
+class Catalog;
+extern Catalog *catalog;
+
+class Catalog final : public ListViewBase<CatalogEntry> {
 public:
-    static void refresh();
+    void refresh() override;
 
-    static std::string getPlaying();
+    void setSelectedPlaying();
 
-    static void setPlaying(const std::string &playing);
+    [[nodiscard]] bool hasOpenPlaylist() const;
 
-    static std::string getSelected();
+    void closeSelected();
 
-    static std::vector<std::string *> getWindow();
+    void openSelected();
 
-    static bool playlistIsOpen();
-
-    static void closeSelected();
-
-    static void openSelected();
-
-    static void slideDown();
-
-    static void slideUp();
-
-    static void selectNext();
-
-    static void selectPrevious();
-
-    static void selectLast();
-
-    static size_t getSize();
-
-    static Playlist *getCurrentPlaylist();
-
-    static void resetAccessors();
+    [[nodiscard]] Playlist *getCurrentPlaylist() const;
 
 private:
-    static bool isValidDirectory(FILINFO *fileInfo) {
-        return fileInfo->fattrib == AM_DIR && fileInfo->fname[0] != 46 && containsAtLeastOnePSID(fileInfo->fname);
-    }
+    Playlist *currentPlaylist = nullptr;
 
-    static bool isPSID(char *path);
+    static bool isValidDirectory(FILINFO *fileInfo);
+
+    static bool isPSID(const char *fullPath);
 
     static bool containsAtLeastOnePSID(char *name);
 
-    static void updateWindow();
-};
+    char *getSearchableText(int index) override;
 
+    void sort() override;
+};
 
 #endif //CATALOG_H

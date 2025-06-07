@@ -18,6 +18,7 @@ public:
         gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
         pDisp->external_vcc = DISPLAY_EXTERNAL_VCC;
         ssd1306_init(pDisp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
+        cursorIntervalCounter = 0;
     }
 
     void drawPixel(int32_t x, int32_t y, int32_t clip = 0) const;
@@ -56,13 +57,15 @@ public:
 
     void drawHeader(const char *title);
 
-    void drawDialog(const char *text) const;
+    void drawInput(const char *label, const char *text, int8_t maxLength);
+
+    void drawModal(const char *text) const;
 
     void drawOpenSymbol(int32_t y) const;
 
     void drawNowPlayingSymbol(int32_t y, bool animate = true);
 
-    void crossOutLine(int32_t y) const;
+    void crossoutLine(int32_t y) const;
 
     void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) const;
 
@@ -77,7 +80,10 @@ public:
 private:
     ssd1306_t *pDisp;
     uint8_t horizontalLineDitherOffset = 0;
+    int32_t cursorIntervalCounter;
     float longTitleScrollOffset{}, headerScrollOffset{}, playingSymbolAnimationCounter = 0;
+
+    bool showCursor();
 };
 
 

@@ -1,6 +1,7 @@
 #ifndef SIDPOD_UI_H
 #define SIDPOD_UI_H
 
+#include "Catalog.h"
 #include "display/include/ssd1306.h"
 
 class UI {
@@ -58,6 +59,8 @@ public:
     static void showBTProcessing(const char *text);
 
     static void showBTDeviceList();
+
+    static bool allowFindFunctionality();
 #endif
 
 private:

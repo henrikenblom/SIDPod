@@ -14,24 +14,35 @@
 Buddy *instance = nullptr;
 
 void Buddy::forceRotationControl() {
-    if (lastGestureRequest != RT_G_FORCE_ROTATE) {
-        lastGestureRequest = RT_G_FORCE_ROTATE;
+    if (lastRequest != RT_G_FORCE_ROTATE) {
+        lastRequest = RT_G_FORCE_ROTATE;
         uart_putc(UART_ID, RT_G_FORCE_ROTATE);
     }
 }
 
 void Buddy::forceVerticalControl() {
-    if (lastGestureRequest != RT_G_FORCE_VERTICAL) {
-        lastGestureRequest = RT_G_FORCE_VERTICAL;
+    if (lastRequest != RT_G_FORCE_VERTICAL) {
+        lastRequest = RT_G_FORCE_VERTICAL;
         uart_putc(UART_ID, RT_G_FORCE_VERTICAL);
     }
 }
 
 void Buddy::enableGestureDetection() {
-    if (lastGestureRequest != RT_G_SET_AUTO) {
-        lastGestureRequest = RT_G_SET_AUTO;
+    if (lastRequest != RT_G_SET_AUTO) {
+        lastRequest = RT_G_SET_AUTO;
         uart_putc(UART_ID, RT_G_SET_AUTO);
     }
+}
+
+void Buddy::enableScribbleMode() {
+    if (lastRequest != RT_SCRIBBLE) {
+        lastRequest = RT_SCRIBBLE;
+        uart_putc(UART_ID, RT_SCRIBBLE);
+    }
+}
+
+RequestType Buddy::getLastRequest() const {
+    return lastRequest;
 }
 
 Buddy *Buddy::getInstance() {
@@ -43,12 +54,12 @@ Buddy *Buddy::getInstance() {
 
 void buddyCallback() {
     if (uart_is_readable(UART_ID)) {
-        auto buddy = Buddy::getInstance();
-        auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
-        if (notificationType == NT_GESTURE) {
+        const auto buddy = Buddy::getInstance();
+        if (const auto notificationType = static_cast<NotificationType>(uart_getc(UART_ID));
+            notificationType == NT_GESTURE) {
             auto gesture = static_cast<Gesture>(uart_getc(UART_ID));
-            char flags = uart_getc(UART_ID);
-            bool mod1 = IS_BIT_SET(flags, 0);
+            const char flags = uart_getc(UART_ID);
+            const bool mod = IS_BIT_SET(flags, 0);
             switch (gesture) {
                 case G_TAP:
                     UI::singleClickCallback(0, nullptr);
@@ -57,8 +68,8 @@ void buddyCallback() {
                     UI::doubleClickCallback();
                     break;
                 case G_NORTH:
-                    if (Catalog::playlistIsOpen()) {
-                        const auto playlist = Catalog::getCurrentPlaylist();
+                    if (catalog->hasOpenPlaylist()) {
+                        const auto playlist = catalog->getCurrentPlaylist();
                         if (UI::getState() == UI::visualization) {
                             playlist->selectPrevious();
                             if (playlist->isAtReturnEntry()) {
@@ -70,12 +81,12 @@ void buddyCallback() {
                             playlist->resetAccessors();
                         }
                     } else {
-                        Catalog::resetAccessors();
+                        catalog->resetAccessors();
                     }
                     break;
                 case G_SOUTH:
-                    if (Catalog::playlistIsOpen()) {
-                        const auto playlist = Catalog::getCurrentPlaylist();
+                    if (catalog->hasOpenPlaylist()) {
+                        const auto playlist = catalog->getCurrentPlaylist();
                         if (UI::getState() == UI::visualization) {
                             playlist->selectNext();
                             if (playlist->isAtLastEntry()) {
@@ -84,10 +95,10 @@ void buddyCallback() {
                             SIDPlayer::togglePlayPause();
                             UI::initDanceFloor();
                         } else {
-                            Catalog::getCurrentPlaylist()->selectLast();
+                            catalog->getCurrentPlaylist()->selectLast();
                         }
                     } else {
-                        Catalog::selectLast();
+                        catalog->selectLast();
                     }
                     break;
                 case G_EAST:
@@ -99,19 +110,30 @@ void buddyCallback() {
                     SIDPlayer::playPreviousSong();
                     break;
                 case G_VERTICAL:
-                    UI::verticalMovement(mod1 ? -1 : 1);
+                    UI::verticalMovement(mod ? -1 : 1);
                     break;
                 case G_HORIZONTAL:
                     break;
                 case G_ROTATE:
-                    UI::adjustVolume(mod1);
+                    UI::adjustVolume(mod);
                     break;
                 default: ;
             }
-        } else if (notificationType == NT_BITMAP_CHANGED) {
-            uart_read_blocking(UART_ID, buddy->scribbleBuffer, 98);
+        } else if (notificationType == NT_SCRIBBLE_INPUT) {
+            const char x = uart_getc(UART_ID);
+            const char y = uart_getc(UART_ID);
+            for (int dy = -1; dy <= 1; ++dy) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int px = x + dx;
+                    if (const int py = y + dy; px >= 0 && px < 28 && py >= 0 && py < 28) {
+                        const int bitIndex = py * 28 + px;
+                        scribbleBuffer[bitIndex / 8] |= 1 << bitIndex % 8;
+                    }
+                }
+            }
             buddy->scribbleBufferUpdated();
         } else {
+            char character = {};
             switch (notificationType) {
                 case NT_BT_CONNECTING:
                     buddy->setConnecting();
@@ -124,6 +146,44 @@ void buddyCallback() {
                     break;
                 case NT_BT_CONNECTED:
                     buddy->setConnected();
+                    break;
+                case NT_SPACE_DETECTED:
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            if (const auto playlist = catalog->getCurrentPlaylist(); playlist->findIsEnabled()) {
+                                playlist->addToSearchTerm(32);
+                            } else {
+                                playlist->enableFind();
+                            }
+                        } else {
+                            if (catalog->findIsEnabled()) {
+                                catalog->addToSearchTerm(32);
+                            } else {
+                                catalog->enableFind();
+                            }
+                        }
+                        buddy->enableScribbleMode();
+                    }
+                    break;
+                case NT_BACKSPACE_DETECTED:
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            catalog->getCurrentPlaylist()->disableFind();
+                        } else {
+                            catalog->disableFind();
+                        }
+                        buddy->forceVerticalControl();
+                    }
+                    break;
+                case NT_CHARACTER_DETECTED:
+                    character = uart_getc(UART_ID);
+                    if (UI::allowFindFunctionality()) {
+                        if (catalog->hasOpenPlaylist()) {
+                            catalog->getCurrentPlaylist()->addToSearchTerm(character);
+                        } else {
+                            catalog->addToSearchTerm(character);
+                        }
+                    }
                     break;
                 default: ;
             }
@@ -198,7 +258,7 @@ void Buddy::selectPrevious() {
 void Buddy::refreshDeviceList() {
     if (state == READY || state == AWAITING_SELECTION || state == DISCONNECTED) {
         state = REFRESHING;
-        char *selectedDevice = nullptr;
+        const char *selectedDevice = nullptr;
         if (!devices.empty()) {
             selectedDevice = devices.at(selectedPosition).name;
             devices.clear();
