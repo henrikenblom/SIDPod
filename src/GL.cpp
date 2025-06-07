@@ -37,6 +37,12 @@ void GL::drawEmptySquare(const int32_t x1, const int32_t y1, const int32_t width
     ssd13606_draw_empty_square(pDisp, x1, y1, width, height);
 }
 
+void GL::drawFilledSquare(const int32_t x1, const int32_t y1, const int32_t width, const int32_t height) const {
+    for (int32_t y = y1; y < y1 + height; ++y) {
+        drawLine(x1, y, x1 + width - 1, y);
+    }
+}
+
 void GL::drawString(const int32_t x, const int32_t y, const char *pStr, const char highlightStart,
                     const char highlightLength) const {
     ssd1306_draw_string(pDisp, x, y, 1, pStr);
@@ -206,7 +212,8 @@ void GL::drawInput(const char *label, const char *text, const int8_t maxLength, 
     this->drawString(12, 0, label);
     this->drawString(12 + labelWidth, 0, text);
     if (textLength < maxLength && hasFocus && isAtVisibleInterval()) {
-        this->drawString(12 + labelWidth + textWidth, 2, "_");
+        this->drawFilledSquare(12 + labelWidth + textWidth, 0, FONT_WIDTH, FONT_HEIGHT);
+
     }
 }
 

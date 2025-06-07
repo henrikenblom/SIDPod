@@ -29,6 +29,8 @@ public:
 
     void drawEmptySquare(int32_t x1, int32_t y1, int32_t width, int32_t height) const;
 
+    void drawFilledSquare(int32_t x1, int32_t y1, int32_t width, int32_t height) const;
+
     void drawString(int32_t x, int32_t y, const char *pStr, char highlightStart = 0, char highlightLength = 0) const;
 
     void showBMPImage(const uint8_t *data, long size) const;
