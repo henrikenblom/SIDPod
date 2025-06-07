@@ -11,63 +11,25 @@
 
 template<typename EntryType>
 class ListViewBase {
-protected:
-    std::vector<EntryType> entries;
-    std::vector<EntryType *> window;
-    size_t selectedPosition = 0;
-    size_t windowPosition = 0;
-    char searchTerm[9] = {};
-    bool findEnabled = false;
-
-    virtual void refresh() = 0;
-
-    virtual char *getSearchableText(int index) = 0;
-
-    virtual void sort() = 0;
-
-    virtual ~ListViewBase() {
-        entries.clear();
-        window.clear();
-    }
-
-    void updateWindow() {
-        if (getSize()) {
-            window.clear();
-            for (int i = 0; i < std::min(LIST_WINDOW_SIZE, getSize()); i++) {
-                auto entry = &entries.at(windowPosition + i);
-                entry->selected = windowPosition + i == selectedPosition;
-                window.push_back(entry);
-            }
-        }
-    }
-
-    void slideDown() {
-        if (LIST_WINDOW_SIZE + windowPosition < getSize()) {
-            windowPosition++;
-        }
-    }
-
-    void slideUp() {
-        if (windowPosition > 0) {
-            windowPosition--;
-        }
-    }
-
-    void findSearchTerm() {
-        if (searchTerm[0] == '\0') {
-            return;
-        }
-        for (size_t i = 0; i < entries.size(); ++i) {
-            if (strncasecmp(getSearchableText(i), searchTerm, strlen(searchTerm)) == 0) {
-                selectedPosition = i;
-                windowPosition = std::min(i, entries.size() - LIST_WINDOW_SIZE);
-                updateWindow();
-                break;
-            }
-        }
-    }
-
 public:
+    enum State {
+        OUTDATED,
+        REFRESHING,
+        READY,
+    };
+
+    virtual int initRefresh() = 0;
+
+    virtual bool advanceRefresh() = 0;
+
+    [[nodiscard]] float getRefreshProgress() const {
+        return static_cast<float>(candidateIndex) / static_cast<float>(candidateCount);
+    }
+
+    [[nodiscard]] State getState() const {
+        return state;
+    }
+
     [[nodiscard]] size_t getSize() const { return entries.size(); }
 
     void selectNext() {
@@ -139,6 +101,64 @@ public:
 
     char *getSearchTerm() {
         return searchTerm;
+    }
+
+protected:
+    DIR *dp;
+    std::vector<EntryType> entries;
+    std::vector<EntryType *> window;
+    size_t selectedPosition = 0;
+    size_t windowPosition = 0;
+    int candidateCount = 0;
+    int candidateIndex = 0;
+    char searchTerm[9] = {};
+    bool findEnabled = false;
+    State state = OUTDATED;
+
+    virtual char *getSearchableText(int index) = 0;
+
+    virtual void sort() = 0;
+
+    virtual ~ListViewBase() {
+        entries.clear();
+        window.clear();
+    }
+
+    void updateWindow() {
+        if (getSize()) {
+            window.clear();
+            for (int i = 0; i < std::min(LIST_WINDOW_SIZE, getSize()); i++) {
+                auto entry = &entries.at(windowPosition + i);
+                entry->selected = windowPosition + i == selectedPosition;
+                window.push_back(entry);
+            }
+        }
+    }
+
+    void slideDown() {
+        if (LIST_WINDOW_SIZE + windowPosition < getSize()) {
+            windowPosition++;
+        }
+    }
+
+    void slideUp() {
+        if (windowPosition > 0) {
+            windowPosition--;
+        }
+    }
+
+    void findSearchTerm() {
+        if (searchTerm[0] == '\0') {
+            return;
+        }
+        for (size_t i = 0; i < entries.size(); ++i) {
+            if (strncasecmp(getSearchableText(i), searchTerm, strlen(searchTerm)) == 0) {
+                selectedPosition = i;
+                windowPosition = std::min(i, entries.size() - LIST_WINDOW_SIZE);
+                updateWindow();
+                break;
+            }
+        }
     }
 };
 #endif //LISTVIEWBASE_H

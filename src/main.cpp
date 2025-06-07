@@ -67,7 +67,6 @@ void initUart() {
     System::enableUsb();
     if (!System::usbConnected()) {
         System::prepareFilesystem();
-        catalog->refresh();
         UI::start(quickStart);
         SIDPlayer::initAudio();
     }

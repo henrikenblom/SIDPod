@@ -65,6 +65,8 @@ public:
 
     void drawNowPlayingSymbol(int32_t y, bool animate = true);
 
+    void drawProgressBar(float progress) const;
+
     void crossoutLine(int32_t y) const;
 
     void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) const;

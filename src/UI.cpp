@@ -136,6 +136,12 @@ void UI::updateUI() {
 void UI::showSongSelector() {
     Playlist *playlist = catalog->getCurrentPlaylist();
     auto playlistState = playlist->getState();
+    gl.clear();
+    if (playlist->findIsEnabled()) {
+        gl.drawInput("FIND:", playlist->getSearchTerm(), 8);
+    } else {
+        gl.drawHeader(playlist->getName());
+    }
     if (playlistState == Playlist::State::READY) {
         currentState = song_selector;
         if (playlist->getSize()) {
@@ -143,12 +149,6 @@ void UI::showSongSelector() {
                 && !SIDPlayer::loadingWasSuccessful()) {
                 playlist->markCurrentEntryAsUnplayable();
                 SIDPlayer::resetState();
-            }
-            gl.clear();
-            if (playlist->findIsEnabled()) {
-                gl.drawInput("FIND:", playlist->getSearchTerm(), 8);
-            } else {
-                gl.drawHeader(playlist->getName());
             }
             uint8_t y = 8;
             for (const auto entry: playlist->getWindow()) {
@@ -166,17 +166,16 @@ void UI::showSongSelector() {
                 if (entry->unplayable) gl.crossoutLine(y);
                 y += 8;
             }
-            gl.update();
         }
     } else if (playlistState == Playlist::State::OUTDATED) {
         currentState = refreshing_playlist;
-        gl.clear();
-        gl.drawHeader(catalog->getCurrentPlaylist()->getName());
-        gl.drawString(SONG_LIST_LEFT_MARGIN, 16, "Loading...");
-        gl.update();
-        playlist->refresh();
-        busy_wait_ms(200);
+        playlist->initRefresh();
+        gl.drawProgressBar(0.0);
+    } else if (playlistState == Playlist::State::REFRESHING) {
+        playlist->advanceRefresh();
+        gl.drawProgressBar(playlist->getRefreshProgress());
     }
+    gl.update();
 }
 
 void UI::showPlaylistSelector() {
@@ -186,19 +185,29 @@ void UI::showPlaylistSelector() {
     } else {
         gl.drawHeader("PLAYLISTS");
     }
-    uint8_t y = FONT_HEIGHT;
-    for (const auto &entry: catalog->getWindow()) {
-        if (entry->selected && strlen(entry->name) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-            gl.animateLongText(entry->name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
-        } else {
-            gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->name);
+    if (catalog->getState() == Catalog::OUTDATED) {
+        catalog->initRefresh();
+        gl.drawProgressBar(0.0);
+    } else if (catalog->getState() == Catalog::REFRESHING) {
+        catalog->advanceRefresh();
+        gl.drawProgressBar(catalog->getRefreshProgress());
+    } else if (catalog->getSize() == 0) {
+        gl.drawModal("NO PLAYLISTS");
+    } else {
+        uint8_t y = FONT_HEIGHT;
+        for (const auto &entry: catalog->getWindow()) {
+            if (entry->selected && strlen(entry->name) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
+                gl.animateLongText(entry->name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+            } else {
+                gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->name);
+            }
+            if (entry->selected) {
+                gl.drawOpenSymbol(y);
+            } else if (entry->playing && SIDPlayer::loadingWasSuccessful()) {
+                gl.drawNowPlayingSymbol(y);
+            }
+            y += 8;
         }
-        if (entry->selected) {
-            gl.drawOpenSymbol(y);
-        } else if (entry->playing && SIDPlayer::loadingWasSuccessful()) {
-            gl.drawNowPlayingSymbol(y);
-        }
-        y += 8;
     }
     gl.update();
 }
@@ -206,12 +215,7 @@ void UI::showPlaylistSelector() {
 void UI::showVolumeControl() {
     gl.clear();
     gl.drawHeader(volumeLabel);
-    ssd13606_draw_empty_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
-                               DISPLAY_WIDTH - 1, 8);
-    ssd1306_draw_square(&disp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
-                        static_cast<int>(
-                            (DISPLAY_WIDTH - 1) * (static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(
-                                                       VOLUME_STEPS))), 8);
+    gl.drawProgressBar(static_cast<float>(SIDPlayer::getVolume()) / static_cast<float>(VOLUME_STEPS));
     gl.update();
 }
 

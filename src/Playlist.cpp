@@ -6,27 +6,49 @@
 #include <algorithm>
 #include "platform_config.h"
 
-void Playlist::refresh() {
+int Playlist::initRefresh() {
     if (state != REFRESHING) {
         state = REFRESHING;
-        FILINFO fno;
-        auto dp = new DIR;
         entries.clear();
+        dp = new DIR;
+        candidateIndex = 0;
+        candidateCount = 0;
         f_opendir(dp, name);
-        FRESULT fr = f_readdir(dp, &fno);
-        // TODO: Drive this loop externally, so that we can animate progress in the UI
-        while (fr == FR_OK && fno.fname[0] != 0 && entries.size() < MAX_LIST_ENTRIES) {
+        FILINFO fno;
+        while (f_readdir(dp, &fno) == FR_OK && fno.fname[0] != 0) {
             if (isRegularFile(&fno)) {
-                tryToAddAsPsid(&fno);
+                candidateCount++;
             }
-            fr = f_readdir(dp, &fno);
         }
-        f_closedir(dp);
-        delete dp;
-        addReturnEntry();
-        resetAccessors();
-        state = READY;
+        f_rewinddir(dp);
+        return candidateCount;
     }
+    return 0;
+}
+
+bool Playlist::advanceRefresh() {
+    if (state == REFRESHING) {
+        FILINFO fno;
+        for (int i = 0; i < std::max(1, candidateCount / 16); i++) {
+            if (f_readdir(dp, &fno) == FR_OK
+                && fno.fname[0] != 0
+                && entries.size() < MAX_LIST_ENTRIES) {
+                if (isRegularFile(&fno)) {
+                    candidateIndex++;
+                    tryToAddAsPsid(&fno);
+                }
+            } else {
+                f_closedir(dp);
+                delete dp;
+                addReturnEntry();
+                resetAccessors();
+                state = READY;
+                break;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 const char *Playlist::getName() const {
