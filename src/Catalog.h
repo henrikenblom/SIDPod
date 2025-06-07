@@ -22,9 +22,12 @@ extern Catalog *catalog;
 
 class Catalog final : public ListViewBase<CatalogEntry> {
 public:
-    void refresh() override;
+    int initRefresh() override;
+
+    bool advanceRefresh() override;
 
     void setSelectedPlaying();
+
 
     [[nodiscard]] bool hasOpenPlaylist() const;
 

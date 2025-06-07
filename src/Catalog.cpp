@@ -15,29 +15,52 @@
 #include "Playlist.h"
 
 Catalog *catalog = new Catalog();
-bool refreshing = false;
 
-void Catalog::refresh() {
-    if (!refreshing) {
-        refreshing = true;
-        FILINFO fno;
-        const auto dp = new DIR;
-        f_opendir(dp, "");
+int Catalog::initRefresh() {
+    if (state != REFRESHING) {
+        state = REFRESHING;
+        dp = new DIR;
         entries.clear();
-        while (entries.size() < MAX_LIST_ENTRIES) {
-            if (const FRESULT fr = f_readdir(dp, &fno); fr != FR_OK || fno.fname[0] == 0) break;
+        candidateIndex = 0;
+        candidateCount = 0;
+        f_opendir(dp, "");
+        FILINFO fno;
+        while (f_readdir(dp, &fno) == FR_OK && fno.fname[0] != 0) {
             if (isValidDirectory(&fno)) {
-                CatalogEntry entry = {};
-                strcpy(entry.name, fno.fname);
-                entry.selected = entries.empty();
-                entries.emplace_back(entry);
+                candidateCount++;
             }
         }
-        f_closedir(dp);
-        delete dp;
-        refreshing = false;
-        resetAccessors();
+        f_rewinddir(dp);
+        return candidateCount;
     }
+    return 0;
+}
+
+bool Catalog::advanceRefresh() {
+    if (state == REFRESHING) {
+        FILINFO fno;
+        for (int i = 0; i < std::max(1, candidateCount / 10); i++) {
+            if (f_readdir(dp, &fno) == FR_OK
+                && fno.fname[0] != 0
+                && entries.size() < MAX_LIST_ENTRIES) {
+                candidateIndex++;
+                if (isValidDirectory(&fno)) {
+                    CatalogEntry entry = {};
+                    strcpy(entry.name, fno.fname);
+                    entry.selected = entries.empty();
+                    entries.emplace_back(entry);
+                }
+            } else {
+                f_closedir(dp);
+                delete dp;
+                state = READY;
+                resetAccessors();
+                break;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 void Catalog::setSelectedPlaying() {

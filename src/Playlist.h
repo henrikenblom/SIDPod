@@ -27,12 +27,6 @@ struct PlaylistEntry {
 
 class Playlist final : public ListViewBase<PlaylistEntry> {
 public:
-    enum State {
-        OUTDATED,
-        REFRESHING,
-        READY,
-    };
-
     explicit Playlist(const char *name) {
         this->name = name;
     }
@@ -45,11 +39,9 @@ public:
 
     void markCurrentEntryAsUnplayable();
 
-    [[nodiscard]] State getState() const {
-        return state;
-    }
+    int initRefresh() override;
 
-    void refresh() override;
+    bool advanceRefresh() override;
 
     [[nodiscard]] const char *getName() const;
 
@@ -61,7 +53,6 @@ public:
 
 private:
     const char *name;
-    State state = OUTDATED;
 
     void tryToAddAsPsid(FILINFO *fileInfo);
 

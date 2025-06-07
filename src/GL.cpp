@@ -243,6 +243,13 @@ void GL::drawNowPlayingSymbol(const int32_t y, const bool animate) {
     this->drawLine(3, y + NOW_PLAYING_SYMBOL_HEIGHT - bar4, 3, y + NOW_PLAYING_SYMBOL_HEIGHT);
 }
 
+void GL::drawProgressBar(const float progress) const {
+    ssd13606_draw_empty_square(pDisp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                               DISPLAY_WIDTH - 1, 8);
+    ssd1306_draw_square(pDisp, 0, DISPLAY_HEIGHT / 2 - 4 + FONT_HEIGHT / 2,
+                        static_cast<uint32_t>((DISPLAY_WIDTH - 1) * std::min(1.0f, progress)), 8);
+}
+
 void GL::crossoutLine(const int32_t y) const {
     this->drawLine(SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
 }
