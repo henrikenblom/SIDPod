@@ -106,7 +106,7 @@ void UI::updateUI() {
             break;
         case playlist_selector:
 #ifdef USE_BUDDY
-            if (!catalog->findIsEnabled()) {
+            if (!catalog->filterInputIsFocused()) {
                 buddy->forceVerticalControl();
             }
 #endif
@@ -120,7 +120,7 @@ void UI::updateUI() {
 #endif
         default:
 #ifdef USE_BUDDY
-            if (catalog->hasOpenPlaylist() && !catalog->getCurrentPlaylist()->findIsEnabled()) {
+            if (catalog->hasOpenPlaylist() && !catalog->getCurrentPlaylist()->filterInputIsFocused()) {
                 buddy->forceVerticalControl();
             }
 #endif
@@ -136,9 +136,12 @@ void UI::updateUI() {
 void UI::showSongSelector() {
     Playlist *playlist = catalog->getCurrentPlaylist();
     auto playlistState = playlist->getState();
+    if (playlist->selectionHasChanged()) {
+        gl.resetIntervalCounter();
+    }
     gl.clear();
-    if (playlist->findIsEnabled()) {
-        gl.drawInput("FIND:", playlist->getSearchTerm(), 8);
+    if (playlist->filterInputIsFocused() || playlist->hasFilterTerm()) {
+        gl.drawInput("FILTER:", playlist->getFilterTerm(), 8, playlist->filterInputIsFocused());
     } else {
         gl.drawHeader(playlist->getName());
     }
@@ -152,16 +155,26 @@ void UI::showSongSelector() {
             }
             uint8_t y = 8;
             for (const auto entry: playlist->getWindow()) {
+                const auto highlightLength = strlen(catalog->getFilterTerm());
                 if (entry->selected && strlen(entry->getName()) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                    gl.animateLongText(entry->getName(), y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                    gl.animateLongText(entry->getName(),
+                                       y,
+                                       SONG_LIST_LEFT_MARGIN,
+                                       &longTitleScrollOffset,
+                                       entry->foundStart,
+                                       highlightLength);
                 } else {
-                    gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->getName());
+                    gl.drawString(SONG_LIST_LEFT_MARGIN,
+                                  y,
+                                  entry->getName(),
+                                  entry->foundStart,
+                                  highlightLength);
                 }
                 if (strcmp(entry->fileName, SIDPlayer::getCurrentlyLoaded()->fileName) == 0
                     && SIDPlayer::loadingWasSuccessful()) {
                     gl.drawNowPlayingSymbol(y);
                 } else if (entry->selected) {
-                    gl.drawOpenSymbol(y);
+                    gl.drawOpenSymbol(y, !playlist->filterInputIsFocused());
                 }
                 if (entry->unplayable) gl.crossoutLine(y);
                 y += 8;
@@ -180,8 +193,11 @@ void UI::showSongSelector() {
 
 void UI::showPlaylistSelector() {
     gl.clear();
-    if (catalog->findIsEnabled()) {
-        gl.drawInput("FIND:", catalog->getSearchTerm(), 8);
+    if (catalog->selectionHasChanged()) {
+        gl.resetIntervalCounter();
+    }
+    if (catalog->filterInputIsFocused() || catalog->hasFilterTerm()) {
+        gl.drawInput("FILTER:", catalog->getFilterTerm(), 8, catalog->filterInputIsFocused());
     } else {
         gl.drawHeader("PLAYLISTS");
     }
@@ -196,13 +212,15 @@ void UI::showPlaylistSelector() {
     } else {
         uint8_t y = FONT_HEIGHT;
         for (const auto &entry: catalog->getWindow()) {
+            const auto highlightLength = strlen(catalog->getFilterTerm());
             if (entry->selected && strlen(entry->name) * FONT_WIDTH > DISPLAY_WIDTH - SONG_LIST_LEFT_MARGIN) {
-                gl.animateLongText(entry->name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
+                gl.animateLongText(entry->name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset, entry->foundStart,
+                                   highlightLength);
             } else {
-                gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->name);
+                gl.drawString(SONG_LIST_LEFT_MARGIN, y, entry->name, entry->foundStart, highlightLength);
             }
             if (entry->selected) {
-                gl.drawOpenSymbol(y);
+                gl.drawOpenSymbol(y, !catalog->filterInputIsFocused());
             } else if (entry->playing && SIDPlayer::loadingWasSuccessful()) {
                 gl.drawNowPlayingSymbol(y);
             }
@@ -347,9 +365,9 @@ void UI::showBTDisconnectConfirmation() {
     gl.drawString(SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 2, yesLabel);
     gl.drawString(SONG_LIST_LEFT_MARGIN, FONT_HEIGHT * 3, noLabel);
     if (disconnectAffirmative) {
-        gl.drawOpenSymbol(FONT_HEIGHT * 2);
+        gl.drawOpenSymbol(FONT_HEIGHT * 2, true);
     } else {
-        gl.drawOpenSymbol(FONT_HEIGHT * 3);
+        gl.drawOpenSymbol(FONT_HEIGHT * 3, true);
     }
     gl.update();
 }
@@ -368,7 +386,7 @@ void UI::showBTDeviceList() {
     for (const auto &device: *buddy->getWindow()) {
         if (device.selected) {
             gl.animateLongText(device.name, y, SONG_LIST_LEFT_MARGIN, &longTitleScrollOffset);
-            gl.drawOpenSymbol(y);
+            gl.drawOpenSymbol(y, true);
         } else {
             gl.drawString(SONG_LIST_LEFT_MARGIN, y, device.name);
         }
@@ -377,7 +395,7 @@ void UI::showBTDeviceList() {
     gl.update();
 }
 
-bool UI::allowFindFunctionality() {
+bool UI::allowFilterFunctionality() {
     return currentState == song_selector
            || currentState == playlist_selector;
 }
@@ -486,8 +504,12 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
                     danceFloor->stop();
                     break;
                 case playlist_selector:
-                    catalog->openSelected();
-                    currentState = song_selector;
+                    if (catalog->filterInputIsFocused()) {
+                        catalog->unfocusFilterInput();
+                    } else {
+                        catalog->openSelected();
+                        currentState = song_selector;
+                    }
                     break;
 #ifdef USE_BUDDY
                 case refreshing_playlist:
@@ -507,20 +529,22 @@ int64_t UI::singleClickCallback(alarm_id_t id, void *user_data) {
 #endif
                 default:
                     if (catalog->hasOpenPlaylist()) {
-                        const auto playlist = catalog->getCurrentPlaylist();
-                        playlist->disableFind();
-                        if (playlist->isAtReturnEntry()) {
-                            catalog->closeSelected();
-                            currentState = playlist_selector;
-                            break;
+                        if (const auto playlist = catalog->getCurrentPlaylist(); playlist->filterInputIsFocused()) {
+                            playlist->unfocusFilterInput();
+                        } else {
+                            if (playlist->isAtReturnEntry()) {
+                                catalog->closeSelected();
+                                currentState = playlist_selector;
+                                break;
+                            }
+                            if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
+                                       playlist->getCurrentEntry()
+                                       ->fileName) != 0) {
+                                SIDPlayer::togglePlayPause();
+                                initDanceFloor();
+                            }
+                            currentState = visualization;
                         }
-                        if (strcmp(SIDPlayer::getCurrentlyLoaded()->fileName,
-                                   playlist->getCurrentEntry()
-                                   ->fileName) != 0) {
-                            SIDPlayer::togglePlayPause();
-                            initDanceFloor();
-                        }
-                        currentState = visualization;
                     }
             }
 #ifdef USE_BUDDY
@@ -554,6 +578,9 @@ volatile void UI::doubleClickCallback() {
                || currentState == volume_control
                || currentState == song_selector) {
         SIDPlayer::togglePlayPause();
+    } else if (currentState == playlist_selector) {
+        catalog->openSelected();
+        currentState = song_selector;
     }
 }
 

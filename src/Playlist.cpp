@@ -29,7 +29,7 @@ int Playlist::initRefresh() {
 bool Playlist::advanceRefresh() {
     if (state == REFRESHING) {
         FILINFO fno;
-        for (int i = 0; i < std::max(1, candidateCount / 16); i++) {
+        for (int i = 0; i < std::max(1, candidateCount / 10); i++) {
             if (f_readdir(dp, &fno) == FR_OK
                 && fno.fname[0] != 0
                 && entries.size() < MAX_LIST_ENTRIES) {
@@ -56,7 +56,7 @@ const char *Playlist::getName() const {
 }
 
 bool Playlist::isAtReturnEntry() const {
-    return selectedPosition == 0;
+    return strcmp(getCurrentEntry()->title, RETURN_ENTRY_TITLE) == 0;
 }
 
 void Playlist::addReturnEntry() {
@@ -66,8 +66,9 @@ void Playlist::addReturnEntry() {
     entries.emplace(entries.begin(), entry);
 }
 
-PlaylistEntry *Playlist::getCurrentEntry() {
-    return &entries.at(selectedPosition);
+
+PlaylistEntry *Playlist::getCurrentEntry() const {
+    return filteredEntries[selectedPosition];
 }
 
 std::vector<PlaylistEntry *> Playlist::getWindow() {
@@ -79,7 +80,15 @@ bool Playlist::isAtLastEntry() const {
 }
 
 char *Playlist::getSearchableText(const int index) {
-    return entries[index].title;
+    return entries[index].getName();
+}
+
+void Playlist::markAsFound(const int index, const char position) {
+    entries[index].foundStart = position + 1;
+}
+
+void Playlist::unmarkAsFound(const int index) {
+    entries[index].foundStart = 0;
 }
 
 void Playlist::sort() {
@@ -90,21 +99,21 @@ void Playlist::sort() {
     });
 }
 
-void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath) {
-    snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, entries.at(selectedPosition).fileName);
+void Playlist::getFullPathForSelectedEntry(TCHAR *fullPath, const size_t size) const {
+    snprintf(fullPath, size, "%s/%s", name, getCurrentEntry()->fileName);
 }
 
 void Playlist::tryToAddAsPsid(FILINFO *fileInfo) {
     FIL pFile;
     BYTE header[PSID_MINIMAL_HEADER_SIZE];
     UINT bytesRead;
-    TCHAR fullPath[FF_LFN_BUF + 1];
-    snprintf(fullPath, FF_LFN_BUF + 1, "%s/%s", name, fileInfo->fname);
+    TCHAR fullPath[MAX_PATH_LENGTH];
+    snprintf(fullPath, MAX_PATH_LENGTH, "%s/%s", name, fileInfo->fname);
     f_open(&pFile, fullPath, FA_READ);
     f_read(&pFile, &header, PSID_MINIMAL_HEADER_SIZE, &bytesRead);
     if (bytesRead == PSID_MINIMAL_HEADER_SIZE) {
-        uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
-        if (magic == PSID_ID || magic == RSID_ID) {
+        if (const uint32_t magic = header[3] | header[2] << 0x08 | header[1] << 0x10 | header[0] << 0x18;
+            magic == PSID_ID || magic == RSID_ID) {
             const auto *pHeader = static_cast<unsigned char *>(header);
             PlaylistEntry entry{};
             entry.unplayable = false;
@@ -121,6 +130,6 @@ bool Playlist::isRegularFile(const FILINFO *fileInfo) {
     return fileInfo->fattrib == 32 && fileInfo->fname[0] != 46;
 }
 
-void Playlist::markCurrentEntryAsUnplayable() {
+void Playlist::markCurrentEntryAsUnplayable() const {
     getCurrentEntry()->unplayable = true;
 }

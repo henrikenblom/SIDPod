@@ -19,7 +19,7 @@
 #define UART_READABLE_TIMEOUT_MS            100
 #define MAX_CONNECTION_ATTEMPTS             3
 #define LAST_BT_DEVICE_FILE                 "last_bt.txt"
-#define CURSOR_BLINK_INTERVAL_VBL           10
+#define BLINK_INTERVAL_VBL           10
 
 enum RequestType {
     RT_NONE = 0,

@@ -66,6 +66,7 @@ add_executable(${PROJECT_NAME}
         src/GL.cpp
         src/GL.h
         src/ListViewBase.h
+        src/EntryBase.h
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)

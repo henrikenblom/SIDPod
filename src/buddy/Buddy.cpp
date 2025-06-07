@@ -148,40 +148,39 @@ void buddyCallback() {
                     buddy->setConnected();
                     break;
                 case NT_SPACE_DETECTED:
-                    if (UI::allowFindFunctionality()) {
+                    if (UI::allowFilterFunctionality()) {
                         if (catalog->hasOpenPlaylist()) {
-                            if (const auto playlist = catalog->getCurrentPlaylist(); playlist->findIsEnabled()) {
-                                playlist->addToSearchTerm(32);
+                            if (const auto playlist = catalog->getCurrentPlaylist(); playlist->filterInputIsFocused()) {
+                                playlist->addToFilterTerm(32);
                             } else {
-                                playlist->enableFind();
+                                playlist->focusFilterInput();
                             }
                         } else {
-                            if (catalog->findIsEnabled()) {
-                                catalog->addToSearchTerm(32);
+                            if (catalog->filterInputIsFocused()) {
+                                catalog->addToFilterTerm(32);
                             } else {
-                                catalog->enableFind();
+                                catalog->focusFilterInput();
                             }
                         }
                         buddy->enableScribbleMode();
                     }
                     break;
                 case NT_BACKSPACE_DETECTED:
-                    if (UI::allowFindFunctionality()) {
+                    if (UI::allowFilterFunctionality()) {
                         if (catalog->hasOpenPlaylist()) {
-                            catalog->getCurrentPlaylist()->disableFind();
+                            catalog->getCurrentPlaylist()->deleteFromFilterTerm();
                         } else {
-                            catalog->disableFind();
+                            catalog->deleteFromFilterTerm();
                         }
-                        buddy->forceVerticalControl();
                     }
                     break;
                 case NT_CHARACTER_DETECTED:
                     character = uart_getc(UART_ID);
-                    if (UI::allowFindFunctionality()) {
+                    if (UI::allowFilterFunctionality()) {
                         if (catalog->hasOpenPlaylist()) {
-                            catalog->getCurrentPlaylist()->addToSearchTerm(character);
+                            catalog->getCurrentPlaylist()->addToFilterTerm(character);
                         } else {
-                            catalog->addToSearchTerm(character);
+                            catalog->addToFilterTerm(character);
                         }
                     }
                     break;

@@ -7,6 +7,7 @@
 #ifdef USE_SDCARD
 #include "sd_card.h"
 #endif
+#include <algorithm>
 #include <cstring>
 #include <vector>
 #include <string>
@@ -67,8 +68,8 @@ void Catalog::setSelectedPlaying() {
     for (auto &entry: entries) {
         entry.playing = false;
     }
-    if (!entries.empty() && selectedPosition < static_cast<int>(entries.size())) {
-        entries[selectedPosition].playing = true;
+    if (!filteredEntries.empty() && selectedPosition < static_cast<int>(getFilteredSize())) {
+        filteredEntries[selectedPosition]->playing = true;
     }
 }
 
@@ -85,7 +86,7 @@ void Catalog::closeSelected() {
 
 void Catalog::openSelected() {
     delete currentPlaylist;
-    currentPlaylist = new Playlist(entries.at(selectedPosition).name);
+    currentPlaylist = new Playlist(filteredEntries.at(selectedPosition)->name);
 }
 
 Playlist *Catalog::getCurrentPlaylist() const {
@@ -133,6 +134,14 @@ bool Catalog::containsAtLeastOnePSID(char *name) {
 
 char *Catalog::getSearchableText(const int index) {
     return entries[index].name;
+}
+
+void Catalog::markAsFound(const int index, const char position) {
+    entries[index].foundStart = position + 1;
+}
+
+void Catalog::unmarkAsFound(const int index) {
+    entries[index].foundStart = 0;
 }
 
 void Catalog::sort() {

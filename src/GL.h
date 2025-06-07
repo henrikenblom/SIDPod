@@ -18,7 +18,7 @@ public:
         gpio_pull_up(DISPLAY_GPIO_BASE_PIN + 1);
         pDisp->external_vcc = DISPLAY_EXTERNAL_VCC;
         ssd1306_init(pDisp, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_I2C_ADDRESS, i2c1);
-        cursorIntervalCounter = 0;
+        intervalCounter = 0;
     }
 
     void drawPixel(int32_t x, int32_t y, int32_t clip = 0) const;
@@ -29,7 +29,7 @@ public:
 
     void drawEmptySquare(int32_t x1, int32_t y1, int32_t width, int32_t height) const;
 
-    void drawString(int32_t x, int32_t y, const char *pStr) const;
+    void drawString(int32_t x, int32_t y, const char *pStr, char highlightStart = 0, char highlightLength = 0) const;
 
     void showBMPImage(const uint8_t *data, long size) const;
 
@@ -57,11 +57,11 @@ public:
 
     void drawHeader(const char *title);
 
-    void drawInput(const char *label, const char *text, int8_t maxLength);
+    void drawInput(const char *label, const char *text, int8_t maxLength, bool hasFocus = false);
 
     void drawModal(const char *text) const;
 
-    void drawOpenSymbol(int32_t y) const;
+    void drawOpenSymbol(int32_t y, bool hasFocus);
 
     void drawNowPlayingSymbol(int32_t y, bool animate = true);
 
@@ -69,7 +69,12 @@ public:
 
     void crossoutLine(int32_t y) const;
 
-    void animateLongText(const char *title, int32_t y, int32_t xMargin, float *offsetCounter) const;
+    void animateLongText(const char *title,
+                         int32_t y,
+                         int32_t xMargin,
+                         float *offsetCounter,
+                         char highlightStart = 0,
+                         char highlightLength = 0) const;
 
     void clear() const;
 
@@ -79,13 +84,15 @@ public:
 
     void displayOff() const;
 
+    void resetIntervalCounter();
+
 private:
     ssd1306_t *pDisp;
     uint8_t horizontalLineDitherOffset = 0;
-    int32_t cursorIntervalCounter;
+    int32_t intervalCounter;
     float longTitleScrollOffset{}, headerScrollOffset{}, playingSymbolAnimationCounter = 0;
 
-    bool showCursor();
+    bool isAtVisibleInterval();
 };
 
 

@@ -62,7 +62,7 @@ public:
 
     static void showBTDeviceList();
 
-    static bool allowFindFunctionality();
+    static bool allowFilterFunctionality();
 #endif
 
 private:

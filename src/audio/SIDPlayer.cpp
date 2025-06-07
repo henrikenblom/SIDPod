@@ -195,12 +195,12 @@ volatile bool SIDPlayer::loadPSID(TCHAR *fullPath) {
     while (true) {
         if (playPauseQueued) {
             if (catalog->hasOpenPlaylist()) {
-                Playlist *playlist = catalog->getCurrentPlaylist();
+                const Playlist *playlist = catalog->getCurrentPlaylist();
                 PlaylistEntry *currentCatalogEntry = playlist->getCurrentEntry();
                 if (strcmp(currentCatalogEntry->fileName, lastCatalogEntry->fileName) != 0) {
                     resetState();
-                    TCHAR fullPath[FF_LFN_BUF + 1];
-                    playlist->getFullPathForSelectedEntry(fullPath);
+                    TCHAR fullPath[MAX_PATH_LENGTH];
+                    playlist->getFullPathForSelectedEntry(fullPath, MAX_PATH_LENGTH);
                     if (loadPSID(fullPath)) {
                         catalog->setSelectedPlaying();
                         loadingSuccessful = true;

@@ -37,8 +37,13 @@ void GL::drawEmptySquare(const int32_t x1, const int32_t y1, const int32_t width
     ssd13606_draw_empty_square(pDisp, x1, y1, width, height);
 }
 
-void GL::drawString(const int32_t x, const int32_t y, const char *pStr) const {
+void GL::drawString(const int32_t x, const int32_t y, const char *pStr, const char highlightStart,
+                    const char highlightLength) const {
     ssd1306_draw_string(pDisp, x, y, 1, pStr);
+    if (highlightStart && highlightLength) {
+        drawLine(x + FONT_WIDTH * (highlightStart - 1), y + FONT_HEIGHT - 1,
+                 x + FONT_WIDTH * (highlightStart + highlightLength - 1) - 1, y + FONT_HEIGHT - 1);
+    }
 }
 
 void GL::showBMPImage(const uint8_t *data, const long size) const {
@@ -190,7 +195,7 @@ void GL::drawHeader(const char *title) {
     }
 }
 
-void GL::drawInput(const char *label, const char *text, const int8_t maxLength) {
+void GL::drawInput(const char *label, const char *text, const int8_t maxLength, const bool hasFocus) {
     const int textLength = static_cast<int>(strlen(text));
     const int textWidth = textLength * FONT_WIDTH;
     const int labelWidth = static_cast<int>(strlen(label) * FONT_WIDTH);
@@ -200,7 +205,7 @@ void GL::drawInput(const char *label, const char *text, const int8_t maxLength) 
     this->drawLine(0, 6, 8, 6);
     this->drawString(12, 0, label);
     this->drawString(12 + labelWidth, 0, text);
-    if (textLength < maxLength && showCursor()) {
+    if (textLength < maxLength && hasFocus && isAtVisibleInterval()) {
         this->drawString(12 + labelWidth + textWidth, 2, "_");
     }
 }
@@ -216,10 +221,12 @@ void GL::drawModal(const char *text) const {
     this->drawString(DISPLAY_X_CENTER - labelWidth / 2 + 1, DISPLAY_Y_CENTER - FONT_HEIGHT / 2 + 1, text);
 }
 
-void GL::drawOpenSymbol(const int32_t y) const {
-    this->drawPixel(0, y + 2);
-    this->drawLine(0, y + 3, 2, y + 3);
-    this->drawPixel(0, y + 4);
+void GL::drawOpenSymbol(const int32_t y, const bool hasFocus) {
+    if (!hasFocus || isAtVisibleInterval()) {
+        this->drawPixel(0, y + 2);
+        this->drawLine(hasFocus ? 0 : 1, y + 3, 2, y + 3);
+        this->drawPixel(0, y + 4);
+    }
 }
 
 void GL::drawNowPlayingSymbol(const int32_t y, const bool animate) {
@@ -254,8 +261,13 @@ void GL::crossoutLine(const int32_t y) const {
     this->drawLine(SONG_LIST_LEFT_MARGIN, y + 3, DISPLAY_WIDTH, y + 3);
 }
 
-void GL::animateLongText(const char *title, const int32_t y, const int32_t xMargin, float *offsetCounter) const {
-    this->drawString(xMargin - static_cast<int32_t>(*offsetCounter), y, title);
+void GL::animateLongText(const char *title,
+                         const int32_t y,
+                         const int32_t xMargin,
+                         float *offsetCounter,
+                         const char highlightStart,
+                         const char highlightLength) const {
+    this->drawString(xMargin - static_cast<int32_t>(*offsetCounter), y, title, highlightStart, highlightLength);
     const int scrollRange = static_cast<int>(strlen(title)) * FONT_WIDTH - DISPLAY_WIDTH + xMargin;
     const float advancement =
             *offsetCounter > 1 && static_cast<int>(*offsetCounter) < scrollRange
@@ -291,9 +303,13 @@ void GL::displayOff() const {
     ssd1306_poweroff(pDisp);
 }
 
-bool GL::showCursor() {
-    if (cursorIntervalCounter++ > CURSOR_BLINK_INTERVAL_VBL * 2) {
-        cursorIntervalCounter = 0;
+void GL::resetIntervalCounter() {
+    intervalCounter = 0;
+}
+
+bool GL::isAtVisibleInterval() {
+    if (intervalCounter++ > BLINK_INTERVAL_VBL * 2) {
+        intervalCounter = 0;
     }
-    return cursorIntervalCounter < CURSOR_BLINK_INTERVAL_VBL;
+    return intervalCounter < BLINK_INTERVAL_VBL;
 }

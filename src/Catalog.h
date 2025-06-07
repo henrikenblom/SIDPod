@@ -7,12 +7,12 @@
 
 #include <cstring>
 
+#include "EntryBase.h"
 #include "ff.h"
 #include "Playlist.h"
 
-struct CatalogEntry {
+struct CatalogEntry final : EntryBase {
     TCHAR name[FF_LFN_BUF + 1];
-    bool selected;
     bool playing;
 };
 
@@ -47,6 +47,10 @@ private:
     static bool containsAtLeastOnePSID(char *name);
 
     char *getSearchableText(int index) override;
+
+    void markAsFound(int index, char position) override;
+
+    void unmarkAsFound(int index) override;
 
     void sort() override;
 };

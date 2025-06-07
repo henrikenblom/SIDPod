@@ -84,6 +84,7 @@
 #define FONT_WIDTH                          6
 #define FONT_HEIGHT                         8
 #define LIST_WINDOW_SIZE                    (size_t)((DISPLAY_HEIGHT / FONT_HEIGHT) - 1)
+#define MAX_PATH_LENGTH                     FF_LFN_BUF + FF_SFN_BUF + 1
 #define MAX_LIST_ENTRIES                    256
 #define RETURN_ENTRY_TITLE                  "<< Return"
 #define SONG_LIST_LEFT_MARGIN               6
