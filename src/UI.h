@@ -4,6 +4,8 @@
 #include "Catalog.h"
 #include "display/include/ssd1306.h"
 
+extern bool usbEjected;
+
 class UI {
 public:
     enum State {

@@ -2,9 +2,6 @@
 #include <hardware/gpio.h>
 #include <cstdio>
 #include "UI.h"
-
-#include <string>
-
 #include "buddy/Buddy.h"
 #include "Catalog.h"
 #include "GL.h"
@@ -16,6 +13,7 @@
 #include "visualization/DanceFloor.h"
 #include "sidpod_24px_height_bmp.h"
 #include "System.h"
+
 
 ssd1306_t disp;
 GL gl(&disp);
@@ -236,7 +234,7 @@ inline void UI::showRasterBars() {
     gl.clear();
     const int y = random() % (DISPLAY_HEIGHT);
     gl.drawLine(0, y, DISPLAY_WIDTH - 1, y);
-    gl.drawModal("USB CONNECTED");
+    gl.drawModal(usbEjected ? "SAFE TO UNPLUG" : "USB MOUNTED");
     gl.update();
 }
 

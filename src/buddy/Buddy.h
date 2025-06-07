@@ -133,7 +133,7 @@ public:
         lastScribbleUpdate = millis();
     }
 
-    [[nodiscard]] bool scribbleDataIsFresh() {
+    [[nodiscard]] bool scribbleDataIsFresh() const {
         const bool isFresh = millis() < lastScribbleUpdate + SCRIBBLE_TIMEOUT_MS;
         if (!isFresh) {
             memset(scribbleBuffer, 0, 98);
@@ -141,11 +141,11 @@ public:
         return isFresh;
     }
 
-    const char *getConnectedDeviceName() const {
+    [[nodiscard]] const char *getConnectedDeviceName() const {
         return lastConnectedDeviceName;
     }
 
-    const char *getSelectedDeviceName() const {
+    [[nodiscard]] const char *getSelectedDeviceName() const {
         return selectedDeviceName;
     }
 

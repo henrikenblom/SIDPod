@@ -2,10 +2,18 @@
 #include "diskio.h"
 #include "msc_control.h"
 
-static bool ejected = false;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool usbEjected = false;
+
+#ifdef __cplusplus
+}
+#endif
 
 void set_msc_ready_to_attach() {
-    ejected = false;
+    usbEjected = false;
 }
 
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4]) {
@@ -14,9 +22,9 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
     const char pid[] = "SIDPod";
     const char rev[] = "2.0";
 
-    strncpy((char *) vendor_id, vid, 8);
-    strncpy((char *) product_id, pid, 16);
-    strncpy((char *) product_rev, rev, 4);
+    strncpy((char *) vendor_id, vid, 6);
+    strncpy((char *) product_id, pid, 6);
+    strncpy((char *) product_rev, rev, 3);
 }
 
 #ifdef USE_SDCARD
@@ -41,11 +49,11 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
     (void)power_condition;
     if (load_eject) {
         if (start) {
-            ejected = false;
+            usbEjected = false;
         } else {
             DRESULT dr = disk_ioctl(lun, CTRL_SYNC, 0);
             if (RES_OK != dr) return false;
-            ejected = true;
+            usbEjected = true;
             printf("Ejected\n");
         }
     }
@@ -58,7 +66,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
     assert(!offset);
     assert(!(bufsize % 512));
 
-    if (ejected) return -1;
+    if (usbEjected) return -1;
     if (!tud_msc_test_unit_ready_cb(lun)) return -1;
 
     DRESULT dr = disk_read(lun, buffer, lba, bufsize / 512);
@@ -68,7 +76,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
 }
 
 bool tud_msc_is_writable_cb(uint8_t lun) {
-    if (ejected) return false;
+    if (usbEjected) return false;
 
     DSTATUS ds = disk_status(lun);
     return !(STA_PROTECT & ds);
@@ -80,7 +88,7 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* 
     assert(!offset);
     assert(!(bufsize % 512));
 
-    if (ejected) return -1;
+    if (usbEjected) return -1;
     if (!tud_msc_test_unit_ready_cb(lun)) return -1;
 
     DRESULT dr = disk_write(lun, buffer, lba, bufsize / 512);
