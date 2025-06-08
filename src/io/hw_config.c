@@ -31,10 +31,10 @@ static sd_sdio_if_t sdio_if = {
         CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
         As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30,
             which is -2 in mod32 arithmetic, so:
-        CLK_gpio = D0_gpio -2.
-        D1_gpio = D0_gpio + 1;
-        D2_gpio = D0_gpio + 2;
-        D3_gpio = D0_gpio + 3;
+        CLK_gpio = D0_gpio -2. = 16
+        D1_gpio = D0_gpio + 1 = 19
+        D2_gpio = D0_gpio + 2 = 20
+        D3_gpio = D0_gpio + 3 = 21
     */
     .CMD_gpio = 17,
     .D0_gpio = 18,

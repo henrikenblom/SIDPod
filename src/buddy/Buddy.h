@@ -14,7 +14,7 @@
 #if USE_BUDDY
 
 #define SCRIBBLE_TIMEOUT_MS                 500
-#define BUDDY_ENABLE_PIN                    22
+#define BUDDY_ENABLE_PIN                    7
 #define BUDDY_BT_CONNECTED_PIN              15
 #define UART_READABLE_TIMEOUT_MS            100
 #define MAX_CONNECTION_ATTEMPTS             3
