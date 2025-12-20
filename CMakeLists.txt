@@ -13,6 +13,9 @@ set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
 #set(USE_SDCARD 1)
 #set(USE_BUDDY 1)
 
+set(DISPLAY_SSD1306 1)
+#set(DISPLAY_SSD1305 1)
+
 include(bin2h.cmake)
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
@@ -155,9 +158,24 @@ if (DEFINED USE_BUDDY)
     )
 endif ()
 
+
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS
         "-Wl,--print-memory-usage"
 )
+
+if (DEFINED DISPLAY_SSD1305)
+    message("Building for SSD1305 display")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+        DISPLAY_SSD1305=1
+        )
+endif()
+
+if (DEFINED DISPLAY_SSD1306)
+    message("Building for SSD1306 display")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+        DISPLAY_SSD1306=1
+        )
+endif()
 
 pico_enable_stdio_uart(${PROJECT_NAME} 1)
 pico_enable_stdio_usb(${PROJECT_NAME} 0)

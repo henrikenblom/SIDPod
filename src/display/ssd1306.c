@@ -58,6 +58,8 @@ inline static void ssd1306_write(ssd1306_t *p, uint8_t val) {
     fancy_write(p->i2c_i, p->address, d, 2, "ssd1306_write");
 }
 
+#if DISPLAY_SSD1306
+
 bool ssd1306_init(ssd1306_t *p, uint16_t width, uint16_t height, uint8_t address, i2c_inst_t *i2c_instance) {
     p->width = width;
     p->height = height;
@@ -114,6 +116,121 @@ bool ssd1306_init(ssd1306_t *p, uint16_t width, uint16_t height, uint8_t address
 
     return true;
 }
+
+void ssd1306_show(ssd1306_t *p) {
+    uint8_t payload[] = {SET_COL_ADDR, 0, p->width - 1, SET_PAGE_ADDR, 0, p->pages - 1};
+    if (p->width == 64) {
+        payload[1] += 32;
+        payload[2] += 32;
+    }
+
+    for (size_t i = 0; i < sizeof(payload); ++i)
+        ssd1306_write(p, payload[i]);
+
+    *(p->buffer - 1) = 0x40;
+
+    fancy_write(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, "ssd1306_show");
+}
+
+void ssd1306_show_unacked(ssd1306_t *p) {
+    uint8_t payload[] = {SET_COL_ADDR, 0, p->width - 1, SET_PAGE_ADDR, 0, p->pages - 1};
+    if (p->width == 64) {
+        payload[1] += 32;
+        payload[2] += 32;
+    }
+
+    for (size_t i = 0; i < sizeof(payload); ++i) {
+        uint8_t d[2] = {0x00, payload[i]};
+        i2c_write_blocking(p->i2c_i, p->address, d, 2, false);
+    }
+
+    *(p->buffer - 1) = 0x40;
+
+    i2c_write_blocking(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, false);
+}
+#endif
+
+#if DISPLAY_SSD1305
+
+#define SSD1305_COLUMN_OFFSET 4
+
+bool ssd1306_init(ssd1306_t *p, uint16_t width, uint16_t height, uint8_t address, i2c_inst_t *i2c_instance) {
+    p->width = width;
+    p->height = height;
+    p->pages = height / 8;    // 4 pages if 128x32
+    p->address = address;
+
+    p->i2c_i = i2c_instance;
+
+    p->bufsize = (p->pages) * (p->width); // 512
+    if ((p->buffer = malloc(p->bufsize + 1)) == NULL) {
+        p->bufsize = 0;
+        return false;
+    }
+
+    ++(p->buffer);
+
+    // from https://github.com/makerportal/rpi-pico-ssd1306
+    uint8_t cmds[] = {
+        SET_DISP,
+        // timing and driving scheme
+        SET_DISP_CLK_DIV,
+        0x80,
+        SET_MUX_RATIO, 0x1f,
+        SET_DISP_OFFSET,
+        0x00,
+        // resolution and layout
+        SET_DISP_START_LINE,
+        SET_SEG_REMAP | 0x01, // column addr 127 mapped to SEG0
+        SET_COM_OUT_DIR | 0x08, // scan from COM[N] to COM0
+        SET_COM_PIN_CFG, 0x12,
+        0x21, 4, 131,
+        // display
+        SET_CONTRAST, 0xff,
+        SET_PRECHARGE, 0x22,
+        SET_VCOM_DESEL, 0x40,
+        SET_ENTIRE_ON, // output follows RAM contents
+        SET_NORM_INV, // not inverted
+        SET_DISP | 0x01
+    };
+
+    for (size_t i = 0; i < sizeof(cmds); ++i)
+        ssd1306_write(p, cmds[i]);
+
+    return true;
+}
+
+void ssd1306_show(ssd1306_t *p) {
+    for (uint8_t page = 0; page < 4; ++page) {
+        ssd1306_write(p, 0xB0 | page);
+        ssd1306_write(p, 0x00 | (SSD1305_COLUMN_OFFSET & 0x0F)); // lower column
+        ssd1306_write(p, 0x10 | (SSD1305_COLUMN_OFFSET >> 4));  // upper column
+
+        uint8_t *bufptr = &p->buffer[page * 128] - 1;
+        uint8_t saved = *bufptr;
+        *bufptr = 0x40; // data control
+        fancy_write(p->i2c_i, p->address, bufptr, 128 + 1, "ssd1306_show");
+        *bufptr = saved;
+    }
+}
+
+void ssd1306_show_unacked(ssd1306_t *p) {
+    memset(p->buffer, 0xFF, sizeof p->buffer);
+
+    for (uint8_t page = 0; page < 4; ++page) {
+        ssd1306_write(p, 0xB0 | page);
+        ssd1306_write(p, 0x00 | (SSD1305_COLUMN_OFFSET & 0x0F)); // lower column
+        ssd1306_write(p, 0x10 | (SSD1305_COLUMN_OFFSET >> 4));  // upper column
+
+        uint8_t *bufptr = &p->buffer[page * 128] - 1;
+        uint8_t saved = *bufptr;
+        *bufptr = 0x40; // data control
+        i2c_write_blocking(p->i2c_i, p->address, bufptr, 128 + 1, false);
+        *bufptr = saved;
+    }
+}
+
+#endif
 
 inline void ssd1306_deinit(ssd1306_t *p) {
     free(p->buffer - 1);
@@ -278,38 +395,6 @@ void ssd1306_bmp_show_image_with_offset(ssd1306_t *p, const uint8_t *data, const
 
 inline void ssd1306_bmp_show_image(ssd1306_t *p, const uint8_t *data, const long size) {
     ssd1306_bmp_show_image_with_offset(p, data, size, 0, 0);
-}
-
-void ssd1306_show(ssd1306_t *p) {
-    uint8_t payload[] = {SET_COL_ADDR, 0, p->width - 1, SET_PAGE_ADDR, 0, p->pages - 1};
-    if (p->width == 64) {
-        payload[1] += 32;
-        payload[2] += 32;
-    }
-
-    for (size_t i = 0; i < sizeof(payload); ++i)
-        ssd1306_write(p, payload[i]);
-
-    *(p->buffer - 1) = 0x40;
-
-    fancy_write(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, "ssd1306_show");
-}
-
-void ssd1306_show_unacked(ssd1306_t *p) {
-    uint8_t payload[] = {SET_COL_ADDR, 0, p->width - 1, SET_PAGE_ADDR, 0, p->pages - 1};
-    if (p->width == 64) {
-        payload[1] += 32;
-        payload[2] += 32;
-    }
-
-    for (size_t i = 0; i < sizeof(payload); ++i) {
-        uint8_t d[2] = {0x00, payload[i]};
-        i2c_write_blocking(p->i2c_i, p->address, d, 2, false);
-    }
-
-    *(p->buffer - 1) = 0x40;
-
-    i2c_write_blocking(p->i2c_i, p->address, p->buffer - 1, p->bufsize + 1, false);
 }
 
 void ssd1306_clear_pixel(ssd1306_t *p, uint32_t x, uint32_t y) {
