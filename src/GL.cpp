@@ -8,8 +8,10 @@
 #include <cstdio>
 #include <cstring>
 
-#include "Buddy.h"
 #include "platform_config.h"
+#if USE_BUDDY
+#include "Buddy.h"
+#endif
 #include "System.h"
 
 using std::sin;
@@ -312,8 +314,12 @@ void GL::resetIntervalCounter() {
 }
 
 bool GL::isAtVisibleInterval() {
+#if USE_BUDDY
     if (intervalCounter++ > BLINK_INTERVAL_VBL * 2) {
         intervalCounter = 0;
     }
     return intervalCounter < BLINK_INTERVAL_VBL;
+#else
+    return true;
+#endif
 }

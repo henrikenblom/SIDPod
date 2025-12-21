@@ -7,7 +7,8 @@ set(PICO_BOARD solderparty_rp2040_stamp)
 set(BOARD pico_sdk)
 set(FAMILY rp2040)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 
 set(TINYUSB_PATH ${PICO_SDK_PATH}/lib/tinyusb)
 #set(USE_SDCARD 1)
@@ -32,8 +33,8 @@ add_executable(${PROJECT_NAME}
         src/main.cpp
         src/io/msc_disk.c
         src/io/usb_descriptors.c
-        src/audio/c64.cpp
-        src/audio/c64.h
+        src/audio/C64.cpp
+        src/audio/C64.h
         src/visualization/kiss_fftr.c
         src/visualization/kiss_fft.c
         src/display/ssd1306.c

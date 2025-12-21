@@ -116,7 +116,7 @@ int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer,
 #else
 
 bool tud_msc_test_unit_ready_cb(uint8_t lun) {
-    if (ejected) {
+    if (usbEjected) {
         tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
         return false;
     }
@@ -134,9 +134,9 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
     (void) power_condition;
     if (load_eject) {
         if (start) {
-            ejected = false;
+            usbEjected = false;
         } else {
-            ejected = true;
+            usbEjected = true;
         }
     }
     return true;
@@ -150,7 +150,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void *buff
 }
 
 bool tud_msc_is_writable_cb(uint8_t lun) {
-    return !ejected;
+    return !usbEjected;
 }
 
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize) {
