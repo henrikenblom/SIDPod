@@ -52,7 +52,7 @@ void initUart() {
 }
 #endif
 
-[[noreturn]] int main() {
+int main() {
     set_sys_clock_khz(CLOCK_SPEED_KHZ, true);
     stdio_init_all();
 #if USE_BUDDY

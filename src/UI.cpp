@@ -2,10 +2,12 @@
 #include <hardware/gpio.h>
 #include <cstdio>
 #include "UI.h"
-#include "buddy/Buddy.h"
 #include "Catalog.h"
 #include "GL.h"
 #include "platform_config.h"
+#if USE_BUDDY
+#include "buddy/Buddy.h"
+#endif
 #include "display/include/ssd1306.h"
 #include "Playlist.h"
 #include "audio/SIDPlayer.h"
